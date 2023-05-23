@@ -166,8 +166,8 @@ process NANOFILT {
 }
 
 process CANU_RACE {
-  publishDir "${params.outdir}/${sampleid}/canu", pattern:'*.unassembled.fasta', mode: 'link'
-  publishDir "${params.outdir}/${sampleid}/canu", pattern:'*.assembly.fasta', mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/canu", pattern:'*_unassembled.fasta', mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/canu", pattern:'*_assembly.fasta', mode: 'link'
   tag "${sampleid}"
   label 'xlarge'
 
