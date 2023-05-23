@@ -1,2 +1,3 @@
-# ovisp
-ONT-based viral screening in plants
+# OViSP workflow
+
+
