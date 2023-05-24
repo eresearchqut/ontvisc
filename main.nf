@@ -322,111 +322,111 @@ process NANOQ {
 }
 
 process FILTER_HOST {
-	cpus "${params.minimap2_threads}"
-	tag "${sampleid}"
-	label "xlarge2"
-	publishDir "$params.outdir/$sampleid/wgs",  mode: 'copy', pattern: '*unaligned_ids.txt', saveAs: { filename -> "${sampleid}_unaligned_ids.txt"}
+  cpus "${params.minimap2_threads}"
+  tag "${sampleid}"
+  label "xlarge2"
+  publishDir "$params.outdir/$sampleid/wgs",  mode: 'copy', pattern: '*unaligned_ids.txt', saveAs: { filename -> "${sampleid}_unaligned_ids.txt"}
 
   container 'quay.io/biocontainers/minimap2:2.24--h7132678_1'
 
-	input:
-	tuple val(sampleid), path(filtered), path(reference)
-	output:
-	tuple val(sampleid), path(filtered), path("${sampleid}_unaligned_ids.txt"), path(reference), emit: host_filtered_ids
+  input:
+  tuple val(sampleid), path(filtered), path(reference)
+  output:
+  tuple val(sampleid), path(filtered), path("${sampleid}_unaligned_ids.txt"), path(reference), emit: host_filtered_ids
 
-	script:
-	"""
-	minimap2 -ax splice -uf -k14 ${params.plant_host_fasta} ${filtered} > ${sampleid}_plant_host.sam
-	awk '\$6 == "*" { print \$0 }' ${sampleid}_plant_host.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
-	"""
+  script:
+  """
+  minimap2 -ax splice -uf -k14 ${params.plant_host_fasta} ${filtered} > ${sampleid}_plant_host.sam
+  awk '\$6 == "*" { print \$0 }' ${sampleid}_plant_host.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
+  """
 }
 
 process EXTRACT_READS {
-	tag "${sampleid}"
-	label "large"
-	publishDir "$params.outdir/$sampleid/wgs", mode: 'copy', pattern: '*_unaligned.fasta', saveAs: { filename -> "${sampleid}_unaligned.fasta"}
+  tag "${sampleid}"
+  label "large"
+  publishDir "$params.outdir/$sampleid/wgs", mode: 'copy', pattern: '*_unaligned.fasta', saveAs: { filename -> "${sampleid}_unaligned.fasta"}
 
   container = 'docker://quay.io/biocontainers/seqtk:1.3--h7132678_4'
 
-	input:
-	tuple val(sampleid), path(filtered), path(unaligned_ids), path(reference)
-	output:
-	tuple val(sampleid), path("${sampleid}_unaligned.fasta"), path(reference), emit: host_filtered_fasta
+  input:
+  tuple val(sampleid), path(filtered), path(unaligned_ids), path(reference)
+  output:
+  tuple val(sampleid), path("${sampleid}_unaligned.fasta"), path(reference), emit: host_filtered_fasta
 
-	script:
-	"""
-	seqtk subseq ${filtered} ${sampleid}_unaligned_ids.txt > ${sampleid}_unaligned.fastq
-	seqtk seq -a ${sampleid}_unaligned.fastq > ${sampleid}_unaligned.fasta
-	"""
+  script:
+  """
+  seqtk subseq ${filtered} ${sampleid}_unaligned_ids.txt > ${sampleid}_unaligned.fastq
+  seqtk seq -a ${sampleid}_unaligned.fastq > ${sampleid}_unaligned.fasta
+  """
 }
 
 process CAP3 {
-	tag "${sampleid}"
-	label "large"
-	time "3h"
-	publishDir "$params.outdir/$sampleid/wgs", mode: 'copy', pattern: '*_cap3.fasta', saveAs: { filename -> "${sampleid}_cap3.fasta"}
+  tag "${sampleid}"
+  label "large"
+  time "3h"
+  publishDir "$params.outdir/$sampleid/wgs", mode: 'copy', pattern: '*_cap3.fasta', saveAs: { filename -> "${sampleid}_cap3.fasta"}
 
   container = 'docker://quay.io/biocontainers/cap3:10.2011--h779adbc_3'
 
-	input:
-	tuple val(sampleid), path(unaligned_fasta), path(reference)
-	output:
-	tuple val(sampleid), path("${sampleid}_cap3.fasta"), path(reference), emit: cap3_fasta
+  input:
+  tuple val(sampleid), path(unaligned_fasta), path(reference)
+  output:
+  tuple val(sampleid), path("${sampleid}_cap3.fasta"), path(reference), emit: cap3_fasta
 
-	script:
-	"""
-	cap3 ${sampleid}_unaligned.fasta
-	cat ${sampleid}_unaligned.fasta.cap.singlets ${sampleid}_unaligned.fasta.cap.contigs > ${sampleid}_cap3.fasta
-	"""
+  script:
+  """
+  cap3 ${sampleid}_unaligned.fasta
+  cat ${sampleid}_unaligned.fasta.cap.singlets ${sampleid}_unaligned.fasta.cap.contigs > ${sampleid}_cap3.fasta
+  """
 }
 
 process BLASTN_WGS {
-	cpus "${params.blast_threads}"
-	tag "${sampleid}"
-	label "xlarge"
-	time "5h"
-	publishDir "$params.outdir/$sampleid/wgs",  mode: 'link', overwrite: true, pattern: '*.bls', saveAs: { filename -> "${sampleid}_blastn_vs_NT.bls"}
+  cpus "${params.blast_threads}"
+  tag "${sampleid}"
+  label "xlarge"
+  time "5h"
+  publishDir "$params.outdir/$sampleid/wgs",  mode: 'link', overwrite: true, pattern: '*.bls', saveAs: { filename -> "${sampleid}_blastn_vs_NT.bls"}
 
   container 'quay.io/biocontainers/blast:2.13.0--hf3cf87c_0'
 
-	input:
-	tuple val(sampleid), path("${sampleid}_cap3_fasta"), path(reference)
-	output:
-	path("*.bls")
-	tuple val(sampleid), path("${sampleid}_blastn_vs_NT.bls"), path(reference), emit: blast_results
+  input:
+  tuple val(sampleid), path("${sampleid}_cap3_fasta"), path(reference)
+  output:
+  path("*.bls")
+  tuple val(sampleid), path("${sampleid}_blastn_vs_NT.bls"), path(reference), emit: blast_results
 
-	script:
-	"""
-	cp ${params.blast_db_dir}/taxdb.btd .
-	cp ${params.blast_db_dir}/taxdb.bti .
-	blastn -query ${sampleid}_cap3.fasta \
-			-db ${blastn_db_name} \
-			-out ${sampleid}_blastn_vs_NT.bls \
-			-evalue 0.0001 \
-			-num_threads ${params.blast_threads} \
-			-outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe sscinames' \
-			-max_target_seqs 25
-	"""
+  script:
+  """
+  cp ${params.blast_db_dir}/taxdb.btd .
+  cp ${params.blast_db_dir}/taxdb.bti .
+  blastn -query ${sampleid}_cap3.fasta \
+    -db ${blastn_db_name} \
+    -out ${sampleid}_blastn_vs_NT.bls \
+    -evalue 0.0001 \
+    -num_threads ${params.blast_threads} \
+    -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe sscinames' \
+    -max_target_seqs 25
+"""
 }
 
 process EXTRACT_VIRAL_BLAST_HITS {
-	tag "${sampleid}"
-	label "large"
-	publishDir "$params.outdir/$sampleid/wgs",  mode: 'link', overwrite: true
+  tag "${sampleid}"
+  label "large"
+  publishDir "$params.outdir/$sampleid/wgs",  mode: 'link', overwrite: true
 
   container = 'docker://infrahelpers/python-light:py310-bullseye'
 
-	input:
-	tuple val(sampleid), path("${sampleid}_blastn_vs_NT.bls"), path(reference)
-	output:
-	file "${sampleid}_blastn_vs_NT_top_hits.txt"
-	file "${sampleid}_blastn_vs_NT_top_viral_hits.txt"
-	file "${sampleid}_blastn_vs_NT_top_viral_spp_hits.txt"
+  input:
+  tuple val(sampleid), path("${sampleid}_blastn_vs_NT.bls"), path(reference)
+  output:
+  file "${sampleid}_blastn_vs_NT_top_hits.txt"
+  file "${sampleid}_blastn_vs_NT_top_viral_hits.txt"
+  file "${sampleid}_blastn_vs_NT_top_viral_spp_hits.txt"
 
-	script:
-	"""
-	select_top_blast_hit.py --sample_name ${sampleid} --megablast_results ${sampleid}_blastn_vs_NT.bls
-	"""
+  script:
+  """
+  select_top_blast_hit.py --sample_name ${sampleid} --megablast_results ${sampleid}_blastn_vs_NT.bls
+  """
 }
 
 workflow {
@@ -445,8 +445,8 @@ workflow {
       FILTER_HOST(NANOFILT.out.nanofilt_filtered_fq)
       EXTRACT_READS(FILTER_HOST.out.host_filtered_ids)
       CAP3(EXTRACT_READS.out.host_filtered_fasta)
-			BLASTN_WGS(CAP3.out.cap3_fasta)
-			EXTRACT_VIRAL_BLAST_HITS(BLASTN_WGS.out.blast_results)
+      BLASTN_WGS(CAP3.out.cap3_fasta)
+      EXTRACT_VIRAL_BLAST_HITS(BLASTN_WGS.out.blast_results)
     }
   } else if (!params.wgs) {
 
