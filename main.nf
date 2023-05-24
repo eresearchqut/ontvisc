@@ -20,7 +20,8 @@ def helpMessage () {
                               Default:  'index.csv'
       Contents of samplesheet csv:
         sampleid,sample_files,reference
-        SAMPLE01,/user/folder/*.fastq.gz,/path/to/reference.fasta
+        SAMPLE01,/user/folder/sample.fastq.gz,/path/to/reference.fasta
+        SAMPLE02,/user/folder/*.fastq.gz,/path/to/reference.fasta
 
         sample_files can refer to a folder with a number of
         files that will be merged in the pipeline
@@ -122,8 +123,8 @@ process CUTADAPT_RACE {
 }
 
 process CHOPPER {
-  publishDir "${params.outdir}/${sampleid}/canu", pattern:'*_filtered.fastq.gz', mode: 'link'
-  publishDir "${params.outdir}/${sampleid}/canu", pattern: '*_chopper.log', mode: 'link'
+  //publishDir "${params.outdir}/${sampleid}/chopper", pattern:'*_filtered.fastq.gz', mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/chopper", pattern: '*_chopper.log', mode: 'link'
   tag "${sampleid}"
   label 'large'
 
@@ -144,7 +145,7 @@ process CHOPPER {
 }
 
 process NANOFILT {
-  publishDir "${params.outdir}/${sampleid}/canu", pattern:'*_filtered.fastq.gz', mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/nanofilt", pattern:'*_filtered.fastq.gz', mode: 'link'
   //publishDir "${params.outdir}/${sampleid}/canu", pattern: '*_nanofilt.log', mode: 'link'
   tag "${sampleid}"
   label 'small'
@@ -186,7 +187,9 @@ process CANU_RACE {
   canu -assemble -p ${sampleid} -d ${sampleid} \
     -corrected -trimmed \
     genomeSize=${params.canu_genome_size} \
+    readSamplingCoverage=100 \
     useGrid=false minOverlapLength=50  minReadLength=500 stopOnLowCoverage=0 corMinCoverage=0 \
+    contigFilter="2 0 1.0 0.5 0" \
     -nanopore ${sample} \
     
 
@@ -318,7 +321,116 @@ process NANOQ {
   """
 }
 
+process FILTER_HOST {
+	cpus "${params.minimap2_threads}"
+	tag "${sampleid}"
+	label "xlarge2"
+	publishDir "$params.outdir/$sampleid/wgs",  mode: 'copy', pattern: '*unaligned_ids.txt', saveAs: { filename -> "${sampleid}_unaligned_ids.txt"}
+
+  container 'quay.io/biocontainers/minimap2:2.24--h7132678_1'
+
+	input:
+	tuple val(sampleid), path(filtered), path(reference)
+	output:
+	tuple val(sampleid), path(filtered), path("${sampleid}_unaligned_ids.txt"), path(reference), emit: host_filtered_ids
+
+	script:
+	"""
+	minimap2 -ax splice -uf -k14 ${params.plant_host_fasta} ${filtered} > ${sampleid}_plant_host.sam
+	awk '\$6 == "*" { print \$0 }' ${sampleid}_plant_host.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
+	"""
+}
+
+process EXTRACT_READS {
+	tag "${sampleid}"
+	label "large"
+	publishDir "$params.outdir/$sampleid/wgs", mode: 'copy', pattern: '*_unaligned.fasta', saveAs: { filename -> "${sampleid}_unaligned.fasta"}
+
+  container = 'docker://quay.io/biocontainers/seqtk:1.3--h7132678_4'
+
+	input:
+	tuple val(sampleid), path(filtered), path(unaligned_ids), path(reference)
+	output:
+	tuple val(sampleid), path("${sampleid}_unaligned.fasta"), path(reference), emit: host_filtered_fasta
+
+	script:
+	"""
+	seqtk subseq ${filtered} ${sampleid}_unaligned_ids.txt > ${sampleid}_unaligned.fastq
+	seqtk seq -a ${sampleid}_unaligned.fastq > ${sampleid}_unaligned.fasta
+	"""
+}
+
+process CAP3 {
+	tag "${sampleid}"
+	label "large"
+	time "3h"
+	publishDir "$params.outdir/$sampleid/wgs", mode: 'copy', pattern: '*_cap3.fasta', saveAs: { filename -> "${sampleid}_cap3.fasta"}
+
+  container = 'docker://quay.io/biocontainers/cap3:10.2011--h779adbc_3'
+
+	input:
+	tuple val(sampleid), path(unaligned_fasta), path(reference)
+	output:
+	tuple val(sampleid), path("${sampleid}_cap3.fasta"), path(reference), emit: cap3_fasta
+
+	script:
+	"""
+	cap3 ${sampleid}_unaligned.fasta
+	cat ${sampleid}_unaligned.fasta.cap.singlets ${sampleid}_unaligned.fasta.cap.contigs > ${sampleid}_cap3.fasta
+	"""
+}
+
+process BLASTN_WGS {
+	cpus "${params.blast_threads}"
+	tag "${sampleid}"
+	label "xlarge"
+	time "5h"
+	publishDir "$params.outdir/$sampleid/wgs",  mode: 'link', overwrite: true, pattern: '*.bls', saveAs: { filename -> "${sampleid}_blastn_vs_NT.bls"}
+
+  container 'quay.io/biocontainers/blast:2.13.0--hf3cf87c_0'
+
+	input:
+	tuple val(sampleid), path("${sampleid}_cap3_fasta"), path(reference)
+	output:
+	path("*.bls")
+	tuple val(sampleid), path("${sampleid}_blastn_vs_NT.bls"), path(reference), emit: blast_results
+
+	script:
+	"""
+	cp ${params.blast_db_dir}/taxdb.btd .
+	cp ${params.blast_db_dir}/taxdb.bti .
+	blastn -query ${sampleid}_cap3.fasta \
+			-db ${blastn_db_name} \
+			-out ${sampleid}_blastn_vs_NT.bls \
+			-evalue 0.0001 \
+			-num_threads ${params.blast_threads} \
+			-outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe sscinames' \
+			-max_target_seqs 25
+	"""
+}
+
+process EXTRACT_VIRAL_BLAST_HITS {
+	tag "${sampleid}"
+	label "large"
+	publishDir "$params.outdir/$sampleid/wgs",  mode: 'link', overwrite: true
+
+  container = 'docker://infrahelpers/python-light:py310-bullseye'
+
+	input:
+	tuple val(sampleid), path("${sampleid}_blastn_vs_NT.bls"), path(reference)
+	output:
+	file "${sampleid}_blastn_vs_NT_top_hits.txt"
+	file "${sampleid}_blastn_vs_NT_top_viral_hits.txt"
+	file "${sampleid}_blastn_vs_NT_top_viral_spp_hits.txt"
+
+	script:
+	"""
+	select_top_blast_hit.py --sample_name ${sampleid} --megablast_results ${sampleid}_blastn_vs_NT.bls
+	"""
+}
+
 workflow {
+  
   if (params.samplesheet) {
     Channel
       .fromPath(params.samplesheet, checkIfExists: true)
@@ -327,36 +439,51 @@ workflow {
       .set{ ch_sample }
   } else { exit 1, "Input samplesheet file not specified!" }
 
-  MERGE ( ch_sample )
+  if (params.wgs) {
+    NANOFILT ( ch_sample )
+    if (params.host_filtering) {
+      FILTER_HOST(NANOFILT.out.nanofilt_filtered_fq)
+      EXTRACT_READS(FILTER_HOST.out.host_filtered_ids)
+      CAP3(EXTRACT_READS.out.host_filtered_fasta)
+			BLASTN_WGS(CAP3.out.cap3_fasta)
+			EXTRACT_VIRAL_BLAST_HITS(BLASTN_WGS.out.blast_results)
+    }
+  } else if (!params.wgs) {
 
-  if ( params.canu)  {
-    if ( params.race3 || params.race5 ) {
-      /*
-      if (params.cutadapt) {
+    MERGE ( ch_sample )
+
+    if ( params.canu)  {
+      if ( params.race3 || params.race5 ) {
+        /*
+        if (params.cutadapt) {
+          CUTADAPT_RACE ( MERGE.out.merged )
+          }
+        */
         CUTADAPT_RACE ( MERGE.out.merged )
-        }
-      */
-      CUTADAPT_RACE ( MERGE.out.merged )
-      if (params.nanofilt) {
-        NANOFILT ( CUTADAPT_RACE.out.cutadapt_filtered )
-        CANU_RACE ( NANOFILT.out.nanofilt_filtered_fq )
-        }
-      else if (params.chopper) {
-        CHOPPER ( CUTADAPT_RACE.out.cutadapt_filtered )
-        CANU_RACE ( CHOPPER.out.chopper_filtered_fq )
-        }
-      BLASTN ( CANU_RACE.out.canu_race_assembly )
-    }  
-  }
-  NANOPLOT ( ch_sample )
-  if (params.flye) {
-    FLYE ( MERGE.out.merged )
-    BLASTN ( FLYE.out.assembly )
-  }
-  MINIMAP2 ( MERGE.out.merged )
-  if (params.infoseq) {
-    INFOSEQ ( MINIMAP2.out.aligned_sample )
-    SAMTOOLS ( INFOSEQ.out.infoseq_ref )
-    NANOQ ( SAMTOOLS.out.sorted_sample )
+        if (params.nanofilt) {
+          NANOFILT ( CUTADAPT_RACE.out.cutadapt_filtered )
+          CANU_RACE ( NANOFILT.out.nanofilt_filtered_fq )
+          }
+        else if (params.chopper) {
+          CHOPPER ( CUTADAPT_RACE.out.cutadapt_filtered )
+          CANU_RACE ( CHOPPER.out.chopper_filtered_fq )
+          }
+        BLASTN ( CANU_RACE.out.canu_race_assembly )
+      }  
+    }
+    NANOPLOT ( ch_sample )
+    if (params.flye) {
+      FLYE ( MERGE.out.merged )
+      BLASTN ( FLYE.out.assembly )
+    }
+
+    if (params.minimap) {
+      MINIMAP2 ( MERGE.out.merged )
+      if (params.infoseq) {
+        INFOSEQ ( MINIMAP2.out.aligned_sample )
+        SAMTOOLS ( INFOSEQ.out.infoseq_ref )
+        NANOQ ( SAMTOOLS.out.sorted_sample )
+      }
+    }
   }
 }
