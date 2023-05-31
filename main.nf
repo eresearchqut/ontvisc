@@ -19,9 +19,9 @@ def helpMessage () {
                                         samples to be analysed by this pipeline.
                               Default:  'index.csv'
       Contents of samplesheet csv:
-        sampleid,sample_files,reference
-        SAMPLE01,/user/folder/sample.fastq.gz,/path/to/reference.fasta
-        SAMPLE02,/user/folder/*.fastq.gz,/path/to/reference.fasta
+        sampleid,sample_files
+        SAMPLE01,/user/folder/sample.fastq.gz
+        SAMPLE02,/user/folder/*.fastq.gz
 
         sample_files can refer to a folder with a number of
         files that will be merged in the pipeline
@@ -55,16 +55,39 @@ if (params.help) {
     exit 0
 }
 
+if (params.blast_db_dir != null) {
+    blastn_db_name = "${params.blast_db_dir}/nt"
+}
 
+if (params.reference != null) {
+    reference_name = file(params.reference).name
+    reference_dir = file(params.reference).parent
+}
+
+
+switch (workflow.containerEngine) {
+  case "singularity":
+    bindbuild = "";
+    if (params.blast_db_dir != null) {
+      bindbuild = (bindbuild + "-B ${params.blast_db_dir} ")
+    }
+    if (params.reference != null) {
+      bindbuild = (bindbuild + "-B ${reference_dir} ")
+    }
+    bindOptions = bindbuild;
+    break;
+  default:
+    bindOptions = "";
+}
 process MERGE {
   //publishDir "${params.outdir}/${sampleid}/merge", pattern: '*.fastq.gz', mode: 'link'
   tag "${sampleid}"
   label 'small'
 
   input:
-    tuple val(sampleid), path(lanes), path(reference)
+    tuple val(sampleid), path(lanes)
   output:
-    tuple val(sampleid), path("${sampleid}.fastq.gz"), path(reference), emit: merged
+    tuple val(sampleid), path("${sampleid}.fastq.gz"), emit: merged
   script:
   """
   cat ${lanes} > ${sampleid}.fastq.gz
@@ -81,7 +104,7 @@ process NANOPLOT {
   container 'quay.io/biocontainers/nanoplot:1.41.0--pyhdfd78af_0'
   
   input:
-    tuple val(sampleid), path(sample), path(reference)
+    tuple val(sampleid), path(sample)
   output:
     path("*.html")
     path("*NanoStats.txt")
@@ -100,11 +123,11 @@ process CUTADAPT_RACE {
   container 'quay.io/biocontainers/cutadapt:4.1--py310h1425a21_1'
 
   input:
-    tuple val(sampleid), path(sample), path(reference)
+    tuple val(sampleid), path(sample)
   output:
     //path("${sampleid}_cutadapt_filtered.fastq.gz")
     path("${sampleid}_cutadapt.log")
-    tuple val(sampleid), path("${sampleid}_cutadapt_filtered.fastq.gz"), path(reference), emit: cutadapt_filtered
+    tuple val(sampleid), path("${sampleid}_cutadapt_filtered.fastq.gz"), emit: cutadapt_filtered
   script:
   """
   if [[ ${params.race5} == true ]]; then
@@ -131,12 +154,12 @@ process CHOPPER {
   container 'quay.io/biocontainers/chopper:0.5.0--hdcf5f25_2'
 
   input:
-    tuple val(sampleid), path(sample), path(reference)
+    tuple val(sampleid), path(sample)
 
   output:
   path("${sampleid}_chopper.log")
     path("${sampleid}_filtered.fastq.gz")
-    tuple val(sampleid), path("${sampleid}_filtered.fastq.gz"), path(reference), emit: chopper_filtered_fq
+    tuple val(sampleid), path("${sampleid}_filtered.fastq.gz"), emit: chopper_filtered_fq
 
   script:
   """
@@ -153,12 +176,12 @@ process NANOFILT {
   container 'quay.io/biocontainers/nanofilt:2.8.0--py_0'
 
   input:
-    tuple val(sampleid), path(sample), path(reference)
+    tuple val(sampleid), path(sample)
 
   output:
     path("${sampleid}_filtered.fastq.gz")
     //path("${sampleid}_nanofilt.log")
-    tuple val(sampleid), path("${sampleid}_filtered.fastq.gz"), path(reference), emit: nanofilt_filtered_fq
+    tuple val(sampleid), path("${sampleid}_filtered.fastq.gz"), emit: nanofilt_filtered_fq
 
   script:
   """
@@ -175,12 +198,12 @@ process CANU_RACE {
   container 'quay.io/biocontainers/canu:2.2--ha47f30e_0'
 
   input:
-    tuple val(sampleid), path(sample), path(reference)
+    tuple val(sampleid), path(sample)
 
   output:
     path("${sampleid}_canu_assembly.fasta")
     path("${sampleid}_canu_unassembled.fasta")
-    tuple val(sampleid), path("${sampleid}_canu_assembly.fasta"), path(reference), emit: canu_race_assembly
+    tuple val(sampleid), path("${sampleid}_canu_assembly.fasta"), emit: canu_race_assembly
     
   script:
   """
@@ -207,11 +230,11 @@ process FLYE {
   container "quay.io/biocontainers/flye:2.9.1--py310h590eda1_0"
 
   input:
-    tuple val(sampleid), path(sample), path(reference)
+    tuple val(sampleid), path(sample)
   output:
     path 'outdir/*'
     path("${sampleid}_flye_assembly.fasta")
-    tuple val(sampleid), path("${sampleid}_flye_assembly.fasta"), path(reference), emit: assembly
+    tuple val(sampleid), path("${sampleid}_flye_assembly.fasta"), emit: assembly
   script:
   """
   flye  --out-dir outdir --threads ${task.cpus} --read-error ${params.flye_read_error} --${params.flye_ont_mode} ${sample}
@@ -229,22 +252,23 @@ process BLASTN {
   publishDir "${params.outdir}/${sampleid}/blastn", mode: 'link'
   tag "${sampleid}"
   label 'small'
+  containerOptions "${bindOptions}"
 
   container 'quay.io/biocontainers/blast:2.13.0--hf3cf87c_0'
 
   input:
-    tuple val(sampleid), path(assembly), path(reference)
+    tuple val(sampleid), path(assembly)
   output:
-    path "BLASTN_${reference}_vs_${assembly}.txt"
+    path "BLASTN_reference_vs_${assembly}.txt"
 
   script:
   """
-  blastn -query ${assembly} -subject ${reference} -evalue 1e-5 -out blastn_${reference}_vs_${assembly}.txt \
-    -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs'
+  blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out blastn_reference_vs_${assembly}.txt \
+    -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
   
   echo "qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs" > header
   
-  cat header blastn_${reference}_vs_${assembly}.txt > BLASTN_${reference}_vs_${assembly}.txt
+  cat header blastn_reference_vs_${assembly}.txt > BLASTN_reference_vs_${assembly}.txt
   """
 }
 
@@ -252,16 +276,17 @@ process MINIMAP2 {
   publishDir "${params.outdir}/${sampleid}/minimap2", mode: 'link'
   tag "${sampleid}"
   label 'medium'
+  containerOptions "${bindOptions}"
 
   container 'quay.io/biocontainers/minimap2:2.24--h7132678_1'
 
   input:
-    tuple val(sampleid), path(sample),path(reference)
+    tuple val(sampleid), path(sample)
   output:
-    tuple val(sampleid), file("${sampleid}_aln.sam"), path(reference), emit: aligned_sample
+    tuple val(sampleid), file("${sampleid}_aln.sam"), emit: aligned_sample
   script:
   """
-  minimap2 -a --MD ${reference} ${sample} > ${sampleid}_aln.sam
+  minimap2 -a --MD ${reference_dir}/${reference_name} ${sample} > ${sampleid}_aln.sam
   """
 }
 
@@ -269,18 +294,18 @@ process INFOSEQ {
   publishDir "${params.outdir}/${sampleid}/infoseq", mode: 'link'
   tag "${sampleid}"
   label 'small'
+  containerOptions "${bindOptions}"
 
   container "quay.io/biocontainers/emboss:6.6.0--h1b6f16a_5"
 
   input:
-    tuple val(sampleid), path(sample), path(reference)
+    tuple val(sampleid), path(sample)
   output:
-    tuple val(sampleid), path(sample), path("${reference}_list.txt"), emit: infoseq_ref
+    tuple val(sampleid), path(sample), emit: infoseq_ref
   script:
   """
-  infoseq ${reference} -only -name -length | sed 1d > ${reference}_list.txt
+  infoseq ${reference_dir}/${reference_name} -only -name -length | sed 1d > ${reference_name}_list.txt
   """
-
 }
 
 process SAMTOOLS {
@@ -291,12 +316,12 @@ process SAMTOOLS {
   container 'quay.io/biocontainers/samtools:1.16.1--h6899075_1'
 
   input:
-    tuple val(sampleid), path(sample), path(reference_list)
+    tuple val(sampleid), path(sample)
   output:
     tuple val(sampleid), path("${sampleid}_aln.sorted.bam"), path("${sampleid}_aln.sorted.bam.bai"), emit: sorted_sample
   script:
   """
-  samtools view -bt ${reference_list} -o ${sampleid}_aln.bam ${sample}
+  samtools view -bt ${reference_dir}/${reference_name} -o ${sampleid}_aln.bam ${sample}
   samtools sort -T /tmp/aln.sorted -o ${sampleid}_aln.sorted.bam ${sampleid}_aln.bam
   samtools index ${sampleid}_aln.sorted.bam
   """
@@ -310,7 +335,7 @@ process NANOQ {
   container 'ghcr.io/eresearchqut/nano-q:1.0.0'
 
   input:
-    tuple val(sampleid), path(sorted_sample), path(sorted_sample_index)
+    tuple val(sampleid), path(sorted_sample)
   output:
     //path 'Results/*'
     path 'Results'
@@ -318,6 +343,42 @@ process NANOQ {
   script:
   """
   nano-q.py -b ${sorted_sample} -c ${params.nanoq_code_start} -l ${params.nanoq_read_length} -nr ${params.nanoq_num_ref} -q ${params.nanoq_qual_threshhold} -j ${params.nanoq_jump}
+  """
+}
+
+process PORECHOP {
+	tag "${sampleid}"
+	label "xlarge2"
+	publishDir "$params.outdir/${sampleid}/porechop",  mode: 'copy', pattern: "*.log", saveAs: { filename -> "${sample}_$filename" }
+
+  container = 'docker://quay.io/biocontainers/porechop:0.2.3_seqan2.1.1--0'
+
+	input:
+		tuple val(sampleid), path(sample)
+	output:
+		tuple val(sampleid), file("porechop_trimmed.fastq.gz"), emit: porechop_trimmed_fq
+	script:
+	"""
+	porechop -i ${sample} -t ${params.porechop_threads} -o porechop_trimmed.fastq.gz ${params.porechop_args}
+	"""
+}
+
+process PORECHOP_ABI {
+  tag "${sampleid}"
+  label "xlarge2"
+  publishDir "$params.outdir/${sampleid}/porechop",  mode: 'copy', pattern: "*.log", saveAs: { filename -> "${sample}_$filename" }
+
+  container = 'docker://quay.io/biocontainers/porechop_abi:0.5.0--py38he0f268d_2'
+
+  input:
+    tuple val(sampleid), path(sample)
+
+  output:
+    tuple val(sampleid), file("porechop_trimmed.fastq.gz"), emit: porechopabi_trimmed_fq
+
+  script:
+  """
+  porechop_abi -abi -i ${sample} -t ${params.porechop_threads} -o porechop_trimmed.fastq.gz ${params.porechop_args}
   """
 }
 
@@ -330,9 +391,9 @@ process FILTER_HOST {
   container 'quay.io/biocontainers/minimap2:2.24--h7132678_1'
 
   input:
-  tuple val(sampleid), path(filtered), path(reference)
+  tuple val(sampleid), path(filtered)
   output:
-  tuple val(sampleid), path(filtered), path("${sampleid}_unaligned_ids.txt"), path(reference), emit: host_filtered_ids
+  tuple val(sampleid), path(filtered), path("${sampleid}_unaligned_ids.txt"), emit: host_filtered_ids
 
   script:
   """
@@ -349,14 +410,32 @@ process EXTRACT_READS {
   container = 'docker://quay.io/biocontainers/seqtk:1.3--h7132678_4'
 
   input:
-  tuple val(sampleid), path(filtered), path(unaligned_ids), path(reference)
+  tuple val(sampleid), path(filtered), path(unaligned_ids)
   output:
-  tuple val(sampleid), path("${sampleid}_unaligned.fasta"), path(reference), emit: host_filtered_fasta
+  tuple val(sampleid), path("${sampleid}_unaligned.fasta"), emit: host_filtered_fasta
 
   script:
   """
   seqtk subseq ${filtered} ${sampleid}_unaligned_ids.txt > ${sampleid}_unaligned.fastq
   seqtk seq -a ${sampleid}_unaligned.fastq > ${sampleid}_unaligned.fasta
+  """
+}
+
+process FASTQ2FASTA {
+  tag "${sampleid}"
+  label "large"
+  publishDir "$params.outdir/$sampleid/wgs", mode: 'copy', pattern: '*_filtered.fasta'
+
+  container = 'docker://quay.io/biocontainers/seqtk:1.3--h7132678_4'
+
+  input:
+  tuple val(sampleid), path(filtered)
+  output:
+  tuple val(sampleid), path("${sampleid}_filtered.fasta"), emit: fasta
+
+  script:
+  """
+  seqtk seq -a ${filtered} > ${sampleid}_filtered.fasta
   """
 }
 
@@ -369,9 +448,9 @@ process CAP3 {
   container = 'docker://quay.io/biocontainers/cap3:10.2011--h779adbc_3'
 
   input:
-  tuple val(sampleid), path(unaligned_fasta), path(reference)
+  tuple val(sampleid), path(unaligned_fasta)
   output:
-  tuple val(sampleid), path("${sampleid}_cap3.fasta"), path(reference), emit: cap3_fasta
+  tuple val(sampleid), path("${sampleid}_cap3.fasta"), emit: cap3_fasta
 
   script:
   """
@@ -385,15 +464,16 @@ process BLASTN_WGS {
   tag "${sampleid}"
   label "xlarge"
   time "5h"
+  containerOptions "${bindOptions}"
   publishDir "$params.outdir/$sampleid/wgs",  mode: 'link', overwrite: true, pattern: '*.bls', saveAs: { filename -> "${sampleid}_blastn_vs_NT.bls"}
 
   container 'quay.io/biocontainers/blast:2.13.0--hf3cf87c_0'
 
   input:
-  tuple val(sampleid), path("${sampleid}_cap3_fasta"), path(reference)
+  tuple val(sampleid), path("${sampleid}_cap3.fasta")
   output:
   path("*.bls")
-  tuple val(sampleid), path("${sampleid}_blastn_vs_NT.bls"), path(reference), emit: blast_results
+  tuple val(sampleid), path("${sampleid}_blastn_vs_NT.bls"), emit: blast_results
 
   script:
   """
@@ -402,10 +482,10 @@ process BLASTN_WGS {
   blastn -query ${sampleid}_cap3.fasta \
     -db ${blastn_db_name} \
     -out ${sampleid}_blastn_vs_NT.bls \
-    -evalue 0.0001 \
+    -evalue 1e-3 \
     -num_threads ${params.blast_threads} \
     -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe sscinames' \
-    -max_target_seqs 25
+    -max_target_seqs 5
 """
 }
 
@@ -417,7 +497,58 @@ process EXTRACT_VIRAL_BLAST_HITS {
   container = 'docker://infrahelpers/python-light:py310-bullseye'
 
   input:
-  tuple val(sampleid), path("${sampleid}_blastn_vs_NT.bls"), path(reference)
+  tuple val(sampleid), path(blast_results)
+  output:
+  file "${sampleid}_blastn_vs_NT_top_hits.txt"
+  file "${sampleid}_blastn_vs_NT_top_viral_hits.txt"
+  file "${sampleid}_blastn_vs_NT_top_viral_spp_hits.txt"
+
+  script:
+  """  
+  cat ${blast_results} > ${sampleid}_blastn_vs_NT.txt
+
+  select_top_blast_hit.py --sample_name ${sampleid} --megablast_results ${sampleid}_blastn_vs_NT.txt
+  """
+}
+
+process BLASTN_SPLIT {
+  publishDir "${params.outdir}/${sampleid}/blastn", mode: 'link'
+  tag "${sampleid}"
+  label 'xlarge'
+  containerOptions "${bindOptions}"
+  time "12h"
+
+  container 'quay.io/biocontainers/blast:2.13.0--hf3cf87c_0'
+
+  input:
+    tuple val(sampleid), path(assembly)
+  output:
+    tuple val(sampleid), path("${sampleid}*_blastn_vs_NT.bls"), emit: blast_results
+
+  script:
+  def blastoutput = assembly.getBaseName() + "_blastn_vs_NT.bls"
+  """
+  cp ${params.blast_db_dir}/taxdb.btd .
+  cp ${params.blast_db_dir}/taxdb.bti .
+  blastn -query ${assembly} \
+    -db ${blastn_db_name} \
+    -out ${blastoutput} \
+    -evalue 1e-3 \
+    -num_threads ${params.blast_threads} \
+    -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe sscinames' \
+    -max_target_seqs 5
+  """
+}
+/*
+process SUMMARISE_VIRAL_BLAST_HITS {
+  tag "${sampleid}"
+  label "large"
+  publishDir "$params.outdir/$sampleid/wgs",  mode: 'link', overwrite: true
+
+  container = 'docker://infrahelpers/python-light:py310-bullseye'
+
+  input:
+  tuple val(sampleid), path(blast_results)
   output:
   file "${sampleid}_blastn_vs_NT_top_hits.txt"
   file "${sampleid}_blastn_vs_NT_top_viral_hits.txt"
@@ -425,8 +556,38 @@ process EXTRACT_VIRAL_BLAST_HITS {
 
   script:
   """
-  select_top_blast_hit.py --sample_name ${sampleid} --megablast_results ${sampleid}_blastn_vs_NT.bls
+  echo "qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs" > header
+  
+  cat header ${blast_results} > ${sampleid}_blastn_vs_NT_merged.txt
+
+  select_top_blast_hit.py --sample_name ${sampleid} --megablast_results ${blast_results}
   """
+}
+*/
+process KRAKEN2 {
+	cpus 2
+	tag "${sampleid}"
+	memory "8GB"
+	publishDir "$params.outdir/$sampleid/kraken",  mode: 'copy', pattern: '*filtered.fastq.gz', saveAs: { filename -> "${sample}_$filename" }
+	input:
+		tuple val(barcode), path(filtered), val(sample), val(genome_size)
+	output:
+		tuple val(barcode), path("filtered.fastq.gz"), val(sample), val(genome_size), emit: filtered_fastq
+		path("*.log")
+		path("filtlong_version.txt")
+	script:
+	"""
+	set +eu
+	sed '/^@/s/.\s./_/g' ${filtered} > krkinput.fastq
+	kraken2 --db $krkdb --use-names --threads 2 krkinput.fastq > krakenreport.txt
+	echo "seq_id" > seq_ids.txt 
+	awk -F "\\t" '{print \$2}' krakenreport.txt >> seq_ids.txt       
+	gawk -F "\\t" 'match(\$0, /\\(taxid\s([0-9]+)\\)/, ary) {print ary[1]}' krakenreport.txt | taxonkit lineage --data-dir $taxondb > lineage.txt
+	cat lineage.txt | taxonkit reformat  --data-dir $taxondb | csvtk -H -t cut -f 1,3 | csvtk -H -t sep -f 2 -s ';' -R > seq_tax.txt
+	cat lineage.txt | taxonkit reformat -P  --data-dir $taxondb | csvtk -H -t cut -f 1,3 > seq_tax_otu.txt
+	paste seq_ids.txt seq_tax.txt > kraken_report_annotated.txt
+	paste seq_ids.txt seq_tax_otu.txt > kraken_report_annotated_otu.txt
+	"""
 }
 
 workflow {
@@ -435,24 +596,34 @@ workflow {
     Channel
       .fromPath(params.samplesheet, checkIfExists: true)
       .splitCsv(header:true)
-      .map{ row-> tuple((row.sampleid), file(row.sample_files), file(row.reference)) }
+      .map{ row-> tuple((row.sampleid), file(row.sample_files)) }
       .set{ ch_sample }
   } else { exit 1, "Input samplesheet file not specified!" }
 
   if (params.wgs) {
-    NANOFILT ( ch_sample )
+    PORECHOP_ABI (ch_sample)
+    NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
     if (params.host_filtering) {
-      FILTER_HOST(NANOFILT.out.nanofilt_filtered_fq)
-      EXTRACT_READS(FILTER_HOST.out.host_filtered_ids)
-      CAP3(EXTRACT_READS.out.host_filtered_fasta)
-      BLASTN_WGS(CAP3.out.cap3_fasta)
-      EXTRACT_VIRAL_BLAST_HITS(BLASTN_WGS.out.blast_results)
+      FILTER_HOST( NANOFILT.out.nanofilt_filtered_fq )
+      EXTRACT_READS( FILTER_HOST.out.host_filtered_ids )
+      CAP3( EXTRACT_READS.out.host_filtered_fasta )
+      BLASTN_WGS( CAP3.out.cap3_fasta )
+      EXTRACT_VIRAL_BLAST_HITS( BLASTN_WGS.out.blast_results )
+    }
+    else if (!params.host_filtering) {
+      FASTQ2FASTA( NANOFILT.out.nanofilt_filtered_fq )
+      BLASTN_SPLIT( FASTQ2FASTA.out.fasta.splitFasta(by: 10000, file: true) )
+      BLASTN_SPLIT.out.blast_results
+        .groupTuple()
+        .set { ch_blastresults }
+      EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
     }
   } else if (!params.wgs) {
+    
 
     MERGE ( ch_sample )
 
-    if ( params.canu)  {
+    if ( params.canu )  {
       if ( params.race3 || params.race5 ) {
         /*
         if (params.cutadapt) {
@@ -465,7 +636,7 @@ workflow {
           CANU_RACE ( NANOFILT.out.nanofilt_filtered_fq )
           }
         else if (params.chopper) {
-          CHOPPER ( CUTADAPT_RACE.out.cutadapt_filtered )
+          NANOFILT ( CUTADAPT_RACE.out.cutadapt_filtered )
           CANU_RACE ( CHOPPER.out.chopper_filtered_fq )
           }
         BLASTN ( CANU_RACE.out.canu_race_assembly )
