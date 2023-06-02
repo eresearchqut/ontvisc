@@ -55,8 +55,9 @@ if (params.help) {
     exit 0
 }
 
-if (params.blast_db_dir != null) {
-    blastn_db_name = "${params.blast_db_dir}/nt"
+if (params.blastn_db != null) {
+    blastn_db_name = file(params.blastn_db).name
+    blastn_db_dir = file(params.blastn_db).parent
 }
 
 if (params.reference != null) {
@@ -68,8 +69,8 @@ if (params.reference != null) {
 switch (workflow.containerEngine) {
   case "singularity":
     bindbuild = "";
-    if (params.blast_db_dir != null) {
-      bindbuild = (bindbuild + "-B ${params.blast_db_dir} ")
+    if (params.blastn_db != null) {
+      bindbuild = (bindbuild + "-B ${blastn_db_dir} ")
     }
     if (params.reference != null) {
       bindbuild = (bindbuild + "-B ${reference_dir} ")
@@ -92,7 +93,6 @@ process MERGE {
   """
   cat ${lanes} > ${sampleid}.fastq.gz
   """
-
 }
 
 process NANOPLOT {
@@ -189,6 +189,36 @@ process NANOFILT {
   """
 }
 
+process CANU {
+  publishDir "${params.outdir}/${sampleid}/denovo", pattern:'*_unassembled.fasta', mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/denovo", pattern:'*_assembly.fasta', mode: 'link'
+  tag "${sampleid}"
+  label 'xlarge'
+
+  container 'quay.io/biocontainers/canu:2.2--ha47f30e_0'
+
+  input:
+    tuple val(sampleid), path(sample)
+
+  output:
+    path("${sampleid}_canu_assembly.fasta")
+    path("${sampleid}_canu_unassembled.fasta")
+    tuple val(sampleid), path("${sampleid}_canu_assembly.fasta")
+    
+  script:
+  """
+  canu -p ${sampleid} -d ${sampleid} \
+    genomeSize=${params.canu_genome_size} \
+    useGrid=false minOverlapLength=50  minReadLength=100 stopOnLowCoverage=0 \
+    -nanopore ${sample}
+    
+
+  cp ${sampleid}/${sampleid}.contigs.fasta ${sampleid}_canu_assembly.fasta
+  cp ${sampleid}/${sampleid}.unassembled.fasta ${sampleid}_canu_unassembled.fasta
+  """
+}
+
+
 process CANU_RACE {
   publishDir "${params.outdir}/${sampleid}/canu", pattern:'*_unassembled.fasta', mode: 'link'
   publishDir "${params.outdir}/${sampleid}/canu", pattern:'*_assembly.fasta', mode: 'link'
@@ -222,7 +252,7 @@ process CANU_RACE {
 }
 
 process FLYE {
-  publishDir "${params.outdir}/${sampleid}/flye", mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
   tag "${sampleid}"
   label 'large'
   errorStrategy 'ignore'
@@ -248,8 +278,59 @@ process FLYE {
   """
 }
 
-process BLASTN {
-  publishDir "${params.outdir}/${sampleid}/blastn", mode: 'link'
+process BLASTN_DENOVO {
+  publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
+  tag "${sampleid}"
+  label 'small'
+  containerOptions "${bindOptions}"
+
+  container 'quay.io/biocontainers/blast:2.13.0--hf3cf87c_0'
+
+  input:
+    tuple val(sampleid), path(assembly)
+  output:
+  path("*.bls")
+  tuple val(sampleid), path("${sampleid}_blastn_vs_NT.bls"), emit: blast_results
+
+  script:
+  """
+  cp ${blastn_db_dir}/taxdb.btd .
+  cp ${blastn_db_dir}/taxdb.bti .
+  blastn -query ${assembly} \
+    -db ${params.blastn_db} \
+    -out ${sampleid}_blastn_vs_NT.bls \
+    -evalue 1e-3 \
+    -num_threads ${params.blast_threads} \
+    -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe sscinames' \
+    -max_target_seqs 5
+  """
+}
+
+process EXTRACT_VIRAL_BLAST_HITS_DENOVO {
+  tag "${sampleid}"
+  label "large"
+  publishDir "$params.outdir/$sampleid/denovo",  mode: 'link', overwrite: true
+
+  container = 'docker://infrahelpers/python-light:py310-bullseye'
+
+  input:
+  tuple val(sampleid), path(blast_results)
+  output:
+  file "${sampleid}_blastn_vs_NT_top_hits.txt"
+  file "${sampleid}_blastn_vs_NT_top_viral_hits.txt"
+  file "${sampleid}_blastn_vs_NT_top_viral_spp_hits.txt"
+
+  script:
+  """  
+  cat ${blast_results} > ${sampleid}_blastn_vs_NT.txt
+
+  select_top_blast_hit.py --sample_name ${sampleid} --megablast_results ${sampleid}_blastn_vs_NT.txt
+  """
+}
+
+
+process BLAST2REF {
+  publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
   tag "${sampleid}"
   label 'small'
   containerOptions "${bindOptions}"
@@ -264,15 +345,52 @@ process BLASTN {
   script:
   """
   blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out blastn_reference_vs_${assembly}.txt \
-    -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
-  
+  -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
+
   echo "qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs" > header
-  
   cat header blastn_reference_vs_${assembly}.txt > BLASTN_reference_vs_${assembly}.txt
+
   """
 }
 
 process MINIMAP2 {
+  publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
+  tag "${sampleid}"
+  label 'large'
+  containerOptions "${bindOptions}"
+
+  container 'quay.io/biocontainers/minimap2:2.24--h7132678_1'
+
+  input:
+    tuple val(sampleid), path(fastq)
+  output:
+    tuple val(sampleid), path(fastq), path("${sampleid}_minimap.paf"), emit: paf
+  script:
+  """
+  minimap2 -x ava-ont -t ${params.minimap_threads} ${fastq} ${fastq}  > ${sampleid}_minimap.paf
+  """
+}
+
+process MINIASM {
+  publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
+  tag "${sampleid}"
+  label 'large'
+  containerOptions "${bindOptions}"
+
+  container 'quay.io/biocontainers/miniasm:0.3--he4a0461_2'
+
+  input:
+    tuple val(sampleid), path(fastq), path(paf)
+  output:
+    file("${sampleid}_miniasm.fasta")
+  script:
+  """
+  miniasm -f ${fastq} ${paf} > ${sampleid}_miniasm.gfa
+  awk '/^S/{print ">"\$2"\\n"\$3}' ${sampleid}_miniasm.gfa > ${sampleid}_miniasm.fasta
+  """
+}
+
+process MINIMAP2_REF {
   publishDir "${params.outdir}/${sampleid}/minimap2", mode: 'link'
   tag "${sampleid}"
   label 'medium'
@@ -431,11 +549,11 @@ process FASTQ2FASTA {
   input:
   tuple val(sampleid), path(filtered)
   output:
-  tuple val(sampleid), path("${sampleid}_filtered.fasta"), emit: fasta
+  tuple val(sampleid), path("${sampleid}.fasta"), emit: fasta
 
   script:
   """
-  seqtk seq -a ${filtered} > ${sampleid}_filtered.fasta
+  seqtk seq -A -C ${filtered} > ${sampleid}.fasta
   """
 }
 
@@ -470,7 +588,7 @@ process BLASTN_WGS {
   container 'quay.io/biocontainers/blast:2.13.0--hf3cf87c_0'
 
   input:
-  tuple val(sampleid), path("${sampleid}_cap3.fasta")
+  tuple val(sampleid), path(assembly)
   output:
   path("*.bls")
   tuple val(sampleid), path("${sampleid}_blastn_vs_NT.bls"), emit: blast_results
@@ -479,7 +597,7 @@ process BLASTN_WGS {
   """
   cp ${params.blast_db_dir}/taxdb.btd .
   cp ${params.blast_db_dir}/taxdb.bti .
-  blastn -query ${sampleid}_cap3.fasta \
+  blastn -query ${assembly} \
     -db ${blastn_db_name} \
     -out ${sampleid}_blastn_vs_NT.bls \
     -evalue 1e-3 \
@@ -514,9 +632,10 @@ process EXTRACT_VIRAL_BLAST_HITS {
 process BLASTN_SPLIT {
   publishDir "${params.outdir}/${sampleid}/blastn", mode: 'link'
   tag "${sampleid}"
-  label 'xlarge'
   containerOptions "${bindOptions}"
   time "12h"
+  memory "48GB"
+  cpus "4"
 
   container 'quay.io/biocontainers/blast:2.13.0--hf3cf87c_0'
 
@@ -599,31 +718,32 @@ workflow {
       .map{ row-> tuple((row.sampleid), file(row.sample_files)) }
       .set{ ch_sample }
   } else { exit 1, "Input samplesheet file not specified!" }
-
+  NANOPLOT ( ch_sample )
+  MERGE ( ch_sample )
   if (params.wgs) {
     PORECHOP_ABI (ch_sample)
-    NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
+    //NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
     if (params.host_filtering) {
-      FILTER_HOST( NANOFILT.out.nanofilt_filtered_fq )
+      FILTER_HOST( PORECHOP_ABI.out.porechopabi_trimmed_fq )
       EXTRACT_READS( FILTER_HOST.out.host_filtered_ids )
       CAP3( EXTRACT_READS.out.host_filtered_fasta )
       BLASTN_WGS( CAP3.out.cap3_fasta )
       EXTRACT_VIRAL_BLAST_HITS( BLASTN_WGS.out.blast_results )
     }
     else if (!params.host_filtering) {
-      FASTQ2FASTA( NANOFILT.out.nanofilt_filtered_fq )
-      BLASTN_SPLIT( FASTQ2FASTA.out.fasta.splitFasta(by: 10000, file: true) )
+      FASTQ2FASTA( PORECHOP_ABI.out.porechopabi_trimmed_fq )
+      BLASTN_SPLIT( FASTQ2FASTA.out.fasta.splitFasta(by: 20000, file: true) )
       BLASTN_SPLIT.out.blast_results
         .groupTuple()
         .set { ch_blastresults }
       EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
     }
-  } else if (!params.wgs) {
+    
+  } else if (params.amplicon) {
+
     
 
-    MERGE ( ch_sample )
-
-    if ( params.canu )  {
+    if ( params.ligation )  {
       if ( params.race3 || params.race5 ) {
         /*
         if (params.cutadapt) {
@@ -639,22 +759,38 @@ workflow {
           NANOFILT ( CUTADAPT_RACE.out.cutadapt_filtered )
           CANU_RACE ( CHOPPER.out.chopper_filtered_fq )
           }
-        BLASTN ( CANU_RACE.out.canu_race_assembly )
+        BLASTN2REF ( CANU_RACE.out.canu_race_assembly )
       }  
     }
-    NANOPLOT ( ch_sample )
+  }
+  if (params.denovo_assembly){
+    if (params.minimap){
+      PORECHOP_ABI (MERGE.out.merged)
+      NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
+      MINIMAP2( NANOFILT.out.nanofilt_filtered_fq )
+      MINIASM( MINIMAP2.out.paf )
+    }
+    if (params.canu){
+      CANU ( MERGE.out.merged )
+    }
     if (params.flye) {
       FLYE ( MERGE.out.merged )
-      BLASTN ( FLYE.out.assembly )
-    }
-
-    if (params.minimap) {
-      MINIMAP2 ( MERGE.out.merged )
-      if (params.infoseq) {
-        INFOSEQ ( MINIMAP2.out.aligned_sample )
-        SAMTOOLS ( INFOSEQ.out.infoseq_ref )
-        NANOQ ( SAMTOOLS.out.sorted_sample )
+      if (params.blast_vs_ref) {
+        BLASTN2REF ( FLYE.out.assembly )
+        }
+      else {
+        BLASTN_DENOVO( FLYE.out.assembly )
+        EXTRACT_VIRAL_BLAST_HITS_DENOVO( BLASTN_DENOVO.out.blast_results )
       }
+    }
+  }
+
+  if (params.map2ref) {
+    MINIMAP2_REF ( MERGE.out.merged )
+    if (params.infoseq) {
+      INFOSEQ ( MINIMAP2_REF.out.aligned_sample )
+      SAMTOOLS ( INFOSEQ.out.infoseq_ref )
+      NANOQ ( SAMTOOLS.out.sorted_sample )
     }
   }
 }
