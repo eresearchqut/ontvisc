@@ -595,10 +595,10 @@ process BLASTN_WGS {
 
   script:
   """
-  cp ${params.blast_db_dir}/taxdb.btd .
-  cp ${params.blast_db_dir}/taxdb.bti .
+  cp ${blastn_db_dir}/taxdb.btd .
+  cp ${blastn_db_dir}/taxdb.bti .
   blastn -query ${assembly} \
-    -db ${blastn_db_name} \
+    -db ${params.blastn_db} \
     -out ${sampleid}_blastn_vs_NT.bls \
     -evalue 1e-3 \
     -num_threads ${params.blast_threads} \
@@ -630,7 +630,7 @@ process EXTRACT_VIRAL_BLAST_HITS {
 }
 
 process BLASTN_SPLIT {
-  publishDir "${params.outdir}/${sampleid}/blastn", mode: 'link'
+  //publishDir "${params.outdir}/${sampleid}/blastn", mode: 'link'
   tag "${sampleid}"
   containerOptions "${bindOptions}"
   time "12h"
@@ -647,10 +647,10 @@ process BLASTN_SPLIT {
   script:
   def blastoutput = assembly.getBaseName() + "_blastn_vs_NT.bls"
   """
-  cp ${params.blast_db_dir}/taxdb.btd .
-  cp ${params.blast_db_dir}/taxdb.bti .
+  cp ${blastn_db_dir}/taxdb.btd .
+  cp ${blastn_db_dir}/taxdb.bti .
   blastn -query ${assembly} \
-    -db ${blastn_db_name} \
+    -db ${params.blastn_db} \
     -out ${blastoutput} \
     -evalue 1e-3 \
     -num_threads ${params.blast_threads} \
@@ -721,7 +721,7 @@ workflow {
   NANOPLOT ( ch_sample )
   MERGE ( ch_sample )
   if (params.wgs) {
-    PORECHOP_ABI (ch_sample)
+    PORECHOP_ABI (MERGE.out.merged)
     //NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
     if (params.host_filtering) {
       FILTER_HOST( PORECHOP_ABI.out.porechopabi_trimmed_fq )
@@ -732,7 +732,7 @@ workflow {
     }
     else if (!params.host_filtering) {
       FASTQ2FASTA( PORECHOP_ABI.out.porechopabi_trimmed_fq )
-      BLASTN_SPLIT( FASTQ2FASTA.out.fasta.splitFasta(by: 20000, file: true) )
+      BLASTN_SPLIT( FASTQ2FASTA.out.fasta.splitFasta(by: 25000, file: true) )
       BLASTN_SPLIT.out.blast_results
         .groupTuple()
         .set { ch_blastresults }
