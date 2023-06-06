@@ -6,4 +6,4 @@ eresearchqut/OViSP is a Nextflow-based bioinformatics pipeline. It was designed 
 The pipeline can either perform a direct homology search on the sequenced reads or assemble the reads to generate longer contigs before annotation and diagnosis. The reads can optionally be filtered from a plant host before performing the homology search.
 
 ## Pipeline summary
-![diagram pipeline](docs/images/OVISP_pipeline.jpg)
+![diagram pipeline](docs/images/OVISP_pipeline.jpeg)
