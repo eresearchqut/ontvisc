@@ -116,7 +116,7 @@ process NANOPLOT {
 
 process CUTADAPT_RACE {
   //publishDir "${params.outdir}/${sampleid}/canu", pattern: '*_cutadapt_filtered.fastq.gz', mode: 'link'
-  publishDir "${params.outdir}/${sampleid}/canu", pattern: '*_cutadapt.log', mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/cutadapt", pattern: '*_cutadapt.log', mode: 'link'
   tag "${sampleid}"
   label 'medium'
 
@@ -188,12 +188,12 @@ process NANOFILT {
   gunzip -c ${sample} | NanoFilt -q ${params.nanofilt_qual_threshold} -l ${params.nanofilt_min_read_length} | gzip > ${sampleid}_filtered.fastq.gz
   """
 }
-
+/*
 process CANU {
-  publishDir "${params.outdir}/${sampleid}/denovo", pattern:'*_unassembled.fasta', mode: 'link'
   publishDir "${params.outdir}/${sampleid}/denovo", pattern:'*_assembly.fasta', mode: 'link'
   tag "${sampleid}"
-  label 'xlarge'
+  memory "24GB"
+  cpus "4"
 
   container 'quay.io/biocontainers/canu:2.2--ha47f30e_0'
 
@@ -202,28 +202,26 @@ process CANU {
 
   output:
     path("${sampleid}_canu_assembly.fasta")
-    path("${sampleid}_canu_unassembled.fasta")
-    tuple val(sampleid), path("${sampleid}_canu_assembly.fasta")
+    tuple val(sampleid), path("${sampleid}_canu_assembly.fasta"), emit: assembly
     
   script:
   """
   canu -p ${sampleid} -d ${sampleid} \
     genomeSize=${params.canu_genome_size} \
-    useGrid=false minOverlapLength=50  minReadLength=100 stopOnLowCoverage=0 \
+    useGrid=false minOverlapLength=50 minReadLength=50 minInputCoverage=0 corMinCoverage=0 stopOnLowCoverage=0 \
     -nanopore ${sample}
     
 
-  cp ${sampleid}/${sampleid}.contigs.fasta ${sampleid}_canu_assembly.fasta
-  cp ${sampleid}/${sampleid}.unassembled.fasta ${sampleid}_canu_unassembled.fasta
+  cat ${sampleid}/${sampleid}.contigs.fasta ${sampleid}/${sampleid}.unassembled.fasta > ${sampleid}_canu_assembly.fasta
   """
 }
+*/
 
-
-process CANU_RACE {
-  publishDir "${params.outdir}/${sampleid}/canu", pattern:'*_unassembled.fasta', mode: 'link'
-  publishDir "${params.outdir}/${sampleid}/canu", pattern:'*_assembly.fasta', mode: 'link'
+process CANU {
+  publishDir "${params.outdir}/${sampleid}/denovo", pattern:'*_assembly.fasta', mode: 'link'
   tag "${sampleid}"
-  label 'xlarge'
+  memory "24GB"
+  cpus "4"
 
   container 'quay.io/biocontainers/canu:2.2--ha47f30e_0'
 
@@ -232,24 +230,27 @@ process CANU_RACE {
 
   output:
     path("${sampleid}_canu_assembly.fasta")
-    path("${sampleid}_canu_unassembled.fasta")
-    tuple val(sampleid), path("${sampleid}_canu_assembly.fasta"), emit: canu_race_assembly
+    tuple val(sampleid), path("${sampleid}_canu_assembly.fasta"), emit: assembly
     
   script:
-  """
-  canu -assemble -p ${sampleid} -d ${sampleid} \
-    -corrected -trimmed \
-    genomeSize=${params.canu_genome_size} \
-    readSamplingCoverage=100 \
-    useGrid=false minOverlapLength=50  minReadLength=500 stopOnLowCoverage=0 corMinCoverage=0 \
-    contigFilter="2 0 1.0 0.5 0" \
-    -nanopore ${sample} \
-    
+  def canu_options = (params.canu_options) ? " ${params.canu_options}" : ''
 
-  cp ${sampleid}/${sampleid}.contigs.fasta ${sampleid}_canu_assembly.fasta
-  cp ${sampleid}/${sampleid}.unassembled.fasta ${sampleid}_canu_unassembled.fasta
+  """
+  canu -p ${sampleid} -d ${sampleid} \
+    genomeSize=${params.canu_genome_size} \
+    -nanopore ${sample} ${canu_options}
+
+  cat ${sampleid}/${sampleid}.contigs.fasta ${sampleid}/${sampleid}.unassembled.fasta > ${sampleid}_canu_assembly.fasta
   """
 }
+
+//canu -assemble -p ${sampleid} -d ${sampleid} \
+//    -corrected -trimmed \
+//    genomeSize=${params.canu_genome_size} \
+//    readSamplingCoverage=100 \
+//    useGrid=false minOverlapLength=50  minReadLength=500 stopOnLowCoverage=0 corMinCoverage=0 \
+//    contigFilter="2 0 1.0 0.5 0" \
+//    -nanopore ${sample} \
 
 process FLYE {
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
@@ -277,7 +278,7 @@ process FLYE {
   fi
   """
 }
-
+/*
 process BLASTN_DENOVO {
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
   tag "${sampleid}"
@@ -303,9 +304,10 @@ process BLASTN_DENOVO {
     -num_threads ${params.blast_threads} \
     -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe sscinames' \
     -max_target_seqs 5
+    
   """
 }
-
+*/
 process EXTRACT_VIRAL_BLAST_HITS_DENOVO {
   tag "${sampleid}"
   label "large"
@@ -329,7 +331,7 @@ process EXTRACT_VIRAL_BLAST_HITS_DENOVO {
 }
 
 
-process BLAST2REF {
+process BLASTN2REF {
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
   tag "${sampleid}"
   label 'small'
@@ -577,7 +579,7 @@ process CAP3 {
   """
 }
 
-process BLASTN_WGS {
+process BLASTN {
   cpus "${params.blast_threads}"
   tag "${sampleid}"
   label "xlarge"
@@ -591,15 +593,17 @@ process BLASTN_WGS {
   tuple val(sampleid), path(assembly)
   output:
   path("*.bls")
-  tuple val(sampleid), path("${sampleid}_blastn_vs_NT.bls"), emit: blast_results
+  tuple val(sampleid), path("${sampleid}_${params.blastn_method}_vs_NT.bls"), emit: blast_results
 
   script:
+  def blast_task_param = (params.blastn_method == "blastn") ? "-task blastn" : ''
   """
   cp ${blastn_db_dir}/taxdb.btd .
   cp ${blastn_db_dir}/taxdb.bti .
-  blastn -query ${assembly} \
+  blastn ${blast_task_param} \
+    -query ${assembly} \
     -db ${params.blastn_db} \
-    -out ${sampleid}_blastn_vs_NT.bls \
+    -out ${sampleid}_${params.blastn_method}_vs_NT.bls \
     -evalue 1e-3 \
     -num_threads ${params.blast_threads} \
     -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe sscinames' \
@@ -617,15 +621,15 @@ process EXTRACT_VIRAL_BLAST_HITS {
   input:
   tuple val(sampleid), path(blast_results)
   output:
-  file "${sampleid}_blastn_vs_NT_top_hits.txt"
-  file "${sampleid}_blastn_vs_NT_top_viral_hits.txt"
-  file "${sampleid}_blastn_vs_NT_top_viral_spp_hits.txt"
+  file "${sampleid}_${params.blastn_method}_vs_NT_top_hits.txt"
+  file "${sampleid}_${params.blastn_method}_vs_NT_top_viral_hits.txt"
+  file "${sampleid}_${params.blastn_method}_vs_NT_top_viral_spp_hits.txt"
 
   script:
   """  
   cat ${blast_results} > ${sampleid}_blastn_vs_NT.txt
 
-  select_top_blast_hit.py --sample_name ${sampleid} --megablast_results ${sampleid}_blastn_vs_NT.txt
+  select_top_blast_hit.py --sample_name ${sampleid} --megablast_results ${sampleid}_${params.blastn_method}_vs_NT.txt
   """
 }
 
@@ -658,31 +662,7 @@ process BLASTN_SPLIT {
     -max_target_seqs 5
   """
 }
-/*
-process SUMMARISE_VIRAL_BLAST_HITS {
-  tag "${sampleid}"
-  label "large"
-  publishDir "$params.outdir/$sampleid/wgs",  mode: 'link', overwrite: true
 
-  container = 'docker://infrahelpers/python-light:py310-bullseye'
-
-  input:
-  tuple val(sampleid), path(blast_results)
-  output:
-  file "${sampleid}_blastn_vs_NT_top_hits.txt"
-  file "${sampleid}_blastn_vs_NT_top_viral_hits.txt"
-  file "${sampleid}_blastn_vs_NT_top_viral_spp_hits.txt"
-
-  script:
-  """
-  echo "qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs" > header
-  
-  cat header ${blast_results} > ${sampleid}_blastn_vs_NT_merged.txt
-
-  select_top_blast_hit.py --sample_name ${sampleid} --megablast_results ${blast_results}
-  """
-}
-*/
 process KRAKEN2 {
 	cpus 2
 	tag "${sampleid}"
@@ -718,60 +698,40 @@ workflow {
       .map{ row-> tuple((row.sampleid), file(row.sample_files)) }
       .set{ ch_sample }
   } else { exit 1, "Input samplesheet file not specified!" }
-  NANOPLOT ( ch_sample )
+  
   MERGE ( ch_sample )
-  if (params.wgs) {
-    PORECHOP_ABI (MERGE.out.merged)
-    //NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
-    if (params.host_filtering) {
-      FILTER_HOST( PORECHOP_ABI.out.porechopabi_trimmed_fq )
-      EXTRACT_READS( FILTER_HOST.out.host_filtered_ids )
-      CAP3( EXTRACT_READS.out.host_filtered_fasta )
-      BLASTN_WGS( CAP3.out.cap3_fasta )
-      EXTRACT_VIRAL_BLAST_HITS( BLASTN_WGS.out.blast_results )
-    }
-    else if (!params.host_filtering) {
-      FASTQ2FASTA( PORECHOP_ABI.out.porechopabi_trimmed_fq )
-      BLASTN_SPLIT( FASTQ2FASTA.out.fasta.splitFasta(by: 25000, file: true) )
-      BLASTN_SPLIT.out.blast_results
-        .groupTuple()
-        .set { ch_blastresults }
-      EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
-    }
-    
-  } else if (params.amplicon) {
+  NANOPLOT ( MERGE.out.merged )
+  
 
-    
-
-    if ( params.ligation )  {
-      if ( params.race3 || params.race5 ) {
-        /*
-        if (params.cutadapt) {
-          CUTADAPT_RACE ( MERGE.out.merged )
-          }
-        */
-        CUTADAPT_RACE ( MERGE.out.merged )
-        if (params.nanofilt) {
-          NANOFILT ( CUTADAPT_RACE.out.cutadapt_filtered )
-          CANU_RACE ( NANOFILT.out.nanofilt_filtered_fq )
-          }
-        else if (params.chopper) {
-          NANOFILT ( CUTADAPT_RACE.out.cutadapt_filtered )
-          CANU_RACE ( CHOPPER.out.chopper_filtered_fq )
-          }
-        BLASTN2REF ( CANU_RACE.out.canu_race_assembly )
-      }  
-    }
-  }
   if (params.denovo_assembly){
-    if (params.minimap){
-      PORECHOP_ABI (MERGE.out.merged)
-      NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
-      MINIMAP2( NANOFILT.out.nanofilt_filtered_fq )
+    if (params.minimap) {
+      //PORECHOP_ABI (MERGE.out.merged)
+      //NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
+      //MINIMAP2( NANOFILT.out.nanofilt_filtered_fq )
+      MINIMAP2 ( MERGE.out.merged )
       MINIASM( MINIMAP2.out.paf )
+
     }
-    if (params.canu){
-      CANU ( MERGE.out.merged )
+    if (params.canu) {
+      if ( params.race3 || params.race5 ) {
+      CUTADAPT_RACE ( MERGE.out.merged )
+      NANOFILT ( CUTADAPT_RACE.out.cutadapt_filtered )
+      CANU ( NANOFILT.out.nanofilt_filtered_fq )
+      }
+      if (params.nanofilt) {
+        NANOFILT ( MERGE.out.merged )
+        CANU ( NANOFILT.out.nanofilt_filtered_fq )
+      }
+      else {
+        CANU ( MERGE.out.merged )
+      }
+      if (params.blast_vs_ref) {
+          BLASTN2REF ( CANU.out.assembly )
+      }
+      else {
+        BLASTN ( CANU.out.assembly )
+        EXTRACT_VIRAL_BLAST_HITS_DENOVO( BLASTN.out.blast_results )
+      }
     }
     if (params.flye) {
       FLYE ( MERGE.out.merged )
@@ -779,11 +739,31 @@ workflow {
         BLASTN2REF ( FLYE.out.assembly )
         }
       else {
-        BLASTN_DENOVO( FLYE.out.assembly )
-        EXTRACT_VIRAL_BLAST_HITS_DENOVO( BLASTN_DENOVO.out.blast_results )
+        BLASTN( FLYE.out.assembly )
+        EXTRACT_VIRAL_BLAST_HITS_DENOVO( BLASTN.out.blast_results )
       }
     }
   }
+
+  else {
+    PORECHOP_ABI (MERGE.out.merged)
+    //NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
+    if (params.host_filtering) {
+      FILTER_HOST( PORECHOP_ABI.out.porechopabi_trimmed_fq )
+      EXTRACT_READS( FILTER_HOST.out.host_filtered_ids )
+      //CAP3( EXTRACT_READS.out.host_filtered_fasta )
+      BLASTN_SPLIT( EXTRACT_READS.out.host_filtered_fasta.splitFasta(by: 25000, file: true) )
+      //EXTRACT_VIRAL_BLAST_HITS( BLASTN.out.blast_results )
+    }
+    else if (!params.host_filtering) {
+      FASTQ2FASTA( PORECHOP_ABI.out.porechopabi_trimmed_fq )
+      BLASTN_SPLIT( FASTQ2FASTA.out.fasta.splitFasta(by: 25000, file: true) )
+    }
+    BLASTN_SPLIT.out.blast_results
+      .groupTuple()
+      .set { ch_blastresults }
+    EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
+    }
 
   if (params.map2ref) {
     MINIMAP2_REF ( MERGE.out.merged )
