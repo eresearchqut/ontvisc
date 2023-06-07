@@ -689,6 +689,28 @@ process KRAKEN2 {
 	"""
 }
 
+process RATTLE {
+  publishDir "${params.outdir}/${sampleid}/clustering", mode: 'link'
+  tag "${sampleid}"
+  label 'medium'
+
+  input:
+  tuple val(sampleid), path(fastq)
+
+  output:
+  tuple val(sampleid), path("transcriptome.fq"), emit: clusters
+
+  script:
+  """
+  rattle cluster -i ${fastq} -t 2 --lower-length 70 --upper-length 100  -o . --rna
+  rattle cluster_summary -i ${fastq} -c clusters.out > cluster_summary.txt
+  rattle extract_clusters -i ${fastq} -c clusters.out --fastq -o clusters
+  rattle correct -i ${fastq} -c clusters.out -t 2
+  rattle polish -i consensi.fq -t 2 --rna --summary
+  """
+
+}
+
 workflow {
   
   if (params.samplesheet) {
@@ -702,7 +724,10 @@ workflow {
   MERGE ( ch_sample )
   NANOPLOT ( MERGE.out.merged )
   
-
+  if (params.clustering){
+    RATTLE (MERGE.out.merged)
+    BLASTN2REF ( RATTLE.out.clusters )
+  }
   if (params.denovo_assembly){
     if (params.minimap) {
       //PORECHOP_ABI (MERGE.out.merged)
