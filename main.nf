@@ -332,7 +332,7 @@ process EXTRACT_VIRAL_BLAST_HITS_DENOVO {
 
 
 process BLASTN2REF {
-  publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/blast_to_ref", mode: 'link'
   tag "${sampleid}"
   label 'small'
   containerOptions "${bindOptions}"
@@ -544,18 +544,18 @@ process EXTRACT_READS {
 process FASTQ2FASTA {
   tag "${sampleid}"
   label "large"
-  publishDir "$params.outdir/$sampleid/wgs", mode: 'copy', pattern: '*_filtered.fasta'
+  publishDir "$params.outdir/$sampleid/wgs", mode: 'copy', pattern: '*.fasta'
 
   container = 'docker://quay.io/biocontainers/seqtk:1.3--h7132678_4'
 
   input:
-  tuple val(sampleid), path(filtered)
+  tuple val(sampleid), path(fastq)
   output:
   tuple val(sampleid), path("${sampleid}.fasta"), emit: fasta
 
   script:
   """
-  seqtk seq -A -C ${filtered} > ${sampleid}.fasta
+  seqtk seq -A -C ${fastq} > ${sampleid}.fasta
   """
 }
 
@@ -563,19 +563,19 @@ process CAP3 {
   tag "${sampleid}"
   label "large"
   time "3h"
-  publishDir "$params.outdir/$sampleid/wgs", mode: 'copy', pattern: '*_cap3.fasta', saveAs: { filename -> "${sampleid}_cap3.fasta"}
+  publishDir "$params.outdir/$sampleid/cap3", mode: 'copy', pattern: '*_cap3.fasta', saveAs: { filename -> "${sampleid}_cap3.fasta"}
 
   container = 'docker://quay.io/biocontainers/cap3:10.2011--h779adbc_3'
 
   input:
-  tuple val(sampleid), path(unaligned_fasta)
+  tuple val(sampleid), path(fasta)
   output:
-  tuple val(sampleid), path("${sampleid}_cap3.fasta"), emit: cap3_fasta
+  tuple val(sampleid), path("${sampleid}_cap3.fasta"), emit: contigs
 
   script:
   """
-  cap3 ${sampleid}_unaligned.fasta
-  cat ${sampleid}_unaligned.fasta.cap.singlets ${sampleid}_unaligned.fasta.cap.contigs > ${sampleid}_cap3.fasta
+  cap3 ${fasta}
+  cat ${fasta}.cap.singlets ${fasta}.cap.contigs > ${sampleid}_cap3.fasta
   """
 }
 
@@ -585,7 +585,7 @@ process BLASTN {
   label "xlarge"
   time "5h"
   containerOptions "${bindOptions}"
-  publishDir "$params.outdir/$sampleid/wgs",  mode: 'link', overwrite: true, pattern: '*.bls', saveAs: { filename -> "${sampleid}_blastn_vs_NT.bls"}
+  publishDir "$params.outdir/$sampleid/blast",  mode: 'link', overwrite: true, pattern: '*.bls', saveAs: { filename -> "${sampleid}_blastn_vs_NT.bls"}
 
   container 'quay.io/biocontainers/blast:2.13.0--hf3cf87c_0'
 
@@ -700,16 +700,23 @@ process RATTLE {
   output:
   tuple val(sampleid), path("transcriptome.fq"), emit: clusters
 
+  container =  'ghcr.io/eresearchqut/rattle-image:0.0.1'
+
+
   script:
   """
   rattle cluster -i ${fastq} -t 2 --lower-length 70 --upper-length 100  -o . --rna
   rattle cluster_summary -i ${fastq} -c clusters.out > cluster_summary.txt
+  mkdir clusters
   rattle extract_clusters -i ${fastq} -c clusters.out --fastq -o clusters
   rattle correct -i ${fastq} -c clusters.out -t 2
   rattle polish -i consensi.fq -t 2 --rna --summary
   """
 
 }
+/*
+  cd ${projectDir}/bin
+*/
 
 workflow {
   
@@ -726,16 +733,22 @@ workflow {
   
   if (params.clustering){
     RATTLE (MERGE.out.merged)
-    BLASTN2REF ( RATTLE.out.clusters )
+    FASTQ2FASTA( RATTLE.out.clusters )
+    CAP3( FASTQ2FASTA.out.fasta )
+    if (params.blast_vs_ref) {
+      BLASTN2REF ( CAP3.out.contigs )
+      }
+    else {
+      BLASTN( CAP3.out.contigs )
+      }
   }
-  if (params.denovo_assembly){
+  else if (params.denovo_assembly){
     if (params.minimap) {
       //PORECHOP_ABI (MERGE.out.merged)
       //NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
       //MINIMAP2( NANOFILT.out.nanofilt_filtered_fq )
       MINIMAP2 ( MERGE.out.merged )
       MINIASM( MINIMAP2.out.paf )
-
     }
     if (params.canu) {
       if ( params.race3 || params.race5 ) {
