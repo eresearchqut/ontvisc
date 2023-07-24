@@ -19,6 +19,7 @@ def main():
 
     megablast_results = pd.read_csv(megablast_results_path, sep="\t", index_col=False, names=["qseqid", "sgi", "sacc", "length", "pident", "mismatch", "gapopen", "qstart", "qend", "qlen", "sstart", "send", "slen", "sstrand", "evalue", "bitscore", "qcovhsp", "stitle", "staxids", "qseq", "sseq", "sseqid", "qcovs", "qframe", "sframe", "species"], dtype={"stitle": 'str', "staxids": 'str', "species": 'str'})
     
+    #remove synthetic construct hits
     megablast_results = megablast_results[~megablast_results["species"].str.contains("synthetic construct")]
     megablast_top_hit = megablast_results.drop_duplicates(subset=["qseqid"], keep="first")
     
@@ -33,9 +34,10 @@ def main():
     #replace space with underscore
     #megablast_blastn_top_evalue.replace('Elephantopus_scaber_closterovirus', 'Citrus_tristeza_virus',regex=True,inplace=True)
     #megablast_blastn_top_evalue.replace('Hop_stunt_viroid_-_cucumber', 'Hop_stunt_viroid',regex=True,inplace=True)
-    
+    #extract all seqeunces showing top blast homology to virus or virois hits.
     megablast_viral_top_hit.to_csv(sample_name +  "_blastn_vs_NT_top_viral_hits.txt", index=False, sep="\t")
-    megablast_viral_top_hit_spp= megablast_viral_top_hit.sort_values(["species", "length"], ascending=[True, False]).groupby("species").first().reset_index()
+    #just retain longest contig for each virus/viroid species
+    megablast_viral_top_hit_spp= megablast_viral_top_hit.sort_values(["species", "qlen"], ascending=[True, False]).groupby("species").first().reset_index()
     print(megablast_viral_top_hit.head())
     megablast_viral_top_hit_spp.to_csv(sample_name +  "_blastn_vs_NT_top_viral_spp_hits.txt", index=False, sep="\t")
 
