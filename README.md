@@ -14,12 +14,22 @@ The reads can optionally be filtered from a plant host before performing downstr
 
 ## Example of commands
 
-1. After pre-processing reads (adapter removal with PoreChop ABI and quality filtering with NanoFilt), perform direct homology search on WGS-derived MinION reads using the taxonomic classifier Kaiju
+1. After pre-processing WGS-derived ONT reads (adapter removal with PoreChop ABI and quality filtering with NanoFilt), perform direct read taxonomic classification at the protein level using the tool Kaiju
 ```
-nextflow run eresearchqut/ovisp -resume --skip_host_filtering --skip_clustering --skip_denovo_assembly --kaiju --kaiju_dbnodes /path_to_kaiju_databases/nodes.dmp --kaiju_dbname /path_to_kaiju_databases/kaiju_db_rvdb.fmi
+nextflow run eresearchqut/ovisp -resume --skip_host_filtering \\
+                                --skip_clustering \\
+                                --skip_denovo_assembly \\
+                                --kaiju \\
+                                --kaiju_dbnodes /path_to_kaiju_databases/nodes.dmp \\
+                                --kaiju_dbname /path_to_kaiju_databases/kaiju_db_rvdb.fmi
 ```
 
-2. After pre-processing reads (adapter removal with PoreChop ABI,  quality filtering with NanoFilt and filtering for host reads), perform direct homology search on WGS-derived MinION reads using megablast and NR database, splitting the blast processes by chunks of 10000 reads
+2. After pre-processing WGS-derived ONT reads (adapter removal with PoreChop ABI,  quality filtering with NanoFilt and filtering for host reads), perform direct homology search on WGS-derived MinION reads using megablast and NR database, splitting the blast processes by chunks of 10000 reads
 ```
-nextflow run eresearchqut/ovisp -resume --plant_host_fasta /path_to_host_fasta_file_dir/host.fasta --skip_clustering --skip_denovo_assembly --blastn_db /work/hia_mt18005/databases/blastDB/20230606/nt --blast_threads 8 --blast_split_factor 5000
+nextflow run eresearchqut/ovisp -resume --plant_host_fasta /path_to_host_fasta_file_dir/host.fasta \\
+                                --skip_clustering \\
+                                --skip_denovo_assembly \\
+                                --blastn_db /work/hia_mt18005/databases/blastDB/20230606/nt \\
+                                --blast_threads 8 \\
+                                --blast_split_factor 10000
 ```

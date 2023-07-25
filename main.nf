@@ -80,7 +80,7 @@ if (params.reference != null) {
 }
 
 if (params.kaiju_nodes != null & params.kaiju_dbname != null & params.kaiju_names != null) {
-    kaiju_dbs_dir = file(params.kaiju_dbnodes).parent
+    kaiju_dbs_dir = file(params.kaiju_nodes).parent
 }
 
 
@@ -93,7 +93,7 @@ switch (workflow.containerEngine) {
     if (params.reference != null) {
       bindbuild = (bindbuild + "-B ${reference_dir} ")
     }
-    if (params.kaiju_dbnodes != null & params.kaiju_dbname != null) {
+    if (params.kaiju_nodes != null & params.kaiju_dbname != null & params.kaiju_names != null) {
       bindbuild = (bindbuild + "-B ${kaiju_dbs_dir} ")
     }
     bindOptions = bindbuild;
@@ -624,11 +624,11 @@ These choices also affect the speed and memory usage of Kaiju.
 
 For highest sensitivity, it is recommended to use the nr database (+eukaryotes) as a reference database because it is the most comprehensive 
 set of protein sequences. Alternatively, use proGenomes over Refseq for increased sensitivity.
-
+NOTE, viroid will not be detected using this approach
 */
 process KAIJU {
     publishDir "${params.outdir}/${sampleid}/kaiju", mode: 'link'
-    label 'process_high'
+    label 'xlarge2'
     container 'quay.io/biocontainers/kaiju:1.8.2--h5b5514e_1'
     containerOptions "${bindOptions}"
 
@@ -653,7 +653,9 @@ process KAIJU {
         -v
     
     kaiju-addTaxonNames -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju_name.tsv
-    kaiju2table -t ${params.kaiju_nodes} -n ${params.kaiju_names} -r genus -o ${sampleid}_kaiju_summary.tsv ${sampleid}_kaiju_mame.tsv
+    kaiju2table -t ${params.kaiju_nodes} -n ${params.kaiju_names} -r genus -o ${sampleid}_kaiju_summary.tsv ${sampleid}_kaiju_name.tsv
+
+    
     """
 }
 
