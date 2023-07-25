@@ -60,8 +60,6 @@ def helpMessage () {
         --rattle_max_len                Maximum length cut off for read size
                               Default:  2000
 
-
-
     """.stripIndent()
 }
 // Show help message
@@ -78,6 +76,11 @@ if (params.blastn_db != null) {
 if (params.reference != null) {
     reference_name = file(params.reference).name
     reference_dir = file(params.reference).parent
+
+}
+
+if (params.kaiju_nodes != null & params.kaiju_dbname != null & params.kaiju_names != null) {
+    kaiju_dbs_dir = file(params.kaiju_dbnodes).parent
 }
 
 
@@ -89,6 +92,9 @@ switch (workflow.containerEngine) {
     }
     if (params.reference != null) {
       bindbuild = (bindbuild + "-B ${reference_dir} ")
+    }
+    if (params.kaiju_dbnodes != null & params.kaiju_dbname != null) {
+      bindbuild = (bindbuild + "-B ${kaiju_dbs_dir} ")
     }
     bindOptions = bindbuild;
     break;
@@ -593,36 +599,61 @@ process BLASTN_SPLIT {
     -max_target_seqs 5
   """
 }
+/*
+KAIJU notes
+The default run mode is Greedy with three allowed mismatches. 
+The number of allowed mismatches can be changed using option -e.
+In Greedy mode, matches are filtered by a minimum length and score and their E-value (similar to blastp)
+The cutoffs for minimum required match length and match score can be changed using the options -m (default: 11) and -s (default: 65)
+Minimum E-value can be adjusted with the option -E (default 0.01).
 
+For fastest classification, , use MEM mode with option '-a mem' and multiple parallel threads (-z)
+Greedy run mode yields a higher sensitivity compared with MEM mode.
+For lowest memory usage use the proGenomes reference database. The number of parallel threads has only little impact on memory usage.
+
+
+Further, the choice of the minimum required match length (-m) in MEM mode or match score (-s) in Greedy mode governs the trade-off between 
+sensitivity and precision of the classification. Please refer to the paper for a discussion on this topic.
+
+Option -x enables filtering of query sequences containing low-complexity regions by using the SEG algorithm from the blast+ package. 
+It is enabled by default and can be disabled by the -X option. SEG filtering is always recommended in order to avoid 
+false positive taxon assignments that are caused by spurious matches due to simple repeat patterns or other sequencing noise.
+
+The accuracy of the classification depends both on the choice of the reference database and the chosen options when running Kaiju. 
+These choices also affect the speed and memory usage of Kaiju.
+
+For highest sensitivity, it is recommended to use the nr database (+eukaryotes) as a reference database because it is the most comprehensive 
+set of protein sequences. Alternatively, use proGenomes over Refseq for increased sensitivity.
+
+*/
 process KAIJU {
+    publishDir "${params.outdir}/${sampleid}/kaiju", mode: 'link'
     label 'process_high'
     container 'quay.io/biocontainers/kaiju:1.8.2--h5b5514e_1'
+    containerOptions "${bindOptions}"
 
     input:
-    tuple val(meta), path(reads)
-    path(db)
+    tuple val(sampleid), path(fastq)
 
     output:
-    tuple val(meta), path('*.tsv'), emit: results
-    path "versions.yml"           , emit: versions
-
-    when:
-    task.ext.when == null || task.ext.when
+    tuple val(sampleid), path('*.tsv'), emit: results
+    file "${sampleid}_kaiju.tsv"
+    file "${sampleid}_kaiju_name.tsv"
+    file "${sampleid}_kaiju_summary.tsv"
 
     script:
-    def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
-    def input = meta.single_end ? "-i ${reads}" : "-i ${reads[0]} -j ${reads[1]}"
     """
-    dbnodes=`find -L ${db} -name "*nodes.dmp"`
-    dbname=`find -L ${db} -name "*.fmi" -not -name "._*"`
+
     kaiju \\
-        $args \\
-        -z $task.cpus \\
-        -t \$dbnodes \\
-        -f \$dbname \\
-        -o ${prefix}.tsv \\
-        $input
+        -z ${params.kaiju_threads} \\
+        -t ${params.kaiju_nodes}  \\
+        -f ${params.kaiju_dbname} \\
+        -o ${sampleid}_kaiju.tsv \\
+        -i ${fastq} \\
+        -v
+    
+    kaiju-addTaxonNames -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju_name.tsv
+    kaiju2table -t ${params.kaiju_nodes} -n ${params.kaiju_names} -r genus -o ${sampleid}_kaiju_summary.tsv ${sampleid}_kaiju_mame.tsv
     """
 }
 
@@ -690,7 +721,6 @@ include { FASTQ2FASTA as FASTQ2FASTA_STEP1} from './modules.nf'
 include { FASTQ2FASTA as FASTQ2FASTA_STEP2} from './modules.nf'
 
 workflow {
-  
   if (params.samplesheet) {
     Channel
       .fromPath(params.samplesheet, checkIfExists: true)
@@ -842,24 +872,31 @@ workflow {
     }
   }
   
-  else if (params.skip_host_filtering & params.skip_denovo_assembly & params.skip_clustering) {
+  //else if (params.skip_host_filtering & params.skip_denovo_assembly & params.skip_clustering) {
     //just perform direct alignment 
-    if (params.map2ref) {
-      MINIMAP2_REF ( REFORMAT.out.reformatted_fq )
-      if (params.infoseq) {
-        INFOSEQ ( MINIMAP2_REF.out.aligned_sample )
-        SAMTOOLS ( INFOSEQ.out.infoseq_ref )
-        NANOQ ( SAMTOOLS.out.sorted_sample )
-      }
+  if (params.map2ref) {
+    MINIMAP2_REF ( REFORMAT.out.reformatted_fq )
+    if (params.infoseq) {
+      INFOSEQ ( MINIMAP2_REF.out.aligned_sample )
+      SAMTOOLS ( INFOSEQ.out.infoseq_ref )
+      NANOQ ( SAMTOOLS.out.sorted_sample )
     }
-    else {
-    //just perform direct blast search 
-      FASTQ2FASTA_STEP1( REFORMAT.out.reformatted_fq )
-      BLASTN_SPLIT( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: params.blast_split_factor, file: true) )
-      BLASTN_SPLIT.out.blast_results
-        .groupTuple()
-        .set { ch_blastresults }
-      EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
+  }
+  
+   
+  if (!params.skip_read_classification) {
+    //just perform direct read search
+    if (params.megablast) {
+    FASTQ2FASTA_STEP1( REFORMAT.out.reformatted_fq )
+    BLASTN_SPLIT( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: params.blast_split_factor, file: true) )
+    BLASTN_SPLIT.out.blast_results
+      .groupTuple()
+      .set { ch_blastresults }
+    EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
+    }
+    else if (params.kaiju) {
+      KAIJU ( REFORMAT.out.reformatted_fq )
     }
   }
 }
+

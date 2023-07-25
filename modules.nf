@@ -13,7 +13,7 @@ process MINIMAP2_ALIGN {
 
   script:
   """
-  minimap2 -ax splice -uf -k14 ${reference} ${fastq} > ${sampleid}.sam
+  minimap2 -ax splice -uf -k14 ${reference} ${fastq} -t ${params.minimap_threads} > ${sampleid}.sam
   awk '\$6 == "*" { print \$0 }' ${sampleid}.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
   """
 }
