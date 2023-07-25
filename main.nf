@@ -80,6 +80,7 @@ switch (workflow.containerEngine) {
   default:
     bindOptions = "";
 }
+
 process MERGE {
   //publishDir "${params.outdir}/${sampleid}/merge", pattern: '*.fastq.gz', mode: 'link'
   tag "${sampleid}"
@@ -144,7 +145,7 @@ process CUTADAPT_RACE {
   fi
   """
 }
-
+/*
 process CHOPPER {
   //publishDir "${params.outdir}/${sampleid}/chopper", pattern:'*_filtered.fastq.gz', mode: 'link'
   publishDir "${params.outdir}/${sampleid}/chopper", pattern: '*_chopper.log', mode: 'link'
@@ -166,7 +167,7 @@ process CHOPPER {
   gunzip -c ${sample} | chopper -q ${params.chopper_qual_threshold} -l ${params.chopper_min_read_length} 2> ${sampleid}_chopper.log | sed 's/ /_/g' | gzip > ${sampleid}_filtered.fastq.gz
   """
 }
-
+*/
 process NANOFILT {
   publishDir "${params.outdir}/${sampleid}/nanofilt", pattern:'*_filtered.fastq.gz', mode: 'link'
   //publishDir "${params.outdir}/${sampleid}/canu", pattern: '*_nanofilt.log', mode: 'link'
@@ -188,34 +189,6 @@ process NANOFILT {
   gunzip -c ${sample} | NanoFilt -q ${params.nanofilt_qual_threshold} -l ${params.nanofilt_min_read_length} | gzip > ${sampleid}_filtered.fastq.gz
   """
 }
-/*
-process CANU {
-  publishDir "${params.outdir}/${sampleid}/denovo", pattern:'*_assembly.fasta', mode: 'link'
-  tag "${sampleid}"
-  memory "24GB"
-  cpus "4"
-
-  container 'quay.io/biocontainers/canu:2.2--ha47f30e_0'
-
-  input:
-    tuple val(sampleid), path(sample)
-
-  output:
-    path("${sampleid}_canu_assembly.fasta")
-    tuple val(sampleid), path("${sampleid}_canu_assembly.fasta"), emit: assembly
-    
-  script:
-  """
-  canu -p ${sampleid} -d ${sampleid} \
-    genomeSize=${params.canu_genome_size} \
-    useGrid=false minOverlapLength=50 minReadLength=50 minInputCoverage=0 corMinCoverage=0 stopOnLowCoverage=0 \
-    -nanopore ${sample}
-    
-
-  cat ${sampleid}/${sampleid}.contigs.fasta ${sampleid}/${sampleid}.unassembled.fasta > ${sampleid}_canu_assembly.fasta
-  """
-}
-*/
 
 process CANU {
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link', overwrite: true
@@ -253,25 +226,6 @@ process CANU {
   """
 }
 
-
-/*
-if [[ ! -s ${sampleid}/${sampleid}.contigs.fasta ]]
-  then
-    touch ${sampleid}/${sampleid}.contigs.fasta
-  else 
-    cp ${sampleid}/${sampleid}.contigs.fasta ${sampleid}_canu_assembly.fasta
-    cp ${sampleid}/${sampleid}.unassembled.fasta ${sampleid}.unassembled.fasta
-  fi
-  """
-}
-//canu -assemble -p ${sampleid} -d ${sampleid} \
-//    -corrected -trimmed \
-//    genomeSize=${params.canu_genome_size} \
-//    readSamplingCoverage=100 \
-//    useGrid=false minOverlapLength=50  minReadLength=500 stopOnLowCoverage=0 corMinCoverage=0 \
-//    contigFilter="2 0 1.0 0.5 0" \
-//    -nanopore ${sample} \
-*/
 process FLYE {
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
   tag "${sampleid}"
@@ -303,57 +257,7 @@ process FLYE {
 errorStrategy 'ignore'
 flye  --out-dir outdir --threads ${task.cpus} --read-error ${params.flye_read_error} --${params.flye_ont_mode} ${sample}
 
-process BLASTN_DENOVO {
-  publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
-  tag "${sampleid}"
-  label 'small'
-  containerOptions "${bindOptions}"
-
-  container 'quay.io/biocontainers/blast:2.13.0--hf3cf87c_0'
-
-  input:
-    tuple val(sampleid), path(assembly)
-  output:
-  path("*.bls")
-  tuple val(sampleid), path("${sampleid}_blastn_vs_NT.bls"), emit: blast_results
-
-  script:
-  """
-  cp ${blastn_db_dir}/taxdb.btd .
-  cp ${blastn_db_dir}/taxdb.bti .
-  blastn -query ${assembly} \
-    -db ${params.blastn_db} \
-    -out ${sampleid}_blastn_vs_NT.bls \
-    -evalue 1e-3 \
-    -num_threads ${params.blast_threads} \
-    -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe sscinames' \
-    -max_target_seqs 5
-    
-  """
-}
 */
-process EXTRACT_VIRAL_BLAST_HITS_DENOVO {
-  tag "${sampleid}"
-  label "large"
-  publishDir "$params.outdir/$sampleid/denovo",  mode: 'link', overwrite: true
-
-  container = 'docker://infrahelpers/python-light:py310-bullseye'
-
-  input:
-  tuple val(sampleid), path(blast_results)
-  output:
-  file "${sampleid}_blastn_vs_NT_top_hits.txt"
-  file "${sampleid}_blastn_vs_NT_top_viral_hits.txt"
-  file "${sampleid}_blastn_vs_NT_top_viral_spp_hits.txt"
-
-  script:
-  """  
-  cat ${blast_results} > ${sampleid}_blastn_vs_NT.txt
-
-  select_top_blast_hit.py --sample_name ${sampleid} --megablast_results ${sampleid}_blastn_vs_NT.txt
-  """
-}
-
 
 process BLASTN2REF {
   publishDir "${params.outdir}/${sampleid}/blast_to_ref", mode: 'link'
@@ -378,7 +282,7 @@ process BLASTN2REF {
 
   """
 }
-
+/*
 process MINIMAP2 {
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
   tag "${sampleid}"
@@ -396,28 +300,7 @@ process MINIMAP2 {
   minimap2 -x ava-ont -t ${params.minimap_threads} ${fastq} ${fastq}  > ${sampleid}_minimap.paf
   """
 }
-/*
-process MAP_BACK_TO_ASSEMBLY {
-  cpus "${params.minimap2_threads}"
-  tag "${sampleid}"
-  label "xlarge2"
-  publishDir "$params.outdir/$sampleid",  mode: 'copy', pattern: '*.sam'
 
-  container 'quay.io/biocontainers/minimap2:2.24--h7132678_1'
-
-  input:
-  tuple val(sampleid), path(fastq), path(assembly)
-  output:
-  path "${sampleid}.sam"
-  tuple val(sampleid), path(fastq), path("${sampleid}_unaligned_ids.txt"), emit: unmapped_ids
-
-  script:
-  """
-  minimap2 -ax splice -uf -k14 ${assembly} ${fastq} > ${sampleid}.sam
-  awk '\$6 == "*" { print \$0 }' ${sampleid}.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
-  """
-}
-*/
 process MINIASM {
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
   tag "${sampleid}"
@@ -436,7 +319,7 @@ process MINIASM {
   awk '/^S/{print ">"\$2"\\n"\$3}' ${sampleid}_miniasm.gfa > ${sampleid}_miniasm.fasta
   """
 }
-
+*/
 process MINIMAP2_REF {
   publishDir "${params.outdir}/${sampleid}/minimap2", mode: 'link'
   tag "${sampleid}"
@@ -510,7 +393,7 @@ process NANOQ {
   nano-q.py -b ${sorted_sample} -c ${params.nanoq_code_start} -l ${params.nanoq_read_length} -nr ${params.nanoq_num_ref} -q ${params.nanoq_qual_threshhold} -j ${params.nanoq_jump}
   """
 }
-
+/*
 process PORECHOP {
 	tag "${sampleid}"
 	label "xlarge2"
@@ -527,7 +410,7 @@ process PORECHOP {
 	porechop -i ${sample} -t ${params.porechop_threads} -o porechop_trimmed.fastq.gz ${params.porechop_args}
 	"""
 }
-
+*/
 process PORECHOP_ABI {
   tag "${sampleid}"
   label "xlarge2"
@@ -566,54 +449,6 @@ process REFORMAT {
   reformat.sh in=${fastq} out=${sampleid}_quality_trimmed.fastq.gz trd
   """
 }
-  
-  
-
-/*
-gunzip -c porechop_trimmed.fastq.gz | sed 's/ /_/g' | gzip > ${sampleid}_porechop_trimmed.fastq.gz
-
-process FILTER_HOST {
-  cpus "${params.minimap2_threads}"
-  tag "${sampleid}"
-  label "xlarge2"
-  publishDir "$params.outdir/$sampleid/wgs",  mode: 'copy', pattern: '*unaligned_ids.txt', saveAs: { filename -> "${sampleid}_unaligned_ids.txt"}
-
-  container 'quay.io/biocontainers/minimap2:2.24--h7132678_1'
-
-  input:
-  tuple val(sampleid), path(filtered)
-  output:
-  tuple val(sampleid), path(filtered), path("${sampleid}_unaligned_ids.txt"), emit: host_filtered_ids
-
-  script:
-  """
-  minimap2 -ax splice -uf -k14 ${params.plant_host_fasta} ${filtered} > ${sampleid}_plant_host.sam
-  awk '\$6 == "*" { print \$0 }' ${sampleid}_plant_host.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
-  """
-}
-*/
-/*
-process EXTRACT_READS {
-  tag "${sampleid}"
-  label "large"
-  publishDir "$params.outdir/$sampleid/wgs", mode: 'copy', pattern: '*_unaligned.fasta', saveAs: { filename -> "${sampleid}_unaligned.fasta"}
-
-  container = 'docker://quay.io/biocontainers/seqtk:1.3--h7132678_4'
-
-  input:
-  tuple val(sampleid), path(filtered), path(unaligned_ids)
-  output:
-  tuple val(sampleid), path("${sampleid}_unaligned.fastq"), emit: unaligned_fq
-
-  script:
-  """
-  seqtk subseq ${filtered} ${sampleid}_unaligned_ids.txt > ${sampleid}_unaligned.fastq
-  """
-}
-*/
-//seqtk seq -a ${sampleid}_unaligned.fastq > ${sampleid}_unaligned.fasta
-
-
 
 process CAP3 {
   tag "${sampleid}"
@@ -634,7 +469,7 @@ process CAP3 {
   cat ${fasta}.cap.singlets ${fasta}.cap.contigs > ${sampleid}_cap3.fasta
   """
 }
-
+/*
 process BLASTN {
   cpus "${params.blast_threads}"
   tag "${sampleid}"
@@ -666,7 +501,7 @@ process BLASTN {
     -max_target_seqs 5
 """
 }
-
+*/
 process EXTRACT_VIRAL_BLAST_HITS {
   tag "${sampleid}"
   label "medium"
@@ -743,7 +578,7 @@ process BLASTN_SPLIT {
     -max_target_seqs 5
   """
 }
-
+/*
 process KRAKEN2 {
 	cpus 2
 	tag "${sampleid}"
@@ -769,7 +604,7 @@ process KRAKEN2 {
 	paste seq_ids.txt seq_tax_otu.txt > kraken_report_annotated_otu.txt
 	"""
 }
-
+*/
 process RATTLE {
   publishDir "${params.outdir}/${sampleid}/clustering", mode: 'link'
   tag "${sampleid}"
@@ -784,7 +619,6 @@ process RATTLE {
 
   container =  'ghcr.io/eresearchqut/rattle-image:0.0.1'
 
-
   script:
   """
   rattle cluster -i ${fastq} -t 2 --lower-length ${params.rattle_min_len} --upper-length ${params.rattle_max_len}  -o . --rna
@@ -796,16 +630,13 @@ process RATTLE {
   """
 
 }
-/*
-  cd ${projectDir}/bin
-*/
+
 include { MINIMAP2_ALIGN as FILTER_HOST} from './modules.nf'
-//include { MINIMAP2_ALIGN as ALIGN_TO_ASSEMBLY} from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP1 } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP2 } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP3 } from './modules.nf'
-include { MAP_BACK_TO_ASSEMBLY } from './modules.nf'
-include { MAP_BACK_TO_ASSEMBLY as MAP_BACK_TO_CLUSTERS } from './modules.nf'
+include { MINIMAP2_ALIGN as MAP_BACK_TO_ASSEMBLY} from './modules.nf'
+include { MINIMAP2_ALIGN as MAP_BACK_TO_CLUSTERS } from './modules.nf'
 include { FASTQ2FASTA as FASTQ2FASTA_STEP1} from './modules.nf'
 include { FASTQ2FASTA as FASTQ2FASTA_STEP2} from './modules.nf'
 
@@ -821,60 +652,6 @@ workflow {
   
   MERGE ( ch_sample )
   NANOPLOT ( MERGE.out.merged )
-/*
-  if (params.clustering){
-    RATTLE (MERGE.out.merged)
-    FASTQ2FASTA( RATTLE.out.clusters )
-    CAP3( FASTQ2FASTA.out.fasta )
-    if (params.blast_vs_ref) {
-      BLASTN2REF ( CAP3.out.contigs )
-      }
-    else {
-      BLASTN( CAP3.out.contigs )
-      }
-  }
-  else if (params.denovo_assembly){
-    /*if (params.minimap) {
-      //PORECHOP_ABI (MERGE.out.merged)
-      //NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
-      //MINIMAP2( NANOFILT.out.nanofilt_filtered_fq )
-      MINIMAP2 ( MERGE.out.merged )
-      MINIASM( MINIMAP2.out.paf )
-    }
-  
-    if (params.canu) {
-      if ( params.race3 || params.race5 ) {
-      CUTADAPT_RACE ( MERGE.out.merged )
-      NANOFILT ( CUTADAPT_RACE.out.cutadapt_filtered )
-      CANU ( NANOFILT.out.nanofilt_filtered_fq )
-      }
-      if (params.nanofilt) {
-        NANOFILT ( MERGE.out.merged )
-        CANU ( NANOFILT.out.nanofilt_filtered_fq )
-      }
-      else {
-        CANU ( MERGE.out.merged )
-      }
-      if (params.blast_vs_ref) {
-          BLASTN2REF ( CANU.out.assembly )
-      }
-      else {
-        BLASTN ( CANU.out.assembly )
-        EXTRACT_VIRAL_BLAST_HITS_DENOVO( BLASTN.out.blast_results )
-      }
-    }
-    if (params.flye) {
-      FLYE ( MERGE.out.merged )
-      if (params.blast_vs_ref) {
-        BLASTN2REF ( FLYE.out.assembly )
-        }
-      else {
-        BLASTN( FLYE.out.assembly )
-        EXTRACT_VIRAL_BLAST_HITS_DENOVO( BLASTN.out.blast_results )
-      }
-    }
-  }
-*/
 
   // Data pre-processing
   if (!params.skip_porechop & !params.skip_nanofilt) {
@@ -902,12 +679,12 @@ workflow {
     if (params.canu) {
       CANU( EXTRACT_READS_STEP1.out.unaligned_fq )
       MAP_BACK_TO_ASSEMBLY ( CANU.out.assembly )
-      EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.unmapped_ids )
+      EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.sequencing_ids )
       RATTLE ( EXTRACT_READS_STEP2.out.unaligned_fq )
       FASTQ2FASTA_STEP1( RATTLE.out.clusters )
       CAP3( FASTQ2FASTA_STEP1.out.fasta )
       MAP_BACK_TO_CLUSTERS ( RATTLE.out.clusters2 )
-      EXTRACT_READS_STEP3 ( MAP_BACK_TO_CLUSTERS.out.unmapped_ids )
+      EXTRACT_READS_STEP3 ( MAP_BACK_TO_CLUSTERS.out.sequencing_ids )
       FASTQ2FASTA_STEP2( EXTRACT_READS_STEP3.out.unaligned_fq )
       CONCATENATE_FASTA(CANU.out.assembly2, CAP3.out.contigs, FASTQ2FASTA_STEP2.out.fasta)
       BLASTN_SPLIT( CONCATENATE_FASTA.out.assembly).splitFasta(by: 25000, file: true)
@@ -919,23 +696,18 @@ workflow {
     else if (params.flye) {
       FLYE( EXTRACT_READS_STEP1.out.unaligned_fq )
       MAP_BACK_TO_ASSEMBLY ( FLYE.out.assembly )
-      EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.unmapped_ids )
+      EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.sequencing_ids )
       FASTQ2FASTA_STEP1( RATTLE.out.clusters )
       CAP3( FASTQ2FASTA_STEP1.out.fasta )
       BLASTN_SPLIT( FLYE.out.assembly.mix(CAP3.out.contigs).collect().splitFasta(by: 25000, file: true) )
     }
-    //EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.unmapped_ids )
-    //RATTLE ( EXTRACT_READS_STEP2.out.unaligned_fq )
-    //CAP3( RATTLE.out.clusters )
-    //BLASTN( CAP3.out.contigs )
-    //BLASTN_SPLIT( CANU.out.assembly.mix(CAP3.out.contigs).collect().splitFasta(by: 25000, file: true) )
   }
 
   else if (params.skip_host_filtering & !params.skip_denovo_assembly & !params.skip_clustering) {
     if (params.canu) {
       CANU( REFORMAT.out.reformatted_fq )
       MAP_BACK_TO_ASSEMBLY ( CANU.out.assembly )
-      EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.unmapped_ids )
+      EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.sequencing_ids )
       RATTLE ( EXTRACT_READS_STEP2.out.unaligned_fq )
       FASTQ2FASTA_STEP1( RATTLE.out.clusters )
       CAP3( FASTQ2FASTA_STEP1.out.fasta )
@@ -944,7 +716,7 @@ workflow {
     else if (params.flye) {
       FLYE( REFORMAT.out.reformatted_fq )
       MAP_BACK_TO_ASSEMBLY ( FLYE.out.assembly )
-      EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.unmapped_ids )
+      EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.sequencing_ids )
       RATTLE ( EXTRACT_READS_STEP2.out.unaligned_fq )
       FASTQ2FASTA_STEP1( RATTLE.out.clusters )
       CAP3( FASTQ2FASTA_STEP1.out.fasta )
@@ -1021,29 +793,6 @@ workflow {
     }
   }
   
-
-      //EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.unmapped_ids )
-      //RATTLE ( EXTRACT_READS_STEP2.out.unaligned_fq )
-      //CAP3( RATTLE.out.clusters )
-      //BLASTN( CAP3.out.contigs )
-      //BLASTN_SPLIT( CANU.out.assembly.mix(CAP3.out.contigs).collect().splitFasta(by: 25000, file: true) )
-
-      //CAP3( EXTRACT_READS.out.host_filtered_fasta )
-      //BLASTN_SPLIT( EXTRACT_READS.out.host_filtered_fasta.splitFasta(by: 25000, file: true) )
-      //EXTRACT_VIRAL_BLAST_HITS( BLASTN.out.blast_results )
-    
-    /*
-    else if (params.skip_host_filtering) {
-      FASTQ2FASTA( REFORMAT.out.reformatted_fq )
-      BLASTN_SPLIT( FASTQ2FASTA.out.fasta.splitFasta(by: 25000, file: true) )
-    }
-    BLASTN_SPLIT.out.blast_results
-      .groupTuple()
-      .set { ch_blastresults }
-    EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
-    }
-  */
-
   else if (params.skip_host_filtering & params.skip_denovo_assembly & params.skip_clustering) {
     //just perform direct alignment 
     if (params.map2ref) {

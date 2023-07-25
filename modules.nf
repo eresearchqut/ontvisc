@@ -34,7 +34,7 @@ process EXTRACT_READS {
   seqtk subseq ${fastq} ${unaligned_ids} > ${fastq.baseName}_unaligned.fastq
   """
 }
-
+/*
 process MAP_BACK_TO_ASSEMBLY {
   cpus "${params.minimap2_threads}"
   tag "${sampleid}"
@@ -55,7 +55,7 @@ process MAP_BACK_TO_ASSEMBLY {
   awk '\$6 == "*" { print \$0 }' ${sampleid}.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
   """
 }
-
+*/
 process FASTQ2FASTA {
   tag "${sampleid}"
   label "medium"
