@@ -67,22 +67,21 @@ if (params.help) {
     helpMessage()
     exit 0
 }
-
 if (params.blastn_db != null) {
     blastn_db_name = file(params.blastn_db).name
     blastn_db_dir = file(params.blastn_db).parent
 }
-
 if (params.reference != null) {
     reference_name = file(params.reference).name
     reference_dir = file(params.reference).parent
 
 }
-
 if (params.kaiju_nodes != null & params.kaiju_dbname != null & params.kaiju_names != null) {
     kaiju_dbs_dir = file(params.kaiju_nodes).parent
 }
-
+if (params.krkdb != null) {
+    krkdb_dir = file(params.krkdb).parent
+}
 
 switch (workflow.containerEngine) {
   case "singularity":
@@ -95,6 +94,9 @@ switch (workflow.containerEngine) {
     }
     if (params.kaiju_nodes != null & params.kaiju_dbname != null & params.kaiju_names != null) {
       bindbuild = (bindbuild + "-B ${kaiju_dbs_dir} ")
+    }
+    if (params.krkdb != null) {
+      bindbuild = (bindbuild + "-B ${krkdb_dir} ")
     }
     bindOptions = bindbuild;
     break;
@@ -625,58 +627,105 @@ These choices also affect the speed and memory usage of Kaiju.
 For highest sensitivity, it is recommended to use the nr database (+eukaryotes) as a reference database because it is the most comprehensive 
 set of protein sequences. Alternatively, use proGenomes over Refseq for increased sensitivity.
 NOTE, viroid will not be detected using this approach
+
+Mandatory arguments:
+
+  -t FILENAME   Name of nodes.dmp file
+  -f FILENAME   Name of database (.fmi) file
+  -i FILENAME   Name of input file containing reads in FASTA or FASTQ format
+Optional arguments:
+
+  -j FILENAME   Name of second input file for paired-end reads
+  -o FILENAME   Name of output file. If not specified, output will be printed to STDOUT
+  -z INT        Number of parallel threads for classification (default: 1)
+  -a STRING     Run mode, either "mem"  or "greedy" (default: greedy)
+  -e INT        Number of mismatches allowed in Greedy mode (default: 3)
+  -m INT        Minimum match length (default: 11)
+  -s INT        Minimum match score in Greedy mode (default: 65)
+  -E FLOAT      Minimum E-value in Greedy mode
+  -x            Enable SEG low complexity filter (enabled by default)
+  -X            Disable SEG low complexity filter
+  -p            Input sequences are protein sequences
+  -v            Enable verbose output
 */
 process KAIJU {
-    publishDir "${params.outdir}/${sampleid}/kaiju", mode: 'link'
-    label 'xlarge2'
-    container 'quay.io/biocontainers/kaiju:1.8.2--h5b5514e_1'
-    containerOptions "${bindOptions}"
+  publishDir "${params.outdir}/${sampleid}/kaiju", mode: 'link'
+  label 'process_high'
+  container 'quay.io/biocontainers/kaiju:1.8.2--h5b5514e_1'
+  containerOptions "${bindOptions}"
 
-    input:
-    tuple val(sampleid), path(fastq)
+  input:
+  tuple val(sampleid), path(fastq)
 
-    output:
-    tuple val(sampleid), path('*.tsv'), emit: results
-    file "${sampleid}_kaiju.tsv"
-    file "${sampleid}_kaiju_name.tsv"
-    file "${sampleid}_kaiju_summary.tsv"
+  output:
+  tuple val(sampleid), path('*kaiju.krona'), emit: results
+  file "${sampleid}_kaiju_name.tsv"
+  file "${sampleid}_kaiju_summary.tsv"
+  file "${sampleid}_kaiju.krona"
 
-    script:
-    """
+  script:
+  """
 
-    kaiju \\
-        -z ${params.kaiju_threads} \\
-        -t ${params.kaiju_nodes}  \\
-        -f ${params.kaiju_dbname} \\
-        -o ${sampleid}_kaiju.tsv \\
-        -i ${fastq} \\
-        -v
-    
-    kaiju-addTaxonNames -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju_name.tsv
-    kaiju2table -t ${params.kaiju_nodes} -n ${params.kaiju_names} -r genus -o ${sampleid}_kaiju_summary.tsv ${sampleid}_kaiju_name.tsv
+  kaiju \\
+      -z ${params.kaiju_threads} \\
+      -t ${params.kaiju_nodes}  \\
+      -f ${params.kaiju_dbname} \\
+      -o ${sampleid}_kaiju.tsv \\
+      -i ${fastq} \\
+      -v
+  
+  kaiju-addTaxonNames -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju_name.tsv
+  kaiju2table -t ${params.kaiju_nodes} -r species -n ${params.kaiju_names} -o ${sampleid}_kaiju_summary.tsv ${sampleid}_kaiju.tsv
+  kaiju2krona -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju.krona
+  
+  """
+}
 
-    
-    """
+process KRONA {
+  publishDir "${params.outdir}/${sampleid}/krona", mode: 'link'
+  label 'large'
+  container 'quay.io/biocontainers/krona:2.8.1--pl5321hdfd78af_1'
+  containerOptions "${bindOptions}"
+
+  input:
+  tuple val(sampleid), path(krona_input)
+
+  output:
+  file "${sampleid}_krona.html"
+
+  script:
+  """
+  ktImportText -o ${sampleid}_krona.html ${krona_input}
+  """
 }
 
 
-/*
 process KRAKEN2 {
-	cpus 2
 	tag "${sampleid}"
-	memory "8GB"
-	publishDir "$params.outdir/$sampleid/kraken",  mode: 'copy', pattern: '*filtered.fastq.gz', saveAs: { filename -> "${sample}_$filename" }
+	label 'process_high'
+	publishDir "$params.outdir/$sampleid/kraken",  mode: 'link'
+  container 'quay.io/biocontainers/kraken2:2.1.3--pl5321hdcf5f25_0'
+  containerOptions "${bindOptions}"
+
 	input:
-		tuple val(barcode), path(filtered), val(sample), val(genome_size)
+		tuple val(sampleid), path(fastq)
+
 	output:
-		tuple val(barcode), path("filtered.fastq.gz"), val(sample), val(genome_size), emit: filtered_fastq
-		path("*.log")
-		path("filtlong_version.txt")
+		file("${sampleid}.kraken2")
 	script:
 	"""
-	set +eu
-	sed '/^@/s/.\s./_/g' ${filtered} > krkinput.fastq
-	kraken2 --db $krkdb --use-names --threads 2 krkinput.fastq > krakenreport.txt
+	kraken2 --db ${params.krkdb} \\
+          --use-names \\
+          --gzip-compressed \\
+          --threads 4 \\
+          ${fastq} \\
+          --report ${sampleid}_krakenreport.txt  \\
+          --report-minimizer-data \\
+          --minimum-hit-groups 3 > ${sampleid}.kraken2
+  """
+}
+/*
+
 	echo "seq_id" > seq_ids.txt 
 	awk -F "\\t" '{print \$2}' krakenreport.txt >> seq_ids.txt       
 	gawk -F "\\t" 'match(\$0, /\\(taxid\s([0-9]+)\\)/, ary) {print ary[1]}' krakenreport.txt | taxonkit lineage --data-dir $taxondb > lineage.txt
@@ -685,8 +734,11 @@ process KRAKEN2 {
 	paste seq_ids.txt seq_tax.txt > kraken_report_annotated.txt
 	paste seq_ids.txt seq_tax_otu.txt > kraken_report_annotated_otu.txt
 	"""
-}
+
+set +eu
+	sed '/^@/s/.\s./_/g' ${filtered} > krkinput.fastq
 */
+
 process RATTLE {
   publishDir "${params.outdir}/${sampleid}/clustering", mode: 'link'
   tag "${sampleid}"
@@ -896,8 +948,12 @@ workflow {
       .set { ch_blastresults }
     EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
     }
-    else if (params.kaiju) {
+    if (params.kaiju) {
       KAIJU ( REFORMAT.out.reformatted_fq )
+      KRONA ( KAIJU.out.results)
+    }
+    if (params.kraken2) {
+      KRAKEN2 ( REFORMAT.out.reformatted_fq )
     }
   }
 }
