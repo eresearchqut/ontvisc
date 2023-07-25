@@ -6,6 +6,8 @@ def helpMessage () {
     log.info """
     OViSP - ONT-based Viral Screening for Plants
     Marie-Emilie Gauthier 23/05/2023
+    Craig Windell
+    Roberto Barrero
 
     Usage:
     Run the command
@@ -26,26 +28,39 @@ def helpMessage () {
         sample_files can refer to a folder with a number of
         files that will be merged in the pipeline
 
-        --flye_read_error               adjust parameters for given read error rate (as fraction e.g. 0.03)
-                              Default:  0.03
-
-        --flye_ont_mode                 Select from nano-raw, nano-corr, nano-hq
-                              Default:  'nano-hq'
-
-        --nanoq_code_start              Start codon position in the reference sequence
-                              Default:  1
-
-        --nanoq_read_length             Length cut off for read size
-                              Default:  9000
-
-        --nanoq_num_ref                 Number of references used in the alignment
-                              Default:  1
-
-        --nanoq_qual_threshhold         Base quality score cut off
-                              Default:  5
-
-        --nanoq_jump                    Increase this to make larger read intervals
+        --skip_porechop                 Skip porechop step
+                              Default:  false
+        --skip_nanofilt                 Skip nanofilt step
+                              Default:  false
+        --nanofilt_qual_threshold       Quality threshold
                               Default:  10
+        --nanofilt_min_read_length      Length cut off for read size
+                              Default:  500
+        --skip_host_filtering           Skip host filtering step
+                              Default:  false
+        --plant_host_fasta              Fasta file of nucleotide sequences to filter
+                                        null
+        --skip_denovo_assembly          Skip de novo assembly step
+                              Default:  false
+        --canu                          Use Canu for de novo assembly step
+                              Default:  false
+        --canu_genome_size              Target genome size
+                              Default:  '0.01m'
+        --canu_options                  Canu options
+                              Default:  ''
+        --flye                          Use Flye for de novo assembly step
+        --flye_ont_mode                 Select from nano-raw, nano-corr, nano-hq
+                              Default:  'nano-raw'
+        --flye_options                  Flye options
+                              Default:  ''
+        --skip_clustering               Skip clustering step using Rattle
+                              Default:  false
+        --rattle_min_len                Minimum length cut off for read size
+                              Default:  250
+        --rattle_max_len                Maximum length cut off for read size
+                              Default:  2000
+
+
 
     """.stripIndent()
 }
@@ -512,15 +527,15 @@ process EXTRACT_VIRAL_BLAST_HITS {
   input:
   tuple val(sampleid), path(blast_results)
   output:
-  file "${sampleid}_${params.blastn_method}_vs_NT_top_hits.txt"
-  file "${sampleid}_${params.blastn_method}_vs_NT_top_viral_hits.txt"
-  file "${sampleid}_${params.blastn_method}_vs_NT_top_viral_spp_hits.txt"
+  file "${sampleid}_megablast_vs_NT_top_hits.txt"
+  file "${sampleid}_megablast_vs_NT_top_viral_hits.txt"
+  file "${sampleid}_megablast_vs_NT_top_viral_spp_hits.txt"
 
   script:
   """  
-  cat ${blast_results} > ${sampleid}_${params.blastn_method}_vs_NT.txt
+  cat ${blast_results} > ${sampleid}_megablast_vs_NT.txt
 
-  select_top_blast_hit.py --sample_name ${sampleid} --megablast_results ${sampleid}_${params.blastn_method}_vs_NT.txt
+  select_top_blast_hit.py --sample_name ${sampleid} --megablast_results ${sampleid}_megablast_vs_NT.txt
   """
 }
 
@@ -578,6 +593,40 @@ process BLASTN_SPLIT {
     -max_target_seqs 5
   """
 }
+
+process KAIJU {
+    label 'process_high'
+    container 'quay.io/biocontainers/kaiju:1.8.2--h5b5514e_1'
+
+    input:
+    tuple val(meta), path(reads)
+    path(db)
+
+    output:
+    tuple val(meta), path('*.tsv'), emit: results
+    path "versions.yml"           , emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def args = task.ext.args ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    def input = meta.single_end ? "-i ${reads}" : "-i ${reads[0]} -j ${reads[1]}"
+    """
+    dbnodes=`find -L ${db} -name "*nodes.dmp"`
+    dbname=`find -L ${db} -name "*.fmi" -not -name "._*"`
+    kaiju \\
+        $args \\
+        -z $task.cpus \\
+        -t \$dbnodes \\
+        -f \$dbname \\
+        -o ${prefix}.tsv \\
+        $input
+    """
+}
+
+
 /*
 process KRAKEN2 {
 	cpus 2
