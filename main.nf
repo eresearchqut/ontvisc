@@ -450,8 +450,6 @@ process PORECHOP_ABI {
   script:
   """
   porechop_abi -abi -i ${sample} -t ${params.porechop_threads} -o ${sampleid}_porechop_trimmed.fastq.gz ${params.porechop_args}
-
-  
   """
 }
 
@@ -639,9 +637,9 @@ Optional arguments:
   -o FILENAME   Name of output file. If not specified, output will be printed to STDOUT
   -z INT        Number of parallel threads for classification (default: 1)
   -a STRING     Run mode, either "mem"  or "greedy" (default: greedy)
-  -e INT        Number of mismatches allowed in Greedy mode (default: 3)
-  -m INT        Minimum match length (default: 11)
-  -s INT        Minimum match score in Greedy mode (default: 65)
+  -e INT        Number of mismatches allowed in Greedy mode (default: 3) #set to 1 in kodoja
+  -m INT        Minimum match length (default: 11) #set to 15 in kodoja
+  -s INT        Minimum match score in Greedy mode (default: 65) #set to 85 in Kodoja
   -E FLOAT      Minimum E-value in Greedy mode
   -x            Enable SEG low complexity filter (enabled by default)
   -X            Disable SEG low complexity filter
@@ -699,10 +697,55 @@ process KRONA {
   """
 }
 
+/*
+
+KRAKEN2
+https://github.com/DerrickWood/kraken2/blob/master/docs/MANUAL.markdown
+If you get the Loading database information...classify: Error reading in hash table error allocate more memory to the job. Keep incrementing the memory request until you see a status message in the job log like
+
+Usage: kraken2 [options] <filename(s)>
+
+  Options:
+    --db NAME               Name for Kraken 2 DB
+                            (default: none)
+    --threads NUM           Number of threads (default: 1)
+    --quick                 Quick operation (use first hit or hits)
+    --unclassified-out FILENAME
+                            Print unclassified sequences to filename
+    --classified-out FILENAME
+                            Print classified sequences to filename
+    --output FILENAME       Print output to filename (default: stdout); "-" will
+                            suppress normal output
+    --confidence FLOAT      Confidence score threshold (default: 0.0); must be
+                            in [0, 1].
+    --minimum-base-quality NUM
+                            Minimum base quality used in classification (def: 0,
+                            only effective with FASTQ input).
+    --report FILENAME       Print a report with aggregrate counts/clade to file
+    --use-mpa-style         With --report, format report output like Kraken 1's
+                            kraken-mpa-report
+    --report-zero-counts    With --report, report counts for ALL taxa, even if
+                            counts are zero
+    --report-minimizer-data With --report, report minimizer and distinct minimizer
+                            count information in addition to normal Kraken report
+    --memory-mapping        Avoids loading database into RAM
+    --paired                The filenames provided have paired-end reads
+    --use-names             Print scientific names instead of just taxids
+    --gzip-compressed       Input files are compressed with gzip
+    --bzip2-compressed      Input files are compressed with bzip2
+    --minimum-hit-groups NUM
+                            Minimum number of hit groups (overlapping k-mers
+                            sharing the same minimizer) needed to make a call
+                            (default: 3)
+    --help                  Print this message
+    --version               Print version information
+
+32 min using 4 cpus and 164 Gb of mem, test with 2 cpus instead
+*/
 
 process KRAKEN2 {
 	tag "${sampleid}"
-	label 'process_high'
+	label 'process_high2'
 	publishDir "$params.outdir/$sampleid/kraken",  mode: 'link'
   container 'quay.io/biocontainers/kraken2:2.1.3--pl5321hdcf5f25_0'
   containerOptions "${bindOptions}"
@@ -712,20 +755,27 @@ process KRAKEN2 {
 
 	output:
 		file("${sampleid}.kraken2")
+    file("${sampleid}_kraken_report.txt")
+    file("${sampleid}_seq_ids.txt")
+    tuple val(sampleid), path("${sampleid}_kraken_report.txt"), emit: results
 	script:
 	"""
 	kraken2 --db ${params.krkdb} \\
           --use-names \\
           --gzip-compressed \\
-          --threads 4 \\
-          ${fastq} \\
-          --report ${sampleid}_krakenreport.txt  \\
+          --threads 2 \\
+          --report ${sampleid}_kraken_report.txt  \\
           --report-minimizer-data \\
-          --minimum-hit-groups 3 > ${sampleid}.kraken2
+          --minimum-hit-groups 3 \\
+          ${fastq} > ${sampleid}.kraken2
+
+  #extract the reads IDs
+  echo "seq_id" > ${sampleid}_seq_ids.txt
+	awk -F "\\t" '{print \$2}' ${sampleid}.kraken2 >> ${sampleid}_seq_ids.txt
   """
 }
 /*
-
+gawk 'match($0, pattern, ary) {print ary[1]}'
 	echo "seq_id" > seq_ids.txt 
 	awk -F "\\t" '{print \$2}' krakenreport.txt >> seq_ids.txt       
 	gawk -F "\\t" 'match(\$0, /\\(taxid\s([0-9]+)\\)/, ary) {print ary[1]}' krakenreport.txt | taxonkit lineage --data-dir $taxondb > lineage.txt
@@ -739,10 +789,33 @@ set +eu
 	sed '/^@/s/.\s./_/g' ${filtered} > krkinput.fastq
 */
 
+process BRACKEN {
+  tag "${sampleid}"
+	label 'medium'
+	publishDir "$params.outdir/$sampleid/bracken",  mode: 'link'
+  container 'quay.io/biocontainers/bracken:2.8--py310h0dbaff4_1'
+  containerOptions "${bindOptions}"
+
+	input:
+		tuple val(sampleid), path(kraken_report)
+
+	output:
+		file("${sampleid}_bracken_report.txt")
+	script:
+	"""
+	est_abundance.py -i ${kraken_report} \\
+                  -k ${params.krkdb}/database50mers.kmer_distrib \\
+                  -t 1 \\
+                  -l S -o ${sampleid}_bracken_report.txt
+  """
+}
+
+
 process RATTLE {
   publishDir "${params.outdir}/${sampleid}/clustering", mode: 'link'
   tag "${sampleid}"
   label 'medium'
+  containerOptions "${bindOptions}"
 
   input:
   tuple val(sampleid), path(fastq)
@@ -954,7 +1027,7 @@ workflow {
     }
     if (params.kraken2) {
       KRAKEN2 ( REFORMAT.out.reformatted_fq )
+      BRACKEN ( KRAKEN2.out.results )
     }
   }
 }
-
