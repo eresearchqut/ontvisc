@@ -663,7 +663,6 @@ process KAIJU {
 
   script:
   """
-
   kaiju \\
       -z ${params.kaiju_threads} \\
       -t ${params.kaiju_nodes}  \\
@@ -810,7 +809,6 @@ process BRACKEN {
   """
 }
 
-
 process RATTLE {
   publishDir "${params.outdir}/${sampleid}/clustering", mode: 'link'
   tag "${sampleid}"
@@ -835,7 +833,6 @@ process RATTLE {
   rattle correct -i ${fastq} -c clusters.out -t 2
   rattle polish -i consensi.fq -t 2 --rna --summary
   """
-
 }
 
 include { MINIMAP2_ALIGN as FILTER_HOST} from './modules.nf'
@@ -1009,7 +1006,6 @@ workflow {
       NANOQ ( SAMTOOLS.out.sorted_sample )
     }
   }
-  
    
   if (!params.skip_read_classification) {
     //just perform direct read search
