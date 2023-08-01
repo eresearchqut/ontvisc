@@ -4,7 +4,7 @@ nextflow.enable.dsl = 2
 
 def helpMessage () {
     log.info """
-    OViSP - ONT-based Viral Screening for Plants
+    ONTViSc - ONT-based Viral Screening for Biosecurity
     Marie-Emilie Gauthier 23/05/2023
     Craig Windell
     Roberto Barrero
