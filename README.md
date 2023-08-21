@@ -24,12 +24,38 @@ nextflow run eresearchqut/ontvisc -resume --skip_host_filtering \\
                                 --kaiju_dbname /path_to_kaiju_databases/kaiju_db_rvdb.fmi
 ```
 
-2. After pre-processing WGS-derived ONT reads (adapter removal with PoreChop ABI,  quality filtering with NanoFilt and filtering for host reads), perform direct homology search on WGS-derived MinION reads using megablast and NR database, splitting the blast processes by chunks of 10000 reads
+2. After pre-processing WGS-derived ONT reads (adapter removal with PoreChop ABI, quality filtering with NanoFilt and filtering for host reads), perform direct homology search on WGS-derived MinION reads using megablast and NR database, splitting the blast processes by chunks of 10000 reads
 ```
 nextflow run eresearchqut/ontvisc -resume --plant_host_fasta /path_to_host_fasta_file_dir/host.fasta \\
                                 --skip_clustering \\
                                 --skip_denovo_assembly \\
-                                --blastn_db /work/hia_mt18005/databases/blastDB/20230606/nt \\
-                                --blast_threads 8 \\
+                                --blastn_db /path_to_blastn_database/nt \\
+                                --blast_threads 4 \\
                                 --blast_split_factor 10000
+```
+
+
+3. Perform de novo assembly on raw reads using Canu
+```
+nextflow run eresearchqut/ontvisc -resume --skip_porechop \\
+                                  --skip_nanofilt \\
+                                  --skip_clustering \\
+                                  --skip_host_filtering \\
+                                  --canu  --canu_options 'useGrid=false' \\
+                                  --blastn_db /path_to_blastn_database/nt \\
+                                  --blast_threads 4 \\
+                                  --blast_split_factor 5000
+                                  
+
+```
+4. Perform de novo assembly on raw reads using Flye
+```
+nextflow run eresearchqut/ontvisc -resume --skip_porechop \\
+                                  --skip_nanofilt \\
+                                  --skip_clustering \\
+                                  --skip_host_filtering \\
+                                  --flye \\
+                                  --blastn_db /path_to_blastn_database/nt \\
+                                  --blast_threads 4 \\
+                                  --blast_split_factor 5000
 ```

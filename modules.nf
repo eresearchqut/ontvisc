@@ -11,9 +11,11 @@ process MINIMAP2_ALIGN {
   output:
   tuple val(sampleid), path(fastq), path("${sampleid}_unaligned_ids.txt"), emit: sequencing_ids
 
+  def minimap_options = (params.minimap_options) ? " ${params.minimap_options}" : ''
+
   script:
   """
-  minimap2 -ax splice -uf -k14 ${reference} ${fastq} -t ${params.minimap_threads} > ${sampleid}.sam
+  minimap2 -ax ${minimap_options} -uf -k14 ${reference} ${fastq} -t ${params.minimap_threads} > ${sampleid}.sam
   awk '\$6 == "*" { print \$0 }' ${sampleid}.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
   """
 }
@@ -34,6 +36,7 @@ process EXTRACT_READS {
   seqtk subseq ${fastq} ${unaligned_ids} > ${fastq.baseName}_unaligned.fastq
   """
 }
+
 /*
 process MAP_BACK_TO_ASSEMBLY {
   cpus "${params.minimap2_threads}"
@@ -56,6 +59,7 @@ process MAP_BACK_TO_ASSEMBLY {
   """
 }
 */
+
 process FASTQ2FASTA {
   tag "${sampleid}"
   label "medium"

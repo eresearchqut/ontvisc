@@ -38,6 +38,8 @@ def helpMessage () {
                               Default:  500
         --skip_host_filtering           Skip host filtering step
                               Default:  false
+        --minimap_options               Set to 'splice' ofr RNA or ‘map-ont’ for DNA libraries
+                              Default:  'splice'
         --plant_host_fasta              Fasta file of nucleotide sequences to filter
                                         null
         --skip_denovo_assembly          Skip de novo assembly step
@@ -168,7 +170,7 @@ process CUTADAPT_RACE {
   fi
   """
 }
-/*
+
 process CHOPPER {
   //publishDir "${params.outdir}/${sampleid}/chopper", pattern:'*_filtered.fastq.gz', mode: 'link'
   publishDir "${params.outdir}/${sampleid}/chopper", pattern: '*_chopper.log', mode: 'link'
@@ -186,11 +188,12 @@ process CHOPPER {
     tuple val(sampleid), path("${sampleid}_filtered.fastq.gz"), emit: chopper_filtered_fq
 
   script:
+  def chopper_options = (params.chopper_options) ? " ${params.chopper_options}" : ''
   """
-  gunzip -c ${sample} | chopper -q ${params.chopper_qual_threshold} -l ${params.chopper_min_read_length} 2> ${sampleid}_chopper.log | sed 's/ /_/g' | gzip > ${sampleid}_filtered.fastq.gz
+  gunzip -c ${sample} | chopper ${chopper_options} 2> ${sampleid}_chopper.log | gzip > ${sampleid}_filtered.fastq.gz
   """
 }
-*/
+
 process NANOFILT {
   publishDir "${params.outdir}/${sampleid}/nanofilt", pattern:'*_filtered.fastq.gz', mode: 'link'
   //publishDir "${params.outdir}/${sampleid}/canu", pattern: '*_nanofilt.log', mode: 'link'
@@ -208,10 +211,13 @@ process NANOFILT {
     tuple val(sampleid), path("${sampleid}_filtered.fastq.gz"), emit: nanofilt_filtered_fq
 
   script:
+  def nanofilt_options = (params.nanofilt_options) ? " ${params.nanofilt_options}" : ''
   """
-  gunzip -c ${sample} | NanoFilt -q ${params.nanofilt_qual_threshold} -l ${params.nanofilt_min_read_length} | gzip > ${sampleid}_filtered.fastq.gz
+  gunzip -c ${sample} | NanoFilt ${nanofilt_options} | gzip > ${sampleid}_filtered.fastq.gz
   """
 }
+
+//gunzip -c ${sample} | NanoFilt -q ${params.nanofilt_qual_threshold} -l ${params.nanofilt_min_read_length} | gzip > ${sampleid}_filtered.fastq.gz
 
 process CANU {
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link', overwrite: true
@@ -241,7 +247,7 @@ process CANU {
 
   if [[ ! -s ${sampleid}/${sampleid}.contigs.fasta ]]
     then
-      touch ${sampleid}.canu_assembly.fasta
+      touch ${sampleid}_canu_assembly.fasta
   else 
     cat ${sampleid}/${sampleid}.contigs.fasta ${sampleid}/${sampleid}.unassembled.fasta > ${sampleid}_canu_assembly.fasta
   fi
@@ -252,28 +258,32 @@ process CANU {
 process FLYE {
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
   tag "${sampleid}"
-  label 'large'
-  
+  time '24h'
+  cpus = 8
+  memory = 92.GB
 
   container "quay.io/biocontainers/flye:2.9.1--py310h590eda1_0"
 
   input:
-    tuple val(sampleid), path(sample)
+    tuple val(sampleid), path(fastq)
   output:
-    path 'outdir/*'
+    path("outdir/*")
     path("${sampleid}_flye_assembly.fasta")
-    tuple val(sampleid), path("${sampleid}_flye_assembly.fasta"), emit: assembly
-  script:
+    tuple val(sampleid), path("${sampleid}_flye.fastq"), path("${sampleid}_flye_assembly.fasta"), emit: assembly
+    tuple val(sampleid), path("${sampleid}_flye_assembly.fasta"), emit: assembly2
   
+  script:
+  def flye_options = (params.flye_options) ? " ${params.flye_options}" : ''
   """
-  flye  --out-dir outdir --threads ${task.cpus}  --${params.flye_ont_mode} ${sample}
+  flye  --out-dir outdir --threads ${task.cpus} ${flye_options} --${params.flye_ont_mode} ${fastq}
   
   if [[ ! -s outdir/assembly.fasta ]]
     then
-        touch ${sampleid}_flye_assembly.fasta
+      touch ${sampleid}_flye_assembly.fasta
   else 
     cp outdir/assembly.fasta ${sampleid}_flye_assembly.fasta
   fi
+  cp ${fastq} ${sampleid}_flye.fastq
   """
 }
 /*
@@ -436,8 +446,10 @@ process PORECHOP {
 */
 process PORECHOP_ABI {
   tag "${sampleid}"
-  label "xlarge2"
   publishDir "$params.outdir/${sampleid}/porechop",  mode: 'copy'
+  time '6h'
+  cpus = 4
+  memory = 32.GB
 
   container = 'docker://quay.io/biocontainers/porechop_abi:0.5.0--py38he0f268d_2'
 
@@ -449,7 +461,7 @@ process PORECHOP_ABI {
 
   script:
   """
-  porechop_abi -abi -i ${sample} -t ${params.porechop_threads} -o ${sampleid}_porechop_trimmed.fastq.gz ${params.porechop_args}
+  porechop_abi -abi -i ${sample} -t ${params.porechop_threads} -o ${sampleid}_porechop_trimmed.fastq.gz ${params.porechop_options}
   """
 }
 
@@ -467,7 +479,7 @@ process REFORMAT {
 
   script:
   """
-  reformat.sh in=${fastq} out=${sampleid}_quality_trimmed.fastq.gz trd
+  reformat.sh in=${fastq} out=${sampleid}_quality_trimmed.fastq.gz trd qin=33
   """
 }
 
@@ -533,15 +545,15 @@ process EXTRACT_VIRAL_BLAST_HITS {
   input:
   tuple val(sampleid), path(blast_results)
   output:
-  file "${sampleid}_megablast_vs_NT_top_hits.txt"
-  file "${sampleid}_megablast_vs_NT_top_viral_hits.txt"
-  file "${sampleid}_megablast_vs_NT_top_viral_spp_hits.txt"
+  file "${sampleid}_blastn_vs_NT_top_hits.txt"
+  file "${sampleid}_blastn_vs_NT_top_viral_hits.txt"
+  file "${sampleid}_blastn_vs_NT_top_viral_spp_hits.txt"
 
   script:
   """  
-  cat ${blast_results} > ${sampleid}_megablast_vs_NT.txt
+  cat ${blast_results} > ${sampleid}_blastn_vs_NT.txt
 
-  select_top_blast_hit.py --sample_name ${sampleid} --megablast_results ${sampleid}_megablast_vs_NT.txt
+  select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn_vs_NT.txt
   """
 }
 
@@ -567,7 +579,6 @@ process CONCATENATE_FASTA {
   seqtk seq -l0 ${sampleid}.fasta >  ${sampleid}_1l.fasta 
   cat  ${sampleid}_canu_assembly_1l.fasta ${sampleid}_cap3_1l.fasta  ${sampleid}.fasta > ${sampleid}_merged.fasta
   """
-
 }
 
 process BLASTN_SPLIT {
@@ -812,7 +823,9 @@ process BRACKEN {
 process RATTLE {
   publishDir "${params.outdir}/${sampleid}/clustering", mode: 'link'
   tag "${sampleid}"
-  label 'medium'
+  time '24h'
+  cpus = 2
+  memory = 92.GB
   containerOptions "${bindOptions}"
 
   input:
@@ -826,20 +839,40 @@ process RATTLE {
 
   script:
   """
-  rattle cluster -i ${fastq} -t 2 --lower-length ${params.rattle_min_len} --upper-length ${params.rattle_max_len}  -o . --rna
+  rattle cluster -i ${fastq} -t ${task.cpus} --lower-length ${params.rattle_min_len} --upper-length ${params.rattle_max_len}  -o . --rna
   rattle cluster_summary -i ${fastq} -c clusters.out > cluster_summary.txt
   mkdir clusters
   rattle extract_clusters -i ${fastq} -c clusters.out --fastq -o clusters
-  rattle correct -i ${fastq} -c clusters.out -t 2
-  rattle polish -i consensi.fq -t 2 --rna --summary
+  rattle correct -i ${fastq} -c clusters.out -t ${task.cpus}
+  rattle polish -i consensi.fq -t ${task.cpus} --rna --summary
   """
 }
+/*
+process CIRCLATOR {
+	label 'medium'
+  publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
+  tag "${sampleid}"
+	
+	input:
+		tuple val(sampleid), path(assembly)
+	output:
+		tuple val(sampleid), path ("${sampleid}_fixed.fasta"), emit: fixed
+		path("*log")
+    path ("${sampleid}_fixed.fasta")
+  
+  container =  'quay.io/biocontainers/circlator:1.5.5--py_3'
 
+	script:
+	"""
+	circlator fixstart ${params.fixstart_args} ${assembly} ${sampleid}_fixed.fasta
+	"""
+}
+*/
 include { MINIMAP2_ALIGN as FILTER_HOST} from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP1 } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP2 } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP3 } from './modules.nf'
-include { MINIMAP2_ALIGN as MAP_BACK_TO_ASSEMBLY} from './modules.nf'
+include { MINIMAP2_ALIGN as MAP_BACK_TO_CONTIGS } from './modules.nf'
 include { MINIMAP2_ALIGN as MAP_BACK_TO_CLUSTERS } from './modules.nf'
 include { FASTQ2FASTA as FASTQ2FASTA_STEP1} from './modules.nf'
 include { FASTQ2FASTA as FASTQ2FASTA_STEP2} from './modules.nf'
@@ -857,21 +890,32 @@ workflow {
   NANOPLOT ( MERGE.out.merged )
 
   // Data pre-processing
-  if (!params.skip_porechop & !params.skip_nanofilt) {
+  if (!params.skip_porechop & !params.skip_qualfilt) {
     PORECHOP_ABI ( MERGE.out.merged )
-    NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
-    REFORMAT( NANOFILT.out.nanofilt_filtered_fq )
+    if (params.nanofilt) {
+      NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
+      REFORMAT( NANOFILT.out.nanofilt_filtered_fq )
+    }
+    else if (params.chopper) {
+      CHOPPER ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
+      REFORMAT( CHOPPER.out.chopper_filtered_fq )
+    }
   }
-  else if (!params.skip_porechop & params.skip_nanofilt) {
+  else if (!params.skip_porechop & params.skip_qualfilt) {
     PORECHOP_ABI ( MERGE.out.merged )
     REFORMAT( PORECHOP_ABI.out.porechopabi_trimmed_fq )
   }
-  else if (params.skip_porechop & !params.skip_nanofilt) {
-    NANOFILT ( MERGE.out.merged )
-    REFORMAT( NANOFILT.out.nanofilt_filtered_fq )
+  else if (params.skip_porechop & !params.skip_qualfilt) {
+    if (params.nanofilt) {
+      NANOFILT ( MERGE.out.merged )
+      REFORMAT( NANOFILT.out.nanofilt_filtered_fq )
+    }
+    else if (params.chopper) {
+      CHOPPER ( MERGE.out.merged )
+      REFORMAT( CHOPPER.out.chopper_filtered_fq )
+    }
   }
-
-  else if (params.skip_porechop & params.skip_nanofilt ) {
+  else if (params.skip_porechop & params.skip_qualfilt ) {
     REFORMAT(  MERGE.out.merged )
   }
 
@@ -958,6 +1002,8 @@ workflow {
   else if (params.skip_host_filtering & !params.skip_denovo_assembly & params.skip_clustering) {
     if (params.canu) {
       CANU( REFORMAT.out.reformatted_fq )
+      //CIRCLATOR (CANU.out.assembly2)
+      //BLASTN_SPLIT( CIRCLATOR.out.fixed.splitFasta(by: 25000, file: true) )
       BLASTN_SPLIT( CANU.out.assembly2.splitFasta(by: 25000, file: true) )
       BLASTN_SPLIT.out.blast_results
         .groupTuple()
@@ -966,7 +1012,9 @@ workflow {
     }
     else if (params.flye) {
       FLYE( REFORMAT.out.reformatted_fq )
-      BLASTN_SPLIT( FLYE.out.assembly.splitFasta(by: 25000, file: true) )
+      //CIRCLATOR (FLYE.out.assembly)
+      //BLASTN_SPLIT( CIRCLATOR.out.fixed.splitFasta(by: 25000, file: true) )
+      BLASTN_SPLIT( FLYE.out.assembly2.splitFasta(by: 25000, file: true) )
       BLASTN_SPLIT.out.blast_results
         .groupTuple()
         .set { ch_blastresults }
@@ -1011,7 +1059,8 @@ workflow {
     //just perform direct read search
     if (params.megablast) {
     FASTQ2FASTA_STEP1( REFORMAT.out.reformatted_fq )
-    BLASTN_SPLIT( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: params.blast_split_factor, file: true) )
+    //BLASTN_SPLIT( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by:params.blast_split_factor, file: true) )
+    BLASTN_SPLIT( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true) )
     BLASTN_SPLIT.out.blast_results
       .groupTuple()
       .set { ch_blastresults }
