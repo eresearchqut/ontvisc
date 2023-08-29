@@ -77,3 +77,30 @@ process FASTQ2FASTA {
   seqtk seq -A -C ${fastq} > ${sampleid}.fasta
   """
 }
+
+process NANOPLOT {
+  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '*.html', mode: 'link', saveAs: { filename -> "${sampleid}_$filename" }
+  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '*.NanoStats.txt', mode: 'link', saveAs: { filename -> "${sampleid}_$filename" }
+  tag "${sampleid}"
+  cpus 2
+
+  container 'quay.io/biocontainers/nanoplot:1.41.0--pyhdfd78af_0'
+  
+  input:
+    tuple val(sampleid), path(sample)
+  output:
+    path("*.html")
+    path("*NanoStats.txt")
+  
+  script:
+  if (sample.endsWith("quality_trimmed.fastq.gz")) {
+    """
+    NanoPlot -t 2 --fastq ${sample} --prefix filtered_ --plots dot --N50
+    """
+  }
+  else {
+    """
+    NanoPlot -t 2 --fastq ${sample} --prefix raw_ --plots dot --N50
+    """
+  }
+}

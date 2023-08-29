@@ -11,51 +11,54 @@ The reads can optionally be filtered from a plant host before performing downstr
 ![diagram pipeline](docs/images/OVISP_pipeline.jpeg)
 
 ## Run the Pipeline
+1. Install Nextflow [`Nextflow`](https://www.nextflow.io/docs/latest/getstarted.html#installation)
+
+2. Install [`Docker`](https://docs.docker.com/get-docker/) or [`Singularity`](https://docs.sylabs.io/guides/3.0/user-guide/quick_start.html#quick-installation-steps) to suit your environment.
+
+3. Download the pipeline and test it on minimal datatests:
+[ TO DO ]
+
+4. Run with your own data
+
+- Provide an index.csv file.  
+  Create a TAB delimited text file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the --indexfile [filename] in the nextflow run command. This text file requires the following columns (which needs to be included as a header): ```sampleid,sample_path``` 
+
+  **sampleid** will be the sample name that will be given to the files created by the pipeline  
+  **sample_p_ath** is the full path to the fastq files that the pipeline requires as starting input  
+
+  An index_example.csv is included in the base directory:
+  sampleid,sample_path
+  MT212,/path_to_fastq_file/MT212.*fastq.gz
+  MT213,/path_to_fastq_file/MT213.*fastq.gz
+  ```
+
+- Run the command:
+  ```bash
+  nextflow run main.nf -profile {singularity, docker} --indexfile index_example.csv
+  ```
+  setting the profile parameter to one of
+  ```
+  docker
+  singularity
+    ```  
+  to suit your environment.
+
+If you need to set additional parameters, you can either include these in your nextflow run command:
+```
+nextflow run main.nf -profile {singularity, docker} --indexfile index_example.csv --adapter_trimming
+```
+
+or set them to true in the nextflow.config file.
+```
+params {
+  adapter_trimming = true
+}
+```
 
 ## Example of commands
-
-1. After pre-processing WGS-derived ONT reads (adapter removal with PoreChop ABI and quality filtering with NanoFilt), perform direct read taxonomic classification at the protein level using the tool Kaiju
+Just running preprocessing and QC steps:
 ```
-nextflow run eresearchqut/ontvisc -resume --skip_host_filtering \\
-                                --skip_clustering \\
-                                --skip_denovo_assembly \\
-                                --kaiju \\
-                                --kaiju_dbnodes /path_to_kaiju_databases/nodes.dmp \\
-                                --kaiju_dbname /path_to_kaiju_databases/kaiju_db_rvdb.fmi
-```
-
-2. After pre-processing WGS-derived ONT reads (adapter removal with PoreChop ABI, quality filtering with NanoFilt and filtering for host reads), perform direct homology search on WGS-derived MinION reads using megablast and NR database, splitting the blast processes by chunks of 10000 reads
-```
-nextflow run eresearchqut/ontvisc -resume --plant_host_fasta /path_to_host_fasta_file_dir/host.fasta \\
-                                --skip_clustering \\
-                                --skip_denovo_assembly \\
-                                --blastn_db /path_to_blastn_database/nt \\
-                                --blast_threads 4 \\
-                                --blast_split_factor 10000
+nextflow run ~/code/github/ontvisc/main.nf  -resume --adapter_trimming --adapter_trimming --qc_only
 ```
 
 
-3. Perform de novo assembly on raw reads using Canu
-```
-nextflow run eresearchqut/ontvisc -resume --skip_porechop \\
-                                  --skip_nanofilt \\
-                                  --skip_clustering \\
-                                  --skip_host_filtering \\
-                                  --canu  --canu_options 'useGrid=false' \\
-                                  --blastn_db /path_to_blastn_database/nt \\
-                                  --blast_threads 4 \\
-                                  --blast_split_factor 5000
-                                  
-
-```
-4. Perform de novo assembly on raw reads using Flye
-```
-nextflow run eresearchqut/ontvisc -resume --skip_porechop \\
-                                  --skip_nanofilt \\
-                                  --skip_clustering \\
-                                  --skip_host_filtering \\
-                                  --flye \\
-                                  --blastn_db /path_to_blastn_database/nt \\
-                                  --blast_threads 4 \\
-                                  --blast_split_factor 5000
-```

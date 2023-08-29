@@ -30,19 +30,19 @@ def helpMessage () {
 
         --skip_porechop                 Skip porechop step
                               Default:  false
-        --skip_nanofilt                 Skip nanofilt step
+        --skip_qualfilt                 Skip nanofilt step
                               Default:  false
         --nanofilt_qual_threshold       Quality threshold
                               Default:  10
         --nanofilt_min_read_length      Length cut off for read size
                               Default:  500
-        --skip_host_filtering           Skip host filtering step
+        --host_filtering           Skip host filtering step
                               Default:  false
         --minimap_options               Set to 'splice' ofr RNA or ‘map-ont’ for DNA libraries
                               Default:  'splice'
         --plant_host_fasta              Fasta file of nucleotide sequences to filter
                                         null
-        --skip_denovo_assembly          Skip de novo assembly step
+        --denovo_assembly          Skip de novo assembly step
                               Default:  false
         --canu                          Use Canu for de novo assembly step
                               Default:  false
@@ -55,7 +55,7 @@ def helpMessage () {
                               Default:  'nano-raw'
         --flye_options                  Flye options
                               Default:  ''
-        --skip_clustering               Skip clustering step using Rattle
+        --clustering               Skip clustering step using Rattle
                               Default:  false
         --rattle_min_len                Minimum length cut off for read size
                               Default:  250
@@ -121,24 +121,8 @@ process MERGE {
   """
 }
 
-process NANOPLOT {
-  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '*.html', mode: 'link', saveAs: { filename -> "${sampleid}_$filename" }
-  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '*.NanoStats.txt', mode: 'link', saveAs: { filename -> "${sampleid}_$filename" }
-  tag "${sampleid}"
-  cpus 2
 
-  container 'quay.io/biocontainers/nanoplot:1.41.0--pyhdfd78af_0'
-  
-  input:
-    tuple val(sampleid), path(sample)
-  output:
-    path("*.html")
-    path("*NanoStats.txt")
-  script:
-  """
-  NanoPlot -t 2 --fastq ${sample} --prefix raw --plots dot --N50
-  """
-}
+
 
 process CUTADAPT_RACE {
   //publishDir "${params.outdir}/${sampleid}/canu", pattern: '*_cutadapt_filtered.fastq.gz', mode: 'link'
@@ -224,6 +208,7 @@ process CANU {
   tag "${sampleid}"
   memory "24GB"
   cpus "4"
+  time '2h'
 
   container 'quay.io/biocontainers/canu:2.2--ha47f30e_0'
 
@@ -494,7 +479,7 @@ process CAP3 {
   input:
   tuple val(sampleid), path(fasta)
   output:
-  tuple val(sampleid), path("${sampleid}_cap3.fasta"), emit: contigs
+  tuple val(sampleid), path("${sampleid}_cap3.fasta"), emit: scaffolds
 
   script:
   """
@@ -876,6 +861,8 @@ include { MINIMAP2_ALIGN as MAP_BACK_TO_CONTIGS } from './modules.nf'
 include { MINIMAP2_ALIGN as MAP_BACK_TO_CLUSTERS } from './modules.nf'
 include { FASTQ2FASTA as FASTQ2FASTA_STEP1} from './modules.nf'
 include { FASTQ2FASTA as FASTQ2FASTA_STEP2} from './modules.nf'
+include { NANOPLOT as QC_PRE_DATA_PROCESSING } from './modules.nf'
+include { NANOPLOT as QC_POST_DATA_PROCESSING } from './modules.nf'
 
 workflow {
   if (params.samplesheet) {
@@ -885,194 +872,144 @@ workflow {
       .map{ row-> tuple((row.sampleid), file(row.sample_files)) }
       .set{ ch_sample }
   } else { exit 1, "Input samplesheet file not specified!" }
+
   
   MERGE ( ch_sample )
-  NANOPLOT ( MERGE.out.merged )
+  QC_PRE_DATA_PROCESSING ( MERGE.out.merged )
 
   // Data pre-processing
-  if (!params.skip_porechop & !params.skip_qualfilt) {
+  if (params.adapter_trimming & params.qual_filt) {
     PORECHOP_ABI ( MERGE.out.merged )
     if (params.nanofilt) {
       NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
-      REFORMAT( NANOFILT.out.nanofilt_filtered_fq )
+      filtered_fq = REFORMAT( NANOFILT.out.nanofilt_filtered_fq )
     }
     else if (params.chopper) {
       CHOPPER ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
-      REFORMAT( CHOPPER.out.chopper_filtered_fq )
+      filtered_fq = REFORMAT( CHOPPER.out.chopper_filtered_fq )
     }
   }
-  else if (!params.skip_porechop & params.skip_qualfilt) {
+
+  else if (params.adapter_trimming & !params.qual_filt) {
     PORECHOP_ABI ( MERGE.out.merged )
-    REFORMAT( PORECHOP_ABI.out.porechopabi_trimmed_fq )
+    filtered_fq = REFORMAT( PORECHOP_ABI.out.porechopabi_trimmed_fq )
   }
-  else if (params.skip_porechop & !params.skip_qualfilt) {
+
+  else if (!params.adapter_trimming & params.qual_filt) {
     if (params.nanofilt) {
       NANOFILT ( MERGE.out.merged )
-      REFORMAT( NANOFILT.out.nanofilt_filtered_fq )
+      filtered_fq = REFORMAT( NANOFILT.out.nanofilt_filtered_fq )
     }
     else if (params.chopper) {
       CHOPPER ( MERGE.out.merged )
-      REFORMAT( CHOPPER.out.chopper_filtered_fq )
-    }
-  }
-  else if (params.skip_porechop & params.skip_qualfilt ) {
-    REFORMAT(  MERGE.out.merged )
-  }
-
-  if (!params.skip_host_filtering & !params.skip_denovo_assembly & !params.skip_clustering) {
-    FILTER_HOST( REFORMAT.out.reformatted_fq, params.plant_host_fasta )
-    EXTRACT_READS_STEP1( FILTER_HOST.out.sequencing_ids )
-
-    if (params.canu) {
-      CANU( EXTRACT_READS_STEP1.out.unaligned_fq )
-      MAP_BACK_TO_ASSEMBLY ( CANU.out.assembly )
-      EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.sequencing_ids )
-      RATTLE ( EXTRACT_READS_STEP2.out.unaligned_fq )
-      FASTQ2FASTA_STEP1( RATTLE.out.clusters )
-      CAP3( FASTQ2FASTA_STEP1.out.fasta )
-      MAP_BACK_TO_CLUSTERS ( RATTLE.out.clusters2 )
-      EXTRACT_READS_STEP3 ( MAP_BACK_TO_CLUSTERS.out.sequencing_ids )
-      FASTQ2FASTA_STEP2( EXTRACT_READS_STEP3.out.unaligned_fq )
-      CONCATENATE_FASTA(CANU.out.assembly2, CAP3.out.contigs, FASTQ2FASTA_STEP2.out.fasta)
-      BLASTN_SPLIT( CONCATENATE_FASTA.out.assembly).splitFasta(by: 25000, file: true)
-      BLASTN_SPLIT.out.blast_results
-        .groupTuple()
-        .set { ch_blastresults }
-      EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
-    }
-    else if (params.flye) {
-      FLYE( EXTRACT_READS_STEP1.out.unaligned_fq )
-      MAP_BACK_TO_ASSEMBLY ( FLYE.out.assembly )
-      EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.sequencing_ids )
-      FASTQ2FASTA_STEP1( RATTLE.out.clusters )
-      CAP3( FASTQ2FASTA_STEP1.out.fasta )
-      BLASTN_SPLIT( FLYE.out.assembly.mix(CAP3.out.contigs).collect().splitFasta(by: 25000, file: true) )
+      filtered_fq = REFORMAT ( CHOPPER.out.chopper_filtered_fq )
     }
   }
 
-  else if (params.skip_host_filtering & !params.skip_denovo_assembly & !params.skip_clustering) {
-    if (params.canu) {
-      CANU( REFORMAT.out.reformatted_fq )
-      MAP_BACK_TO_ASSEMBLY ( CANU.out.assembly )
-      EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.sequencing_ids )
-      RATTLE ( EXTRACT_READS_STEP2.out.unaligned_fq )
-      FASTQ2FASTA_STEP1( RATTLE.out.clusters )
-      CAP3( FASTQ2FASTA_STEP1.out.fasta )
-      BLASTN_SPLIT( CANU.out.assembly2.mix(CAP3.out.contigs).collect().splitFasta(by: 25000, file: true) )
-    }
-    else if (params.flye) {
-      FLYE( REFORMAT.out.reformatted_fq )
-      MAP_BACK_TO_ASSEMBLY ( FLYE.out.assembly )
-      EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.sequencing_ids )
-      RATTLE ( EXTRACT_READS_STEP2.out.unaligned_fq )
-      FASTQ2FASTA_STEP1( RATTLE.out.clusters )
-      CAP3( FASTQ2FASTA_STEP1.out.fasta )
-      BLASTN_SPLIT( FLYE.out.assembly2.mix(CAP3.out.contigs).collect().splitFasta(by: 25000, file: true) )
-    }
-  }
-  
-  else if (params.skip_host_filtering & params.skip_denovo_assembly & !params.skip_clustering) {
-    RATTLE ( REFORMAT.out.reformatted_fq )
-    FASTQ2FASTA_STEP1( RATTLE.out.clusters )
-    CAP3( FASTQ2FASTA_STEP1.out.fasta )
-    
-    if (params.blast_vs_ref) {
-      BLASTN2REF ( CAP3.out.contigs )
-    }
-    else {
-      BLASTN_SPLIT( CAP3.out.contigs.splitFasta(by: 25000, file: true) )
-    }
+  else if ( !params.adapter_trimming & !params.qual_filt ) {
+    filtered_fq = REFORMAT ( MERGE.out.merged )
   }
 
-  else if (!params.skip_host_filtering & params.skip_denovo_assembly & !params.skip_clustering) {
-    FILTER_HOST( REFORMAT.out.reformatted_fq, params.plant_host_fasta )
-    EXTRACT_READS_STEP1( FILTER_HOST.out.sequencing_ids )
-
-    RATTLE( EXTRACT_READS_STEP1.out.unaligned_fq )
-    CAP3( RATTLE.out.clusters )
-    
-    if (params.blast_vs_ref) {
-      BLASTN2REF ( CAP3.out.contigs )
-    }
-    else {
-      BLASTN_SPLIT( CAP3.out.contigs.splitFasta(by: 25000, file: true) )
-    }
+  if (params.host_filtering) {
+    FILTER_HOST ( REFORMAT.out.reformatted_fq, params.plant_host_fasta )
+    filtered_fq = EXTRACT_READS_STEP1 ( FILTER_HOST.out.sequencing_ids )
   }
 
-  else if (params.skip_host_filtering & !params.skip_denovo_assembly & params.skip_clustering) {
-    if (params.canu) {
-      CANU( REFORMAT.out.reformatted_fq )
-      //CIRCLATOR (CANU.out.assembly2)
-      //BLASTN_SPLIT( CIRCLATOR.out.fixed.splitFasta(by: 25000, file: true) )
-      BLASTN_SPLIT( CANU.out.assembly2.splitFasta(by: 25000, file: true) )
-      BLASTN_SPLIT.out.blast_results
-        .groupTuple()
-        .set { ch_blastresults }
-      EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
-    }
-    else if (params.flye) {
-      FLYE( REFORMAT.out.reformatted_fq )
-      //CIRCLATOR (FLYE.out.assembly)
-      //BLASTN_SPLIT( CIRCLATOR.out.fixed.splitFasta(by: 25000, file: true) )
-      BLASTN_SPLIT( FLYE.out.assembly2.splitFasta(by: 25000, file: true) )
-      BLASTN_SPLIT.out.blast_results
-        .groupTuple()
-        .set { ch_blastresults }
-      EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
-    }
+  if (params.host_filtering | params.qual_filt | params.adapter_trimming) {
+    QC_POST_DATA_PROCESSING ( filtered_fq )
   }
 
-  else if (!params.skip_host_filtering & !params.skip_denovo_assembly & params.skip_clustering) {
-    FILTER_HOST( REFORMAT.out.reformatted_fq, params.plant_host_fasta )
-    EXTRACT_READS_STEP1( FILTER_HOST.out.sequencing_ids )
+  if (!params.qc_only) {
+    /*
+    if (params.hybrid) {
+      if (params.canu) {
+        CANU( filtered_fq )
+        MAP_BACK_TO_ASSEMBLY ( CANU.out.assembly )
+        EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.sequencing_ids )
+        RATTLE ( EXTRACT_READS_STEP2.out.unaligned_fq )
+        FASTQ2FASTA_STEP1( RATTLE.out.clusters )
+        CAP3( FASTQ2FASTA_STEP1.out.fasta )
+        MAP_BACK_TO_CLUSTERS ( RATTLE.out.clusters2 )
+        EXTRACT_READS_STEP3 ( MAP_BACK_TO_CLUSTERS.out.sequencing_ids )
+        FASTQ2FASTA_STEP2( EXTRACT_READS_STEP3.out.unaligned_fq )
+        CONCATENATE_FASTA(CANU.out.assembly2, CAP3.out.contigs, FASTQ2FASTA_STEP2.out.fasta)
+        BLASTN_SPLIT( CONCATENATE_FASTA.out.assembly).splitFasta(by: 25000, file: true)
+        BLASTN_SPLIT.out.blast_results
+          .groupTuple()
+          .set { ch_blastresults }
+        EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
+      }
+      else if (params.flye) {
+        FLYE( filtered_fq )
+        MAP_BACK_TO_ASSEMBLY ( FLYE.out.assembly )
+        EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.sequencing_ids )
+        FASTQ2FASTA_STEP1( RATTLE.out.clusters )
+        CAP3( FASTQ2FASTA_STEP1.out.fasta )
+        BLASTN_SPLIT( FLYE.out.assembly.mix(CAP3.out.contigs).collect().splitFasta(by: 25000, file: true) )
+      }
+    }
+    */
+    if (params.clustering | params.denovo_assembly) {
+      //perform clustering using Rattle
+      if (params.clustering) {
+        RATTLE ( filtered_fq )
+        contigs = CAP3 ( RATTLE.out.clusters )
+      }
+      //perform de novo assembly using either canu or flye
+      else if (params.denovo_assembly) {
+        if (params.canu) {
+          CANU ( filtered_fq )
+          contigs = CANU.out.assembly
+        }
+        else if (params.flye) {
+          FLYE ( filtered_fq )
+          contigs = FLYE.out.assembly
+        }
+      }
+      //limit blast homology search to a reference
+      if (params.blast_vs_ref) {
+        BLASTN2REF ( contigs )
+      }
+      //blast against a database
+      else {
+        BLASTN_SPLIT( contigs.splitFasta(by: 10000, file: true) )
+        BLASTN_SPLIT.out.blast_results
+          .groupTuple()
+          .set { ch_blastresults }
+        EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
+      }
+    }
 
-    if (params.canu) {
-      CANU( EXTRACT_READS_STEP1.out.unaligned_fq )
-      BLASTN_SPLIT( CANU.out.assembly2.splitFasta(by: 25000, file: true) )
-      BLASTN_SPLIT.out.blast_results
-        .groupTuple()
-        .set { ch_blastresults }
-      EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
-    }
-    else if (params.flye) {
-      FLYE( EXTRACT_READS_STEP1.out.unaligned_fq )
-      BLASTN_SPLIT( FLYE.out.assembly.splitFasta(by: 25000, file: true) )
-      BLASTN_SPLIT.out.blast_results
-        .groupTuple()
-        .set { ch_blastresults }
-      EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
-    }
-  }
-  
-  //else if (params.skip_host_filtering & params.skip_denovo_assembly & params.skip_clustering) {
-    //just perform direct alignment 
-  if (params.map2ref) {
-    MINIMAP2_REF ( REFORMAT.out.reformatted_fq )
-    if (params.infoseq) {
-      INFOSEQ ( MINIMAP2_REF.out.aligned_sample )
-      SAMTOOLS ( INFOSEQ.out.infoseq_ref )
-      NANOQ ( SAMTOOLS.out.sorted_sample )
-    }
-  }
-   
-  if (!params.skip_read_classification) {
+    else if (params.read_classification) {
     //just perform direct read search
-    if (params.megablast) {
-    FASTQ2FASTA_STEP1( REFORMAT.out.reformatted_fq )
-    //BLASTN_SPLIT( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by:params.blast_split_factor, file: true) )
-    BLASTN_SPLIT( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true) )
-    BLASTN_SPLIT.out.blast_results
-      .groupTuple()
-      .set { ch_blastresults }
-    EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
+      if (params.megablast) {
+        FASTQ2FASTA_STEP1( filtered_fq )
+        BLASTN_SPLIT( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true) )
+        BLASTN_SPLIT.out.blast_results
+          .groupTuple()
+          .set { ch_blastresults }
+        EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
+      }
+      if (params.kaiju) {
+        KAIJU ( filtered_fq )
+        KRONA ( KAIJU.out.results)
+      }
+      if (params.kraken2) {
+        KRAKEN2 ( filtered_fq )
+        BRACKEN ( KRAKEN2.out.results )
+      }
     }
-    if (params.kaiju) {
-      KAIJU ( REFORMAT.out.reformatted_fq )
-      KRONA ( KAIJU.out.results)
-    }
-    if (params.kraken2) {
-      KRAKEN2 ( REFORMAT.out.reformatted_fq )
-      BRACKEN ( KRAKEN2.out.results )
+
+      //just perform direct alignment 
+    if (params.map2ref) {
+      MINIMAP2_REF ( REFORMAT.out.reformatted_fq )
+      if (params.infoseq) {
+        INFOSEQ ( MINIMAP2_REF.out.aligned_sample )
+        SAMTOOLS ( INFOSEQ.out.infoseq_ref )
+        NANOQ ( SAMTOOLS.out.sorted_sample )
+      }
     }
   }
 }
+   
+  
