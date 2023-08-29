@@ -959,11 +959,11 @@ workflow {
       else if (params.denovo_assembly) {
         if (params.canu) {
           CANU ( filtered_fq )
-          contigs = CANU.out.assembly
+          contigs = CANU.out.assembly2
         }
         else if (params.flye) {
           FLYE ( filtered_fq )
-          contigs = FLYE.out.assembly
+          contigs = FLYE.out.assembly2
         }
       }
       //limit blast homology search to a reference

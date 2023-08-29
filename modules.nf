@@ -93,14 +93,13 @@ process NANOPLOT {
     path("*NanoStats.txt")
   
   script:
-  if (sample.endsWith("quality_trimmed.fastq.gz")) {
-    """
+ // if (sample.endsWith("quality_trimmed.fastq.gz")) {
+  """
+  if [[ ${sample} == "*.quality_trimmed.fastq.gz" ]]
+  then
     NanoPlot -t 2 --fastq ${sample} --prefix filtered_ --plots dot --N50
-    """
-  }
-  else {
-    """
+  else
     NanoPlot -t 2 --fastq ${sample} --prefix raw_ --plots dot --N50
-    """
-  }
+  fi
+  """
 }
