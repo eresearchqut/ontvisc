@@ -57,12 +57,21 @@ params {
 ```
 
 ## Example of commands
-Just running preprocessing and QC steps to ahev a look at the data before procedding with downstream analysis.
+1) running preprocessing steps (adapter trimming and quality filtering) and QC steps to have a preliminary look at the data before proceeding with downstream analysis.
 ```
-nextflow run ~/code/github/ontvisc/main.nf  -resume \\
+nextflow run ~/path/to/ontvisc_repo/main.nf  -resume \\
                                             --adapter_trimming \\
                                             --qual_filt \\
                                             --qc_only
 ```
 
 
+2) remove adapters, perform de novo assembly with Canu and map the resulting contigs to a reference
+```
+nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \\
+                                                    --denovo_assembly --canu \\
+                                                    --canu_options 'useGrid=false' \\
+                                                    --canu_genome_size 0.07m \\
+                                                    --blast_vs_ref  \\
+                                                    --reference /path/to/reference/reference.fasta
+```
