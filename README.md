@@ -71,7 +71,7 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  -resume \\
 nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \\
                                                     --denovo_assembly --canu \\
                                                     --canu_options 'useGrid=false' \\
-                                                    --canu_genome_size 0.07m \\
+                                                    --canu_genome_size [genome size of virus target] \\
                                                     --blast_vs_ref  \\
                                                     --reference /path/to/reference/reference.fasta
 ```
