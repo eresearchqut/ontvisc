@@ -76,7 +76,6 @@ if (params.blastn_db != null) {
 if (params.reference != null) {
     reference_name = file(params.reference).name
     reference_dir = file(params.reference).parent
-
 }
 if (params.kaiju_nodes != null & params.kaiju_dbname != null & params.kaiju_names != null) {
     kaiju_dbs_dir = file(params.kaiju_nodes).parent
@@ -120,9 +119,6 @@ process MERGE {
   cat ${lanes} > ${sampleid}.fastq.gz
   """
 }
-
-
-
 
 process CUTADAPT_RACE {
   //publishDir "${params.outdir}/${sampleid}/canu", pattern: '*_cutadapt_filtered.fastq.gz', mode: 'link'
@@ -431,7 +427,7 @@ process PORECHOP {
 */
 process PORECHOP_ABI {
   tag "${sampleid}"
-  publishDir "$params.outdir/${sampleid}/porechop",  mode: 'copy'
+  publishDir "$params.outdir/${sampleid}/porechop",  mode: 'link'
   time '6h'
   cpus = 4
   memory = 32.GB
@@ -442,11 +438,13 @@ process PORECHOP_ABI {
     tuple val(sampleid), path(sample)
 
   output:
+    file("${sampleid}_porechop_trimmed.fastq.gz")
+    file("${sampleid}_porechop.log")
     tuple val(sampleid), file("${sampleid}_porechop_trimmed.fastq.gz"), emit: porechopabi_trimmed_fq
 
   script:
   """
-  porechop_abi -abi -i ${sample} -t ${params.porechop_threads} -o ${sampleid}_porechop_trimmed.fastq.gz ${params.porechop_options}
+  porechop_abi -abi -i ${sample} -t ${params.porechop_threads} -o ${sampleid}_porechop_trimmed.fastq.gz ${params.porechop_options} > ${sampleid}_porechop.log
   """
 }
 

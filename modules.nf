@@ -79,8 +79,8 @@ process FASTQ2FASTA {
 }
 
 process NANOPLOT {
-  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '*.html', mode: 'link', saveAs: { filename -> "${sampleid}_$filename" }
-  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '*.NanoStats.txt', mode: 'link', saveAs: { filename -> "${sampleid}_$filename" }
+  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '{*.html,*.txt}', mode: 'link', saveAs: { filename -> "${sampleid}_$filename" }
+//  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '*.NanoStats.txt', mode: 'link', saveAs: { filename -> "${sampleid}_$filename" }
   tag "${sampleid}"
   cpus 2
 
@@ -97,9 +97,9 @@ process NANOPLOT {
   """
   if [[ ${sample} == *quality_trimmed.fastq.gz ]];
   then
-    NanoPlot -t 2 --fastq ${sample} --prefix filtered_ --plots dot --N50
+    NanoPlot -t 2 --fastq ${sample} --prefix filtered_ --plots dot --N50 --tsv_stats
   else
-    NanoPlot -t 2 --fastq ${sample} --prefix raw_ --plots dot --N50
+    NanoPlot -t 2 --fastq ${sample} --prefix raw_ --plots dot --N50 --tsv_stats
   fi
   """
 }
