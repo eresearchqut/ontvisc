@@ -24,12 +24,13 @@ The reads can optionally be filtered from a plant host before performing downstr
   Create a TAB delimited text file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the --indexfile [filename] in the nextflow run command. This text file requires the following columns (which needs to be included as a header): ```sampleid,sample_path``` 
 
   **sampleid** will be the sample name that will be given to the files created by the pipeline  
-  **sample_p_ath** is the full path to the fastq files that the pipeline requires as starting input  
+  **sample_path** is the full path to the fastq files that the pipeline requires as starting input  
 
-  An index_example.csv is included in the base directory:
+  This is an example of an index.csv file which specifies the name and path of fastq.gz files for 2 samples. If there are multiple fastq.gz files in the folder, the path can be specified on one line using an asterisk:
+  ```
   sampleid,sample_path
-  MT212,/path_to_fastq_file/MT212.*fastq.gz
-  MT213,/path_to_fastq_file/MT213.*fastq.gz
+  MT212,/path_to_fastq_file/*fastq.gz
+  MT213,/path_to_fastq_file/*fastq.gz
   ```
 
 - Run the command:
@@ -56,9 +57,12 @@ params {
 ```
 
 ## Example of commands
-Just running preprocessing and QC steps:
+Just running preprocessing and QC steps to ahev a look at the data before procedding with downstream analysis.
 ```
-nextflow run ~/code/github/ontvisc/main.nf  -resume --adapter_trimming --adapter_trimming --qc_only
+nextflow run ~/code/github/ontvisc/main.nf  -resume \\
+                                            --adapter_trimming \\
+                                            --qual_filt \\
+                                            --qc_only
 ```
 
 
