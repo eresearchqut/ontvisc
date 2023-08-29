@@ -95,7 +95,7 @@ process NANOPLOT {
   script:
  // if (sample.endsWith("quality_trimmed.fastq.gz")) {
   """
-  if [[ ${sample} == "*.quality_trimmed.fastq.gz" ]]
+  if [[ ${sample} == *quality_trimmed.fastq.gz ]];
   then
     NanoPlot -t 2 --fastq ${sample} --prefix filtered_ --plots dot --N50
   else
