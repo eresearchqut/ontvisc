@@ -15,7 +15,7 @@ process MINIMAP2_ALIGN {
 
   script:
   """
-  minimap2 -ax ${minimap_options} -uf -k14 ${reference} ${fastq} -t ${params.minimap_threads} > ${sampleid}.sam
+  minimap2 -ax ${minimap_options} -uf -k14 ${reference} ${fastq} -t ${task.cpus} > ${sampleid}.sam
   awk '\$6 == "*" { print \$0 }' ${sampleid}.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
   """
 }

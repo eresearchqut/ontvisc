@@ -28,39 +28,46 @@ def helpMessage () {
         sample_files can refer to a folder with a number of
         files that will be merged in the pipeline
 
-        --skip_porechop                 Skip porechop step
-                              Default:  false
-        --skip_qualfilt                 Skip nanofilt step
-                              Default:  false
-        --nanofilt_qual_threshold       Quality threshold
-                              Default:  10
-        --nanofilt_min_read_length      Length cut off for read size
-                              Default:  500
-        --host_filtering           Skip host filtering step
-                              Default:  false
-        --minimap_options               Set to 'splice' ofr RNA or ‘map-ont’ for DNA libraries
-                              Default:  'splice'
-        --plant_host_fasta              Fasta file of nucleotide sequences to filter
-                                        null
-        --denovo_assembly          Skip de novo assembly step
-                              Default:  false
+        #### Pre-processing and QC options ####
+        --qc_only                       Only perform preliminary QC step using Nanoplot
+        --adapter_trimming              Run porechop step
+                                        [False]
+        --porechop_options              Porechop_ABI options
+                                        [null]
+        --race                          Filter for RACE universal primers using cutadapt
+                                        [null]
+        --qual_filt                     Run quality filtering step
+                                        [False]
+        --chopper                       Use chopper to perform quality filtering step
+                                        [True]
+        --nanofilt                      Use NanoFilt to perform quality filtering step
+                                        [False]                                 
+        --host_filtering                Run host filtering step using Minimap2
+                                        Default: false
+        --minimap_options               Set to 'splice' for RNA or ‘map-ont’ for DNA libraries
+                                        Default:  splice'                          
+        --host_fasta              Fasta file of nucleotide sequences to filter
+                                        [null]
+
+        --denovo_assembly               Skip de novo assembly step
+                                        Default: false
         --canu                          Use Canu for de novo assembly step
-                              Default:  false
+                                        Default:  false
         --canu_genome_size              Target genome size
-                              Default:  '0.01m'
+                                        Default:  '0.01m'
         --canu_options                  Canu options
-                              Default:  ''
+                                        Default:  ''
         --flye                          Use Flye for de novo assembly step
         --flye_ont_mode                 Select from nano-raw, nano-corr, nano-hq
-                              Default:  'nano-raw'
+                                        Default:  'nano-raw'
         --flye_options                  Flye options
-                              Default:  ''
-        --clustering               Skip clustering step using Rattle
-                              Default:  false
+                                        Default:  ''
+        --clustering                    Skip clustering step using Rattle
+                                        Default:  false
         --rattle_min_len                Minimum length cut off for read size
-                              Default:  250
+                                        Default:  250
         --rattle_max_len                Maximum length cut off for read size
-                              Default:  2000
+                                        Default:  2000
 
     """.stripIndent()
 }
@@ -119,7 +126,7 @@ process MERGE {
   cat ${lanes} > ${sampleid}.fastq.gz
   """
 }
-
+/*
 process CUTADAPT_RACE {
   //publishDir "${params.outdir}/${sampleid}/canu", pattern: '*_cutadapt_filtered.fastq.gz', mode: 'link'
   publishDir "${params.outdir}/${sampleid}/cutadapt", pattern: '*_cutadapt.log', mode: 'link'
@@ -148,6 +155,26 @@ process CUTADAPT_RACE {
     cutadapt -j ${task.cpus} --times 2 -e 0.2 -a ${params.fwd_primer_rc} -o ${sampleid}_cutadapt_filtered.fastq.gz ${sampleid}_filtered1.fastq.gz  >> ${sampleid}_cutadapt.log
     rm ${sampleid}_filtered*.fastq.gz
   fi
+  """
+}
+*/
+process CUTADAPT {
+  publishDir "${params.outdir}/${sampleid}/denovo", pattern: '*_filtered.fa', mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/denovo", pattern: '*_cutadapt.log', mode: 'link'
+  tag "${sampleid}"
+  label 'medium'
+
+  container 'quay.io/biocontainers/cutadapt:4.1--py310h1425a21_1'
+
+  input:
+    tuple val(sampleid), path(sample)
+  output:
+    file("${sampleid}_cutadapt.log")
+    file("${sample.baseName}_filtered.fa")
+    tuple val(sampleid), path("${sample.baseName}_filtered.fa"), emit: trimmed
+  script:
+  """
+  cutadapt -j ${task.cpus} -g "AAGCAGTGGTATCAACGCAGAGTACGCGGG;min_overlap=14" -a "CCCGCGTACTCTGCGTTGATACCACTGCTT;min_overlap=14" -o ${sample.baseName}_filtered.fa ${sample} > ${sampleid}_cutadapt.log
   """
 }
 
@@ -442,9 +469,10 @@ process PORECHOP_ABI {
     file("${sampleid}_porechop.log")
     tuple val(sampleid), file("${sampleid}_porechop_trimmed.fastq.gz"), emit: porechopabi_trimmed_fq
 
+  def porechop_options = (params.porechop_options) ? " ${params.porechop_options}" : ''
   script:
   """
-  porechop_abi -abi -i ${sample} -t ${params.porechop_threads} -o ${sampleid}_porechop_trimmed.fastq.gz ${params.porechop_options} > ${sampleid}_porechop.log
+  porechop_abi -abi -i ${sample} -t ${task.cpus} -o ${sampleid}_porechop_trimmed.fastq.gz ${params.porechop_options} > ${sampleid}_porechop.log
   """
 }
 
@@ -876,48 +904,85 @@ workflow {
   QC_PRE_DATA_PROCESSING ( MERGE.out.merged )
 
   // Data pre-processing
-  if (params.adapter_trimming & params.qual_filt) {
-    PORECHOP_ABI ( MERGE.out.merged )
-    if (params.nanofilt) {
-      NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
-      filtered_fq = REFORMAT( NANOFILT.out.nanofilt_filtered_fq )
-    }
-    else if (params.chopper) {
-      CHOPPER ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
-      filtered_fq = REFORMAT( CHOPPER.out.chopper_filtered_fq )
-    }
-  }
-
-  else if (params.adapter_trimming & !params.qual_filt) {
-    PORECHOP_ABI ( MERGE.out.merged )
-    filtered_fq = REFORMAT( PORECHOP_ABI.out.porechopabi_trimmed_fq )
-  }
-
-  else if (!params.adapter_trimming & params.qual_filt) {
-    if (params.nanofilt) {
-      NANOFILT ( MERGE.out.merged )
-      filtered_fq = REFORMAT( NANOFILT.out.nanofilt_filtered_fq )
-    }
-    else if (params.chopper) {
-      CHOPPER ( MERGE.out.merged )
-      filtered_fq = REFORMAT ( CHOPPER.out.chopper_filtered_fq )
-    }
-  }
-
-  else if ( !params.adapter_trimming & !params.qual_filt ) {
-    filtered_fq = REFORMAT ( MERGE.out.merged )
-  }
-
-  if (params.host_filtering) {
-    FILTER_HOST ( REFORMAT.out.reformatted_fq, params.plant_host_fasta )
-    filtered_fq = EXTRACT_READS_STEP1 ( FILTER_HOST.out.sequencing_ids )
-  }
-
-  if (params.host_filtering | params.qual_filt | params.adapter_trimming) {
-    QC_POST_DATA_PROCESSING ( filtered_fq )
-  }
-
+  // Remove adapters uisng either PORECHOP_ABI or CUTADAPT
+  
   if (!params.qc_only) {
+    if (params.adapter_trimming) {
+      PORECHOP_ABI ( MERGE.out.merged )
+      trimmed_fq = PORECHOP_ABI.out.porechopabi_trimmed_fq
+    }
+    /*
+    else if (params.race) {
+      CUTADAPT ( MERGE.out.merged )
+      trimmed_fq = CUTADAPT.out.cutadapt_filtered
+    }
+    */
+    else { 
+      trimmed_fq = MERGE.out.merged
+    }
+
+    // Qualit filtering of reads using either nanofilt or chopper
+    if (params.qual_filt) {
+      if (params.nanofilt) {
+        NANOFILT ( trimmed_fq )
+        filtered_fq = NANOFILT.out.nanofilt_filtered_fq
+      }
+      else if (params.chopper) {
+        CHOPPER ( trimmed_fq)
+        filtered_fq = CHOPPER.out.chopper_filtered_fq
+      }
+    }
+    else { filtered_fq = trimmed_fq
+    }
+
+    REFORMAT( filtered_fq )
+
+  /*
+    if (params.adapter_trimming & params.qual_filt) {
+      PORECHOP_ABI ( MERGE.out.merged )
+      if (params.nanofilt) {
+        NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
+        filtered_fq = REFORMAT( NANOFILT.out.nanofilt_filtered_fq )
+      }
+      else if (params.chopper) {
+        CHOPPER ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
+        filtered_fq = REFORMAT( CHOPPER.out.chopper_filtered_fq )
+      }
+    }
+
+    else if (params.adapter_trimming & !params.qual_filt) {
+      PORECHOP_ABI ( MERGE.out.merged )
+      filtered_fq = REFORMAT( PORECHOP_ABI.out.porechopabi_trimmed_fq )
+    }
+
+    else if (!params.adapter_trimming & params.qual_filt) {
+      if (params.nanofilt) {
+        NANOFILT ( MERGE.out.merged )
+        filtered_fq = REFORMAT( NANOFILT.out.nanofilt_filtered_fq )
+      }
+      else if (params.chopper) {
+        CHOPPER ( MERGE.out.merged )
+        filtered_fq = REFORMAT ( CHOPPER.out.chopper_filtered_fq )
+      }
+    }
+
+    else if ( !params.adapter_trimming & !params.qual_filt ) {
+      filtered_fq = REFORMAT ( MERGE.out.merged )
+    }
+  */
+    if (params.host_filtering) {
+      FILTER_HOST ( REFORMAT.out.reformatted_fq, params.host_fasta )
+      final_fq = EXTRACT_READS_STEP1 ( FILTER_HOST.out.sequencing_ids )
+    }
+    else {
+      final_fq = REFORMAT.out.reformatted_fq
+    }
+
+    if (params.host_filtering | params.qual_filt | params.adapter_trimming | params.race) {
+      QC_POST_DATA_PROCESSING ( final_fq )
+    }
+
+  
     /*
     if (params.hybrid) {
       if (params.canu) {
@@ -950,20 +1015,25 @@ workflow {
     if (params.clustering | params.denovo_assembly) {
       //perform clustering using Rattle
       if (params.clustering) {
-        RATTLE ( filtered_fq )
+        RATTLE ( final_fq )
         contigs = CAP3 ( RATTLE.out.clusters )
       }
       //perform de novo assembly using either canu or flye
       else if (params.denovo_assembly) {
         if (params.canu) {
-          CANU ( filtered_fq )
+          CANU ( final_fq )
           contigs = CANU.out.assembly2
         }
         else if (params.flye) {
-          FLYE ( filtered_fq )
+          FLYE ( final_fq )
           contigs = FLYE.out.assembly2
         }
+        if (params.race) {
+          CUTADAPT ( contigs )
+          contigs = CUTADAPT.out.trimmed
+        }
       }
+      
       //limit blast homology search to a reference
       if (params.blast_vs_ref) {
         BLASTN2REF ( contigs )
@@ -981,7 +1051,7 @@ workflow {
     else if (params.read_classification) {
     //just perform direct read search
       if (params.megablast) {
-        FASTQ2FASTA_STEP1( filtered_fq )
+        FASTQ2FASTA_STEP1( final_fq )
         BLASTN_SPLIT( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true) )
         BLASTN_SPLIT.out.blast_results
           .groupTuple()
@@ -989,18 +1059,18 @@ workflow {
         EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
       }
       if (params.kaiju) {
-        KAIJU ( filtered_fq )
+        KAIJU ( final_fq )
         KRONA ( KAIJU.out.results)
       }
       if (params.kraken2) {
-        KRAKEN2 ( filtered_fq )
+        KRAKEN2 ( final_fq )
         BRACKEN ( KRAKEN2.out.results )
       }
     }
 
       //just perform direct alignment 
     if (params.map2ref) {
-      MINIMAP2_REF ( REFORMAT.out.reformatted_fq )
+      MINIMAP2_REF ( REFORMAT.out.final_fq )
       if (params.infoseq) {
         INFOSEQ ( MINIMAP2_REF.out.aligned_sample )
         SAMTOOLS ( INFOSEQ.out.infoseq_ref )
