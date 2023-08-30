@@ -57,12 +57,9 @@ params {
 ```
 
 ## Example of commands
-1) running preprocessing steps (adapter trimming and quality filtering) and QC steps to have a preliminary look at the data before proceeding with downstream analysis.
+1) running QC steps to have a preliminary look at the data before proceeding with downstream analysis.
 ```
-nextflow run ~/path/to/ontvisc_repo/main.nf  -resume \\
-                                            --adapter_trimming \\
-                                            --qual_filt \\
-                                            --qc_only
+nextflow run ~/path/to/ontvisc_repo/main.nf  --qc_only
 ```
 
 
