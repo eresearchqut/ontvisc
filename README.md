@@ -21,21 +21,21 @@ The reads can optionally be filtered from a plant host before performing downstr
 4. Run with your own data
 
 - Provide an index.csv file.  
-  Create a TAB delimited text file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the --indexfile [filename] in the nextflow run command. This text file requires the following columns (which needs to be included as a header): ```sampleid,sample_path``` 
+  Create a TAB delimited text file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the --samplesheet [filename] in the nextflow run command. This text file requires the following columns (which needs to be included as a header): ```sampleid,sample_files``` 
 
   **sampleid** will be the sample name that will be given to the files created by the pipeline  
   **sample_path** is the full path to the fastq files that the pipeline requires as starting input  
 
   This is an example of an index.csv file which specifies the name and path of fastq.gz files for 2 samples. If there are multiple fastq.gz files in the folder, the path can be specified on one line using an asterisk:
   ```
-  sampleid,sample_path
+  sampleid,sample_files
   MT212,/path_to_fastq_file/*fastq.gz
   MT213,/path_to_fastq_file/*fastq.gz
   ```
 
 - Run the command:
   ```bash
-  nextflow run main.nf -profile {singularity, docker} --indexfile index_example.csv
+  nextflow run main.nf -profile {singularity, docker} --samplesheet index_example.csv
   ```
   setting the profile parameter to one of
   ```
@@ -46,7 +46,7 @@ The reads can optionally be filtered from a plant host before performing downstr
 
 If you need to set additional parameters, you can either include these in your nextflow run command:
 ```
-nextflow run main.nf -profile {singularity, docker} --indexfile index_example.csv --adapter_trimming
+nextflow run main.nf -profile {singularity, docker} --samplesheet index_example.csv --adapter_trimming
 ```
 
 or set them to true in the nextflow.config file.
@@ -63,12 +63,14 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  --qc_only
 ```
 
 
-2) remove adapters, perform de novo assembly with Canu and map the resulting contigs to a reference
+2) remove adapters, perform de novo assembly with Canu and map the resulting contigs to a reference.
+RNA viruses are on average [`10 kb in size`] (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/)
+
 ```
-nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \\
-                                                    --denovo_assembly --canu \\
-                                                    --canu_options 'useGrid=false' \\
-                                                    --canu_genome_size [genome size of virus target] \\
-                                                    --blast_vs_ref  \\
+nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
+                                                    --denovo_assembly --canu \
+                                                    --canu_options 'useGrid=false' \
+                                                    --canu_genome_size [genome size of virus target] \
+                                                    --blast_vs_ref  \
                                                     --reference /path/to/reference/reference.fasta
 ```
