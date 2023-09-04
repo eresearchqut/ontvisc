@@ -21,7 +21,7 @@ The reads can optionally be filtered from a plant host before performing downstr
 4. Run with your own data
 
 - Provide an index.csv file.  
-  Create a TAB delimited text file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the --samplesheet [filename] in the nextflow run command. This text file requires the following columns (which needs to be included as a header): ```sampleid,sample_files``` 
+  Create a TAB delimited text file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the ```--samplesheet [filename]``` in the nextflow run command. This text file requires the following columns (which needs to be included as a header): ```sampleid,sample_files``` 
 
   **sampleid** will be the sample name that will be given to the files created by the pipeline  
   **sample_path** is the full path to the fastq files that the pipeline requires as starting input  
@@ -63,8 +63,8 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  --qc_only
 ```
 
 
-2) remove adapters, perform de novo assembly with Canu and map the resulting contigs to a reference.
-RNA viruses are on average [`10 kb in size`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/)
+2) remove amplicon adapters, perform de novo assembly with Canu and map the resulting contigs to a reference.
+If you do not know the size of your targetted genome, you can ommit the ```--canu_genome_size parameter```. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/))
 
 ```
 nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
