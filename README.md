@@ -8,7 +8,7 @@ The pipeline can either: 1) perform a direct search on the sequenced reads, 2) a
 The reads can optionally be filtered from a plant host before performing downstream analysis.
 
 ## Pipeline summary
-![diagram pipeline](docs/images/OVISP_pipeline.jpeg)
+![diagram pipeline](docs/images/ONTViSc_pipeline.jpeg)
 
 ## Run the Pipeline
 1. Install Nextflow [`Nextflow`](https://www.nextflow.io/docs/latest/getstarted.html#installation)

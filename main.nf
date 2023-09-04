@@ -6,12 +6,13 @@ def helpMessage () {
     log.info """
     ONTViSc - ONT-based Viral Screening for Biosecurity
     Marie-Emilie Gauthier 23/05/2023
+    Magda Antczak
     Craig Windell
-    Roberto Barrero
+    Roberto Barrero 
 
     Usage:
     Run the command
-    nextflow run eresearchqut/ovisp {optional arguments}...
+    nextflow run eresearchqut/ontvisc {optional arguments}...
 
     Optional arguments:
       -resume                           Resume a failed run
@@ -19,55 +20,55 @@ def helpMessage () {
                                         'results'
       --samplesheet '[path/to/file]'    Path to the csv file that contains the list of
                                         samples to be analysed by this pipeline.
-                              Default:  'index.csv'
-      Contents of samplesheet csv:
-        sampleid,sample_files
-        SAMPLE01,/user/folder/sample.fastq.gz
-        SAMPLE02,/user/folder/*.fastq.gz
+                                        Default:  'index.csv'
+    Contents of samplesheet csv:
+      sampleid,sample_files
+      SAMPLE01,/user/folder/sample.fastq.gz
+      SAMPLE02,/user/folder/*.fastq.gz
 
-        sample_files can refer to a folder with a number of
-        files that will be merged in the pipeline
+      sample_files can refer to a folder with a number of
+      files that will be merged in the pipeline
 
-        #### Pre-processing and QC options ####
-        --qc_only                       Only perform preliminary QC step using Nanoplot
-        --adapter_trimming              Run porechop step
-                                        [False]
-        --porechop_options              Porechop_ABI options
-                                        [null]
-        --race                          Filter for RACE universal primers using cutadapt
-                                        [null]
-        --qual_filt                     Run quality filtering step
-                                        [False]
-        --chopper                       Use chopper to perform quality filtering step
-                                        [True]
-        --nanofilt                      Use NanoFilt to perform quality filtering step
-                                        [False]                                 
-        --host_filtering                Run host filtering step using Minimap2
-                                        Default: false
-        --minimap_options               Set to 'splice' for RNA or ‘map-ont’ for DNA libraries
-                                        Default:  splice'                          
-        --host_fasta              Fasta file of nucleotide sequences to filter
-                                        [null]
+      #### Pre-processing and QC options ####
+      --qc_only                       Only perform preliminary QC step using Nanoplot
+      --adapter_trimming              Run porechop step
+                                      [False]
+      --porechop_options              Porechop_ABI options
+                                      [null]
+      --race                          Filter for RACE universal primers using cutadapt
+                                      [null]
+      --qual_filt                     Run quality filtering step
+                                      [False]
+      --chopper                       Use chopper to perform quality filtering step
+                                      [True]
+      --nanofilt                      Use NanoFilt to perform quality filtering step
+                                      [False]                                 
+      --host_filtering                Run host filtering step using Minimap2
+                                      Default: false
+      --minimap_options               Set to 'splice' for RNA or ‘map-ont’ for DNA libraries
+                                      Default:  splice'                          
+      --host_fasta              Fasta file of nucleotide sequences to filter
+                                      [null]
 
-        --denovo_assembly               Skip de novo assembly step
-                                        Default: false
-        --canu                          Use Canu for de novo assembly step
-                                        Default:  false
-        --canu_genome_size              Target genome size
-                                        Default:  '0.01m'
-        --canu_options                  Canu options
-                                        Default:  ''
-        --flye                          Use Flye for de novo assembly step
-        --flye_ont_mode                 Select from nano-raw, nano-corr, nano-hq
-                                        Default:  'nano-raw'
-        --flye_options                  Flye options
-                                        Default:  ''
-        --clustering                    Skip clustering step using Rattle
-                                        Default:  false
-        --rattle_min_len                Minimum length cut off for read size
-                                        Default:  250
-        --rattle_max_len                Maximum length cut off for read size
-                                        Default:  2000
+      --denovo_assembly               Skip de novo assembly step
+                                      Default: false
+      --canu                          Use Canu for de novo assembly step
+                                      Default:  false
+      --canu_genome_size              Target genome size
+                                      Default:  '0.01m'
+      --canu_options                  Canu options
+                                      Default:  ''
+      --flye                          Use Flye for de novo assembly step
+      --flye_ont_mode                 Select from nano-raw, nano-corr, nano-hq
+                                      Default:  'nano-raw'
+      --flye_options                  Flye options
+                                      Default:  ''
+      --clustering                    Skip clustering step using Rattle
+                                      Default:  false
+      --rattle_min_len                Minimum length cut off for read size
+                                      Default:  250
+      --rattle_max_len                Maximum length cut off for read size
+                                      Default:  2000
 
     """.stripIndent()
 }
