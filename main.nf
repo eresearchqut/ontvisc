@@ -116,7 +116,7 @@ switch (workflow.containerEngine) {
 process MERGE {
   //publishDir "${params.outdir}/${sampleid}/merge", pattern: '*.fastq.gz', mode: 'link'
   tag "${sampleid}"
-  label 'small'
+  label 'setting_1'
 
   input:
     tuple val(sampleid), path(lanes)
@@ -181,7 +181,7 @@ process CHOPPER {
   //publishDir "${params.outdir}/${sampleid}/chopper", pattern:'*_filtered.fastq.gz', mode: 'link'
   publishDir "${params.outdir}/${sampleid}/chopper", pattern: '*_chopper.log', mode: 'link'
   tag "${sampleid}"
-  label 'large'
+  label 'setting_3'
 
   input:
     tuple val(sampleid), path(sample)
@@ -202,7 +202,7 @@ process NANOFILT {
   publishDir "${params.outdir}/${sampleid}/nanofilt", pattern:'*_filtered.fastq.gz', mode: 'link'
   //publishDir "${params.outdir}/${sampleid}/canu", pattern: '*_nanofilt.log', mode: 'link'
   tag "${sampleid}"
-  label 'small'
+  label 'setting_1'
 
   input:
     tuple val(sampleid), path(sample)
@@ -224,9 +224,7 @@ process NANOFILT {
 process CANU {
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link', overwrite: true
   tag "${sampleid}"
-  memory "24GB"
-  cpus "4"
-  time '2h'
+  label 'setting_6'
 
   input:
     tuple val(sampleid), path(fastq)
@@ -259,9 +257,7 @@ process CANU {
 process FLYE {
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
   tag "${sampleid}"
-  time '24h'
-  cpus = 8
-  memory = 92.GB
+  label 'setting_9'
 
   input:
     tuple val(sampleid), path(fastq)
@@ -294,7 +290,7 @@ flye  --out-dir outdir --threads ${task.cpus} --read-error ${params.flye_read_er
 process BLASTN2REF {
   publishDir "${params.outdir}/${sampleid}/blast_to_ref", mode: 'link'
   tag "${sampleid}"
-  label 'small'
+  label 'setting_1'
   containerOptions "${bindOptions}"
 
   input:
@@ -316,7 +312,7 @@ process BLASTN2REF {
 process MINIMAP2 {
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
   tag "${sampleid}"
-  label 'large'
+  label 'setting_3'
   containerOptions "${bindOptions}"
 
   container 'quay.io/biocontainers/minimap2:2.24--h7132678_1'
@@ -334,7 +330,7 @@ process MINIMAP2 {
 process MINIASM {
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
   tag "${sampleid}"
-  label 'large'
+  label 'setting_3'
   containerOptions "${bindOptions}"
 
   container 'quay.io/biocontainers/miniasm:0.3--he4a0461_2'
@@ -353,7 +349,7 @@ process MINIASM {
 process MINIMAP2_REF {
   publishDir "${params.outdir}/${sampleid}/minimap2", mode: 'link'
   tag "${sampleid}"
-  label 'medium'
+  label 'setting_2'
   containerOptions "${bindOptions}"
 
   input:
@@ -369,7 +365,6 @@ process MINIMAP2_REF {
 process INFOSEQ {
   publishDir "${params.outdir}/${sampleid}/infoseq", mode: 'link'
   tag "${sampleid}"
-  label 'small'
   containerOptions "${bindOptions}"
 
   input:
@@ -385,7 +380,7 @@ process INFOSEQ {
 process SAMTOOLS {
   publishDir "${params.outdir}/${sampleid}/samtools", mode: 'link'
   tag "${sampleid}"
-  label 'small'
+  label 'setting_2'
 
   input:
     tuple val(sampleid), path(sample)
@@ -402,7 +397,7 @@ process SAMTOOLS {
 process NANOQ {
   publishDir "${params.outdir}/${sampleid}/nano-q", mode: 'link'
   tag "${sampleid}"
-  label 'medium'
+  label 'setting_2'
 
   input:
     tuple val(sampleid), path(sorted_sample)
@@ -436,9 +431,7 @@ process PORECHOP {
 process PORECHOP_ABI {
   tag "${sampleid}"
   publishDir "$params.outdir/${sampleid}/porechop",  mode: 'link'
-  time '6h'
-  cpus = 4
-  memory = 32.GB
+  label "setting_6"
 
   input:
     tuple val(sampleid), path(sample)
@@ -457,7 +450,7 @@ process PORECHOP_ABI {
 
 process REFORMAT {
   tag "${sampleid}"
-  label "large"
+  label "setting_3"
   publishDir "$params.outdir/${sampleid}",  mode: 'copy'
 
   input:
@@ -473,7 +466,7 @@ process REFORMAT {
 
 process CAP3 {
   tag "${sampleid}"
-  label "large"
+  label "setting_3"
   time "3h"
   publishDir "$params.outdir/$sampleid/cap3", mode: 'copy', pattern: '*_cap3.fasta', saveAs: { filename -> "${sampleid}_cap3.fasta"}
 
@@ -523,7 +516,7 @@ process BLASTN {
 */
 process EXTRACT_VIRAL_BLAST_HITS {
   tag "${sampleid}"
-  label "medium"
+  label "setting_2"
   publishDir "$params.outdir/$sampleid/blastn",  mode: 'link', overwrite: true
 
   input:
@@ -543,7 +536,7 @@ process EXTRACT_VIRAL_BLAST_HITS {
 
 process CONCATENATE_FASTA {
   tag "${sampleid}"
-  label "medium"
+  label "setting_2"
   publishDir "${params.outdir}/${sampleid}", mode: 'link'
 
   input:
@@ -567,9 +560,7 @@ process BLASTN_SPLIT {
   publishDir "${params.outdir}/${sampleid}/blastn", mode: 'link'
   tag "${sampleid}"
   containerOptions "${bindOptions}"
-  time "12h"
-  memory "48GB"
-  cpus "4"
+  label "setting_10"
 
   input:
     tuple val(sampleid), path(assembly)
@@ -639,7 +630,7 @@ Optional arguments:
 */
 process KAIJU {
   publishDir "${params.outdir}/${sampleid}/kaiju", mode: 'link'
-  label 'process_high'
+  label 'setting_4'
   containerOptions "${bindOptions}"
 
   input:
@@ -670,7 +661,7 @@ process KAIJU {
 
 process KRONA {
   publishDir "${params.outdir}/${sampleid}/krona", mode: 'link'
-  label 'large'
+  label 'setting_3'
   containerOptions "${bindOptions}"
 
   input:
@@ -733,7 +724,7 @@ Usage: kraken2 [options] <filename(s)>
 
 process KRAKEN2 {
 	tag "${sampleid}"
-	label 'process_high2'
+	label 'setting_5'
 	publishDir "$params.outdir/$sampleid/kraken",  mode: 'link'
   containerOptions "${bindOptions}"
 
@@ -778,7 +769,7 @@ set +eu
 
 process BRACKEN {
   tag "${sampleid}"
-	label 'medium'
+	label 'setting_2'
 	publishDir "$params.outdir/$sampleid/bracken",  mode: 'link'
   containerOptions "${bindOptions}"
 
@@ -800,8 +791,7 @@ process RATTLE {
   publishDir "${params.outdir}/${sampleid}/clustering", mode: 'link'
   tag "${sampleid}"
   time '24h'
-  cpus = 2
-  memory = 92.GB
+  label 'setting_7'
   containerOptions "${bindOptions}"
 
   input:

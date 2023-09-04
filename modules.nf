@@ -1,7 +1,7 @@
 process MINIMAP2_ALIGN {
   cpus "${params.minimap2_threads}"
   tag "${sampleid}"
-  label "xlarge2"
+  label "setting_6"
 
   input:
   tuple val(sampleid), path(fastq)
@@ -20,7 +20,7 @@ process MINIMAP2_ALIGN {
 
 process EXTRACT_READS {
   tag "${sampleid}"
-  label "medium"
+  label "setting_2"
 
   input:
   tuple val(sampleid), path(fastq), path(unaligned_ids)
@@ -58,9 +58,9 @@ process MAP_BACK_TO_ASSEMBLY {
 
 process FASTQ2FASTA {
   tag "${sampleid}"
-  label "medium"
+  label "setting_2"
   //publishDir "$params.outdir/$sampleid/fasta", mode: 'copy', pattern: '*.fasta'
-  
+
   input:
   tuple val(sampleid), path(fastq)
   output:
@@ -76,7 +76,7 @@ process NANOPLOT {
   publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '{*.html,*.txt}', mode: 'link', saveAs: { filename -> "${sampleid}_$filename" }
 //  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '*.NanoStats.txt', mode: 'link', saveAs: { filename -> "${sampleid}_$filename" }
   tag "${sampleid}"
-  cpus 2
+  label "setting_2"
 
   input:
     tuple val(sampleid), path(sample)
