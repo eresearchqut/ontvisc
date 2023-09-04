@@ -64,7 +64,7 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  --qc_only
 
 
 2) remove adapters, perform de novo assembly with Canu and map the resulting contigs to a reference.
-RNA viruses are on average [`10 kb in size`] (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/)
+RNA viruses are on average [`10 kb in size`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/)
 
 ```
 nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
