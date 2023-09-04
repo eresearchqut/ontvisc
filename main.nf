@@ -165,8 +165,6 @@ process CUTADAPT {
   tag "${sampleid}"
   label 'medium'
 
-  container 'quay.io/biocontainers/cutadapt:4.1--py310h1425a21_1'
-
   input:
     tuple val(sampleid), path(sample)
   output:
@@ -184,8 +182,6 @@ process CHOPPER {
   publishDir "${params.outdir}/${sampleid}/chopper", pattern: '*_chopper.log', mode: 'link'
   tag "${sampleid}"
   label 'large'
-
-  container 'quay.io/biocontainers/chopper:0.5.0--hdcf5f25_2'
 
   input:
     tuple val(sampleid), path(sample)
@@ -207,8 +203,6 @@ process NANOFILT {
   //publishDir "${params.outdir}/${sampleid}/canu", pattern: '*_nanofilt.log', mode: 'link'
   tag "${sampleid}"
   label 'small'
-
-  container 'quay.io/biocontainers/nanofilt:2.8.0--py_0'
 
   input:
     tuple val(sampleid), path(sample)
@@ -233,8 +227,6 @@ process CANU {
   memory "24GB"
   cpus "4"
   time '2h'
-
-  container 'quay.io/biocontainers/canu:2.2--ha47f30e_0'
 
   input:
     tuple val(sampleid), path(fastq)
@@ -271,8 +263,6 @@ process FLYE {
   cpus = 8
   memory = 92.GB
 
-  container "quay.io/biocontainers/flye:2.9.1--py310h590eda1_0"
-
   input:
     tuple val(sampleid), path(fastq)
   output:
@@ -306,8 +296,6 @@ process BLASTN2REF {
   tag "${sampleid}"
   label 'small'
   containerOptions "${bindOptions}"
-
-  container 'quay.io/biocontainers/blast:2.13.0--hf3cf87c_0'
 
   input:
     tuple val(sampleid), path(assembly)
@@ -368,8 +356,6 @@ process MINIMAP2_REF {
   label 'medium'
   containerOptions "${bindOptions}"
 
-  container 'quay.io/biocontainers/minimap2:2.24--h7132678_1'
-
   input:
     tuple val(sampleid), path(sample)
   output:
@@ -386,8 +372,6 @@ process INFOSEQ {
   label 'small'
   containerOptions "${bindOptions}"
 
-  container "quay.io/biocontainers/emboss:6.6.0--h1b6f16a_5"
-
   input:
     tuple val(sampleid), path(sample)
   output:
@@ -402,8 +386,6 @@ process SAMTOOLS {
   publishDir "${params.outdir}/${sampleid}/samtools", mode: 'link'
   tag "${sampleid}"
   label 'small'
-
-  container 'quay.io/biocontainers/samtools:1.16.1--h6899075_1'
 
   input:
     tuple val(sampleid), path(sample)
@@ -421,8 +403,6 @@ process NANOQ {
   publishDir "${params.outdir}/${sampleid}/nano-q", mode: 'link'
   tag "${sampleid}"
   label 'medium'
-
-  container 'ghcr.io/eresearchqut/nano-q:1.0.0'
 
   input:
     tuple val(sampleid), path(sorted_sample)
@@ -460,8 +440,6 @@ process PORECHOP_ABI {
   cpus = 4
   memory = 32.GB
 
-  container = 'docker://quay.io/biocontainers/porechop_abi:0.5.0--py38he0f268d_2'
-
   input:
     tuple val(sampleid), path(sample)
 
@@ -482,8 +460,6 @@ process REFORMAT {
   label "large"
   publishDir "$params.outdir/${sampleid}",  mode: 'copy'
 
-  container = 'docker://quay.io/biocontainers/bbmap:39.01--h92535d8_1'
-
   input:
   tuple val(sampleid), path(fastq)
   output:
@@ -500,8 +476,6 @@ process CAP3 {
   label "large"
   time "3h"
   publishDir "$params.outdir/$sampleid/cap3", mode: 'copy', pattern: '*_cap3.fasta', saveAs: { filename -> "${sampleid}_cap3.fasta"}
-
-  container = 'docker://quay.io/biocontainers/cap3:10.2011--h779adbc_3'
 
   input:
   tuple val(sampleid), path(fasta)
@@ -552,8 +526,6 @@ process EXTRACT_VIRAL_BLAST_HITS {
   label "medium"
   publishDir "$params.outdir/$sampleid/blastn",  mode: 'link', overwrite: true
 
-  container = 'docker://infrahelpers/python-light:py310-bullseye'
-
   input:
   tuple val(sampleid), path(blast_results)
   output:
@@ -573,8 +545,6 @@ process CONCATENATE_FASTA {
   tag "${sampleid}"
   label "medium"
   publishDir "${params.outdir}/${sampleid}", mode: 'link'
-
-  container = 'docker://quay.io/biocontainers/seqtk:1.3--h5bf99c6_3'
 
   input:
   tuple val(sampleid), path("${sampleid}_canu_assembly.fasta")
@@ -600,8 +570,6 @@ process BLASTN_SPLIT {
   time "12h"
   memory "48GB"
   cpus "4"
-
-  container 'quay.io/biocontainers/blast:2.13.0--hf3cf87c_0'
 
   input:
     tuple val(sampleid), path(assembly)
@@ -672,7 +640,6 @@ Optional arguments:
 process KAIJU {
   publishDir "${params.outdir}/${sampleid}/kaiju", mode: 'link'
   label 'process_high'
-  container 'quay.io/biocontainers/kaiju:1.8.2--h5b5514e_1'
   containerOptions "${bindOptions}"
 
   input:
@@ -704,7 +671,6 @@ process KAIJU {
 process KRONA {
   publishDir "${params.outdir}/${sampleid}/krona", mode: 'link'
   label 'large'
-  container 'quay.io/biocontainers/krona:2.8.1--pl5321hdfd78af_1'
   containerOptions "${bindOptions}"
 
   input:
@@ -769,7 +735,6 @@ process KRAKEN2 {
 	tag "${sampleid}"
 	label 'process_high2'
 	publishDir "$params.outdir/$sampleid/kraken",  mode: 'link'
-  container 'quay.io/biocontainers/kraken2:2.1.3--pl5321hdcf5f25_0'
   containerOptions "${bindOptions}"
 
 	input:
@@ -815,7 +780,6 @@ process BRACKEN {
   tag "${sampleid}"
 	label 'medium'
 	publishDir "$params.outdir/$sampleid/bracken",  mode: 'link'
-  container 'quay.io/biocontainers/bracken:2.8--py310h0dbaff4_1'
   containerOptions "${bindOptions}"
 
 	input:
@@ -846,8 +810,6 @@ process RATTLE {
   output:
   tuple val(sampleid), path("transcriptome.fq"), emit: clusters
   tuple val(sampleid), path(fastq), path("transcriptome.fq"), emit: clusters2
-
-  container =  'ghcr.io/eresearchqut/rattle-image:0.0.1'
 
   script:
   """

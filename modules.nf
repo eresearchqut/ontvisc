@@ -3,8 +3,6 @@ process MINIMAP2_ALIGN {
   tag "${sampleid}"
   label "xlarge2"
 
-  container 'quay.io/biocontainers/minimap2:2.24--h7132678_1'
-
   input:
   tuple val(sampleid), path(fastq)
   path(reference)
@@ -23,8 +21,6 @@ process MINIMAP2_ALIGN {
 process EXTRACT_READS {
   tag "${sampleid}"
   label "medium"
-
-  container = 'docker://quay.io/biocontainers/seqtk:1.3--h5bf99c6_3'
 
   input:
   tuple val(sampleid), path(fastq), path(unaligned_ids)
@@ -64,9 +60,7 @@ process FASTQ2FASTA {
   tag "${sampleid}"
   label "medium"
   //publishDir "$params.outdir/$sampleid/fasta", mode: 'copy', pattern: '*.fasta'
-
-  container = 'docker://quay.io/biocontainers/seqtk:1.3--h7132678_4'
-
+  
   input:
   tuple val(sampleid), path(fastq)
   output:
@@ -84,8 +78,6 @@ process NANOPLOT {
   tag "${sampleid}"
   cpus 2
 
-  container 'quay.io/biocontainers/nanoplot:1.41.0--pyhdfd78af_0'
-  
   input:
     tuple val(sampleid), path(sample)
   output:
