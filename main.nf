@@ -224,7 +224,7 @@ process NANOFILT {
 process CANU {
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link', overwrite: true
   tag "${sampleid}"
-  label 'setting_6'
+  label 'setting_8'
 
   input:
     tuple val(sampleid), path(fastq)
@@ -431,7 +431,7 @@ process PORECHOP {
 process PORECHOP_ABI {
   tag "${sampleid}"
   publishDir "$params.outdir/${sampleid}/porechop",  mode: 'link'
-  label "setting_6"
+  label "setting_8"
 
   input:
     tuple val(sampleid), path(sample)
