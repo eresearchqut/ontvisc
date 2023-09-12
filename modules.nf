@@ -1,7 +1,7 @@
 process MINIMAP2_ALIGN {
   cpus "${params.minimap2_threads}"
   tag "${sampleid}"
-  label "setting_6"
+  label "setting_8"
 
   input:
   tuple val(sampleid), path(fastq)

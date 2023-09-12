@@ -174,6 +174,8 @@ process CUTADAPT {
   script:
   """
   cutadapt -j ${task.cpus} -g "AAGCAGTGGTATCAACGCAGAGTACGCGGG;min_overlap=14" -a "CCCGCGTACTCTGCGTTGATACCACTGCTT;min_overlap=14" -o ${sample.baseName}_filtered.fa ${sample} > ${sampleid}_cutadapt.log
+  sed -i 's/len=[0-9]* reads/reads/' ${sample.baseName}_filtered.fa
+  sed -i 's/ trim=.*\$//' ${sample.baseName}_filtered.fa
   """
 }
 
@@ -790,7 +792,6 @@ process BRACKEN {
 process RATTLE {
   publishDir "${params.outdir}/${sampleid}/clustering", mode: 'link'
   tag "${sampleid}"
-  time '24h'
   label 'setting_7'
   containerOptions "${bindOptions}"
 
@@ -798,17 +799,20 @@ process RATTLE {
   tuple val(sampleid), path(fastq)
 
   output:
+  file("transcriptome.fq")
   tuple val(sampleid), path("transcriptome.fq"), emit: clusters
   tuple val(sampleid), path(fastq), path("transcriptome.fq"), emit: clusters2
 
+  def rattle_polishing_options = (params.rattle_polishing_options) ? " ${params.rattle_polishing_options}" : ''
+  def rattle_clustering_options = (params.rattle_clustering_options) ? " ${params.rattle_clustering_options}" : ''
   script:
   """
-  rattle cluster -i ${fastq} -t ${task.cpus} --lower-length ${params.rattle_min_len} --upper-length ${params.rattle_max_len}  -o . --rna
-  rattle cluster_summary -i ${fastq} -c clusters.out > cluster_summary.txt
+  rattle cluster -i ${fastq} -t ${task.cpus} ${params.rattle_clustering_option}  -o . --rna
+  rattle cluster_summary -i ${fastq} -c clusters.out > ${sampleid}_cluster_summary.txt
   mkdir clusters
-  rattle extract_clusters -i ${fastq} -c clusters.out --fastq -o clusters
-  rattle correct -i ${fastq} -c clusters.out -t ${task.cpus}
-  rattle polish -i consensi.fq -t ${task.cpus} --rna --summary
+  rattle extract_clusters -i ${fastq} -c clusters.out -l ${sampleid} -o clusters --fastq
+  rattle correct -i ${fastq} -c clusters.out -t ${task.cpus} -l ${sampleid}
+  rattle polish -i consensi.fq -t ${task.cpus} --summary ${params.rattle_polishing_option}
   """
 }
 /*
@@ -838,6 +842,7 @@ include { EXTRACT_READS as EXTRACT_READS_STEP2 } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP3 } from './modules.nf'
 include { MINIMAP2_ALIGN as MAP_BACK_TO_CONTIGS } from './modules.nf'
 include { MINIMAP2_ALIGN as MAP_BACK_TO_CLUSTERS } from './modules.nf'
+include { FASTQ2FASTA } from './modules.nf'
 include { FASTQ2FASTA as FASTQ2FASTA_STEP1} from './modules.nf'
 include { FASTQ2FASTA as FASTQ2FASTA_STEP2} from './modules.nf'
 include { NANOPLOT as QC_PRE_DATA_PROCESSING } from './modules.nf'
@@ -931,7 +936,7 @@ workflow {
       final_fq = REFORMAT.out.reformatted_fq
     }
 
-    if (params.host_filtering | params.qual_filt | params.adapter_trimming | params.race) {
+    if (params.host_filtering | params.qual_filt | params.adapter_trimming ) {
       QC_POST_DATA_PROCESSING ( final_fq )
     }
 
@@ -969,7 +974,9 @@ workflow {
       //perform clustering using Rattle
       if (params.clustering) {
         RATTLE ( final_fq )
-        contigs = CAP3 ( RATTLE.out.clusters )
+        FASTQ2FASTA( RATTLE.out.clusters )
+        CAP3( FASTQ2FASTA.out.fasta )
+        contigs = CAP3.out.scaffolds
       }
       //perform de novo assembly using either canu or flye
       else if (params.denovo_assembly) {
@@ -981,7 +988,7 @@ workflow {
           FLYE ( final_fq )
           contigs = FLYE.out.assembly2
         }
-        if (params.race) {
+        if (params.final_primer_check) {
           CUTADAPT ( contigs )
           contigs = CUTADAPT.out.trimmed
         }
