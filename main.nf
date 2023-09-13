@@ -520,19 +520,21 @@ process EXTRACT_VIRAL_BLAST_HITS {
   tag "${sampleid}"
   label "setting_2"
   publishDir "$params.outdir/$sampleid/blastn",  mode: 'link', overwrite: true
+  containerOptions "${bindOptions}"
 
   input:
   tuple val(sampleid), path(blast_results)
   output:
-  file "${sampleid}_blastn_vs_NT_top_hits.txt"
-  file "${sampleid}_blastn_vs_NT_top_viral_hits.txt"
-  file "${sampleid}_blastn_vs_NT_top_viral_spp_hits.txt"
+  file "${sampleid}_blastn_top_hits.txt"
+  file "${sampleid}_blastn_top_viral_hits.txt"
+  file "${sampleid}_blastn_top_viral_spp_hits.txt"
+  file "${sampleid}_contig_list_with_viral_match.txt"
 
   script:
   """  
   cat ${blast_results} > ${sampleid}_blastn_vs_NT.txt
 
-  select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn_vs_NT.txt
+  select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn_vs_NT.txt --mode ${params.blast_mode}
   """
 }
 
@@ -571,17 +573,32 @@ process BLASTN_SPLIT {
 
   script:
   def blastoutput = assembly.getBaseName() + "_blastn_vs_NT.bls"
-  """
-  cp ${blastn_db_dir}/taxdb.btd .
-  cp ${blastn_db_dir}/taxdb.bti .
-  blastn -query ${assembly} \
-    -db ${params.blastn_db} \
-    -out ${blastoutput} \
-    -evalue 1e-3 \
-    -num_threads ${params.blast_threads} \
-    -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe sscinames' \
-    -max_target_seqs 5
-  """
+  
+  if (params.blast_mode == "ncbi") {
+    """
+    cp ${blastn_db_dir}/taxdb.btd .
+    cp ${blastn_db_dir}/taxdb.bti .
+    blastn -query ${assembly} \
+      -db ${params.blastn_db} \
+      -out ${blastoutput} \
+      -evalue 1e-3 \
+      -num_threads ${params.blast_threads} \
+      -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe sscinames' \
+      -max_target_seqs 5
+    """
+  }
+  
+  else if (params.blast_mode == "localdb") {
+    """
+    blastn -query ${assembly} \
+      -db ${params.blastn_db} \
+      -out ${blastoutput} \
+      -evalue 1e-3 \
+      -num_threads ${params.blast_threads} \
+      -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe' \
+      -max_target_seqs 5
+    """
+  }
 }
 /*
 KAIJU notes
@@ -1000,7 +1017,7 @@ workflow {
       }
       //blast against a database
       else {
-        BLASTN_SPLIT( contigs.splitFasta(by: 10000, file: true) )
+        BLASTN_SPLIT( contigs.splitFasta(by: 5000, file: true) )
         BLASTN_SPLIT.out.blast_results
           .groupTuple()
           .set { ch_blastresults }
@@ -1012,7 +1029,7 @@ workflow {
     //just perform direct read search
       if (params.megablast) {
         FASTQ2FASTA_STEP1( final_fq )
-        BLASTN_SPLIT( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true) )
+        BLASTN_SPLIT( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 10000, file: true) )
         BLASTN_SPLIT.out.blast_results
           .groupTuple()
           .set { ch_blastresults }
