@@ -55,15 +55,56 @@ params {
   adapter_trimming = true
 }
 ```
-
-## Example of commands
-1) running QC steps to have a preliminary look at the data before proceeding with downstream analysis.
+- Run only the quality control step to have a preliminary look at the data before proceeding with downstream analysis.
 ```
 nextflow run ~/path/to/ontvisc_repo/main.nf  --qc_only
 ```
 
+- Trim adapters using [`PoreChop ABI`](https://github.com/rrwick/Porechop)
+```
+nextflow run ~/path/to/ontvisc_repo/main.nf  --adapter_trimming
+```
 
-2) remove amplicon adapters, perform de novo assembly with Canu and map the resulting contigs to a reference.
+Additional PoreChop parameters can be specified using ```--porechop_options '{options}'```. Please refer to PoreChop manual.
+
+
+- If the data analysed used RACE reactions, a final primer check can be performed after de novo assembly using the ```--final_primer_check``` option. The pipeline will check for the presence of any residual universal RACE primers at the end of the assembled contigs.
+
+- Provide a database
+If you also want to run homology searches against public NCBI databases, you need to set the parameter ```--blast_mode ncbi```
+This parameter is set by default in the nextflow.config file:
+```
+params {
+  blast_mode = ncbi
+}
+```
+
+Download these locally, following the detailed steps available at https://www.ncbi.nlm.nih.gov/books/NBK569850/. Create a folder where you will store your NCBI databases. It is good practice to include the date of download. For instance:
+```
+mkdir blastDB/20231130
+```
+You will need to use the update_blastdb.pl script from the blast+ version used with the pipeline.
+For example:
+```
+perl update_blastdb.pl --decompress nt [*]
+perl update_blastdb.pl taxdb
+tar -xzf taxdb.tar.gz
+```
+
+Make sure the taxdb.btd and the taxdb.bti files are present in the same directory as your blast databases.
+Specify the path of your local NCBI blast nt directories in the nextflow.config file.
+For instance:
+```
+params {
+  blast_db_dir = '/work/hia_mt18005_db/blastDB/20231130'
+}
+```
+
+## Example of commands
+```
+
+
+2) check for presence of adapters, perform de novo assembly with Canu and map the resulting contigs to a reference.
 If you do not know the size of your targetted genome, you can ommit the ```--canu_genome_size parameter```. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/))
 
 ```
@@ -73,4 +114,16 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
                                                     --canu_genome_size [genome size of virus target] \
                                                     --blast_vs_ref  \
                                                     --reference /path/to/reference/reference.fasta
+```
+
+3) check for presence of adapters, filter against plant host reference genome and perform a direct read homology search using megablast. The blast search will be split into several jobs, containing 5000 reads each, that will run in parallel.
+
+```
+nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
+                                                    --host_filtering \
+                                                    --read_classification \
+                                                    --megablast \
+                                                    --blast_threads 8 --blast_mode ncbi \
+                                                    --blastn_db /work/hia_mt18005/databases/blastDB/20230606/nt \
+                                                    --blast_split_factor 5000
 ```
