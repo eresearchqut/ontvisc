@@ -125,17 +125,29 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
                                                     --reference /path/to/reference/reference.fasta
 ```
 
-2) check for presence of adapters and perform a direct read homology search using megablast. You will need to download a local copy of the NCBI NT database. The blast search will be split into several jobs, containing 10,000 reads each, that will run in parallel. The pipeline will use 8 cpus when running the blast process.
+2) check for presence of adapters and perform a direct read homology search using megablast and the NCBI NT database. You will need to download a local copy of the NCBI NT database. The blast search will be split into several jobs, containing 10,000 reads each, that will run in parallel. The pipeline will use 8 cpus when running the blast process.
 
 ```
 nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
                                                     --read_classification \
                                                     --megablast \
-                                                    --blast_threads 8 --blast_mode ncbi \
-                                                    --blastn_db /path/to/ncbi_blast_db/nt \
+                                                    --blast_threads 8 \
+                                                    --blast_mode ncbi \
+                                                    --blastn_db /path/to/ncbi_blast_db/nt
 ```
 
-2) check for presence of adapters and perform a direct taxonomic classification of reads using Kraken2 and Kaiju. You will need to download Kraken2 index (e.g. PlusPFP) and Kaiju indexes (e.g. kaiju_db_rvdb).
+3) check for presence of adapters and this time perform a direct read homology search using megablast against a viral database.
+
+```
+nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
+                                                    --read_classification \
+                                                    --megablast \
+                                                    --blast_threads 8 \
+                                                    --blast_mode localdb \
+                                                    --blastn_db /path/to/local_blast_db
+```
+
+4) check for presence of adapters and perform a direct taxonomic classification of reads using Kraken2 and Kaiju. You will need to download Kraken2 index (e.g. PlusPFP) and Kaiju indexes (e.g. kaiju_db_rvdb).
 
 
 ```
