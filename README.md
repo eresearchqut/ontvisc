@@ -99,7 +99,9 @@ params {
   blast_db_dir = '/work/hia_mt18005_db/blastDB/20231130'
 }
 ```
-To run taxonomic classification using Krkane 2, download the index which is relevant to your data, provided by [`Kraken2`](https://benlangmead.github.io/aws-indexes/k2) (for example, PlusPFP can be chosen for searching viruses in plant samples).  
+To run nucleotide taxonomic classification of reads using Kraken2, download the index which is relevant to your data, provided by [`Kraken2`](https://benlangmead.github.io/aws-indexes/k2) (for example, PlusPFP can be chosen for searching viruses in plant samples).  
+
+To run protein taxonomic classification using Kaiju, download the index which is relevant to your data. Indexes are listed on theri README page of the [`tool`](https://github.com/bioinformatics-centre/kaiju) (for example refseq, refseq_nr, refseq_ref, progenomes, viruses, nr, nr_euk or rvdb).
 
 ## Example of commands
 
