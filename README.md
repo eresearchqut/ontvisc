@@ -115,14 +115,12 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
                                                     --reference /path/to/reference/reference.fasta
 ```
 
-2) check for presence of adapters, filter against plant host reference genome and perform a direct read homology search using megablast. The blast search will be split into several jobs, containing 5000 reads each, that will run in parallel.
+2) check for presence of adapters and perform a direct read homology search using megablast. You will need to download a local copy of the NCBI NT databse. The blast search will be split into several jobs, containing 10,000 reads each, that will run in parallel. The pipeline will use 8 cpus when running the blast process.
 
 ```
 nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
-                                                    --host_filtering \
                                                     --read_classification \
                                                     --megablast \
                                                     --blast_threads 8 --blast_mode ncbi \
-                                                    --blastn_db /path/to/ncbi_blast_db//nt \
-                                                    --blast_split_factor 5000
+                                                    --blastn_db /path/to/ncbi_blast_db/nt \
 ```
