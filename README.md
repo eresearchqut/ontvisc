@@ -101,10 +101,9 @@ params {
 ```
 
 ## Example of commands
-```
 
 
-2) check for presence of adapters, perform de novo assembly with Canu and map the resulting contigs to a reference.
+1) check for presence of adapters, perform de novo assembly with Canu and map the resulting contigs to a reference.
 If you do not know the size of your targetted genome, you can ommit the ```--canu_genome_size parameter```. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/))
 
 ```
@@ -116,7 +115,7 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
                                                     --reference /path/to/reference/reference.fasta
 ```
 
-3) check for presence of adapters, filter against plant host reference genome and perform a direct read homology search using megablast. The blast search will be split into several jobs, containing 5000 reads each, that will run in parallel.
+2) check for presence of adapters, filter against plant host reference genome and perform a direct read homology search using megablast. The blast search will be split into several jobs, containing 5000 reads each, that will run in parallel.
 
 ```
 nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
