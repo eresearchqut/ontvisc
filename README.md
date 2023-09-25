@@ -21,7 +21,9 @@ The reads can optionally be filtered from a plant host before performing downstr
 4. Provide required databases
 - If you have access to a reference host genome and want to filter your reads against these before running your analysis, you will have to specifyt the ``--host_filtering``parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``
 
-- If you  want to run homology searches against public NCBI NT database, you need to set the parameter ```--blast_mode ncbi```
+- If you  want to run homology searches against a viral database, you will need to specify the ``--blast_mode localdb`` parameter and provide the path to the database by specifying: ``--blastn_db /path/to/viral/db``
+
+- If you  want to run homology searches against the public NCBI NT database instead, you need to set the parameter ```--blast_mode ncbi```
 This parameter is set by default in the nextflow.config file:
 ```
 params {
@@ -46,7 +48,7 @@ Specify the path of your local NCBI blast nt directories in the nextflow.config 
 For instance:
 ```
 params {
-  blast_db_dir = '/work/hia_mt18005_db/blastDB/20230930'
+  --blastn_db = '/work/hia_mt18005_db/blastDB/20230930/nt'
 }
 ```
 - To run nucleotide taxonomic classification of reads using Kraken2, download the pre-built index relevant to your data and provided by [`Kraken2`](https://benlangmead.github.io/aws-indexes/k2) (for example, PlusPFP can be chosen for searching viruses in plant samples).  
