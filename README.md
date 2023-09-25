@@ -18,7 +18,41 @@ The reads can optionally be filtered from a plant host before performing downstr
 3. Download the pipeline and test it on minimal datatests:
 [ TO DO ]
 
-4. Run with your own data
+4. Provide a database
+- If you  want to run homology searches against public NCBI NT database, you need to set the parameter ```--blast_mode ncbi```
+This parameter is set by default in the nextflow.config file:
+```
+params {
+  blast_mode = ncbi
+}
+```
+
+Download the NCBI NT database locally, following the detailed steps available at https://www.ncbi.nlm.nih.gov/books/NBK569850/. Create a folder where you will store your NCBI databases. It is good practice to include the date of download. For instance:
+```
+mkdir blastDB/20230930
+```
+You will need to use the update_blastdb.pl script from the blast+ version used with the pipeline.
+For example:
+```
+perl update_blastdb.pl --decompress nt [*]
+perl update_blastdb.pl taxdb
+tar -xzf taxdb.tar.gz
+```
+
+Make sure the taxdb.btd and the taxdb.bti files are present in the same directory as your blast databases.
+Specify the path of your local NCBI blast nt directories in the nextflow.config file.
+For instance:
+```
+params {
+  blast_db_dir = '/work/hia_mt18005_db/blastDB/20230930'
+}
+```
+- To run nucleotide taxonomic classification of reads using Kraken2, download the pre-built index relevant to your data and provided by [`Kraken2`](https://benlangmead.github.io/aws-indexes/k2) (for example, PlusPFP can be chosen for searching viruses in plant samples).  
+
+- To run protein taxonomic classification using Kaiju, download the pre-built index relevant to your data. Indexes are listed on theri README page of the [`tool`](https://github.com/bioinformatics-centre/kaiju) (for example refseq, refseq_nr, refseq_ref, progenomes, viruses, nr, nr_euk or rvdb). After the download is finished, you should ahve 3 files: kaiju_db_*.fmi, nodes.dmp, and names.dmp, which are all needed to run Kaiju.
+You will have to specify the path to each of these files (using the ``--kaiju_dbname``, the ``--kaiju_nodes`` and the ``--kaiju_names`` parameters respectively.
+
+5. Run with your own data
 
 - Provide an index.csv file.  
   Create a TAB delimited text file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the ```--samplesheet [filename]``` in the nextflow run command. This text file requires the following columns (which needs to be included as a header): ```sampleid,sample_files``` 
@@ -70,39 +104,7 @@ Additional PoreChop parameters can be specified using ```--porechop_options '{op
 
 - If the data analysed used RACE reactions, a final primer check can be performed after de novo assembly using the ```--final_primer_check``` option. The pipeline will check for the presence of any residual universal RACE primers at the end of the assembled contigs.
 
-- Provide a database
-If you also want to run homology searches against public NCBI databases, you need to set the parameter ```--blast_mode ncbi```
-This parameter is set by default in the nextflow.config file:
-```
-params {
-  blast_mode = ncbi
-}
-```
 
-Download these locally, following the detailed steps available at https://www.ncbi.nlm.nih.gov/books/NBK569850/. Create a folder where you will store your NCBI databases. It is good practice to include the date of download. For instance:
-```
-mkdir blastDB/20230930
-```
-You will need to use the update_blastdb.pl script from the blast+ version used with the pipeline.
-For example:
-```
-perl update_blastdb.pl --decompress nt [*]
-perl update_blastdb.pl taxdb
-tar -xzf taxdb.tar.gz
-```
-
-Make sure the taxdb.btd and the taxdb.bti files are present in the same directory as your blast databases.
-Specify the path of your local NCBI blast nt directories in the nextflow.config file.
-For instance:
-```
-params {
-  blast_db_dir = '/work/hia_mt18005_db/blastDB/20230930'
-}
-```
-To run nucleotide taxonomic classification of reads using Kraken2, download the pre-built index relevant to your data and provided by [`Kraken2`](https://benlangmead.github.io/aws-indexes/k2) (for example, PlusPFP can be chosen for searching viruses in plant samples).  
-
-To run protein taxonomic classification using Kaiju, download the pre-built index relevant to your data. Indexes are listed on theri README page of the [`tool`](https://github.com/bioinformatics-centre/kaiju) (for example refseq, refseq_nr, refseq_ref, progenomes, viruses, nr, nr_euk or rvdb). After the download is finished, you should ahve 3 files: kaiju_db_*.fmi, nodes.dmp, and names.dmp, which are all needed to run Kaiju.
-You will have to specify the path to each of these files (using the ``--kaiju_dbname``, the ``--kaiju_nodes`` and the ``--kaiju_names`` parameters respectively.
 
 ## Example of commands
 
