@@ -123,6 +123,6 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
                                                     --read_classification \
                                                     --megablast \
                                                     --blast_threads 8 --blast_mode ncbi \
-                                                    --blastn_db /work/hia_mt18005/databases/blastDB/20230606/nt \
+                                                    --blastn_db /path/to/ncbi_blast_db//nt \
                                                     --blast_split_factor 5000
 ```
