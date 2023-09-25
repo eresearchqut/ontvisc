@@ -18,7 +18,9 @@ The reads can optionally be filtered from a plant host before performing downstr
 3. Download the pipeline and test it on minimal datatests:
 [ TO DO ]
 
-4. Provide a database
+4. Provide required databases
+- If you have access to a reference host genome and want to filter your reads against these before running your analysis, you will have to specifyt the ``--host_filtering``parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``
+
 - If you  want to run homology searches against public NCBI NT database, you need to set the parameter ```--blast_mode ncbi```
 This parameter is set by default in the nextflow.config file:
 ```
@@ -131,11 +133,16 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
                                                     --blastn_db /path/to/ncbi_blast_db/nt \
 ```
 
-2) check for presence of adapters and perform a direct taxonomic classification of reads using Kraken2. You will need to download a Kraken2 index pf your choice (e.g. PlusPFP).
+2) check for presence of adapters and perform a direct taxonomic classification of reads using Kraken2 and Kaiju. You will need to download Kraken2 index (e.g. PlusPFP) and Kaiju indexes (e.g. kaiju_db_rvdb).
+
 
 ```
 nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
                                                     --read_classification \
                                                     --kraken2 \
-                                                    --krkdb = /path/to/kraken2_db
+                                                    --krkdb = /path/to/kraken2_db \
+                                                    --kaiju \
+                                                    --kaiju_dbname /path/to/kaiju/kaiju.fmi \
+                                                    --kaiju_nodes /path/to/kaiju/nodes.dmp \
+                                                    --kaiju_names /path/to/kaiju/names.dmp
 ```
