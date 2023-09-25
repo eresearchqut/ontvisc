@@ -99,6 +99,7 @@ params {
   blast_db_dir = '/work/hia_mt18005_db/blastDB/20231130'
 }
 ```
+To run taxonomic classification using Krkane 2, download the index which is relevant to your data, provided by [`Kraken2`](https://benlangmead.github.io/aws-indexes/k2) (for example, PlusPFP can be chosen for searching viruses in plant samples).  
 
 ## Example of commands
 
@@ -123,4 +124,13 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
                                                     --megablast \
                                                     --blast_threads 8 --blast_mode ncbi \
                                                     --blastn_db /path/to/ncbi_blast_db/nt \
+```
+
+2) check for presence of adapters and perform a direct taxonomic classification of reads using Kraken2. You will need to download a Kraken2 index pf your choice (e.g. PlusPFP).
+
+```
+nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
+                                                    --read_classification \
+                                                    --kraken2 \
+                                                    --krkdb = /path/to/kraken2_db
 ```
