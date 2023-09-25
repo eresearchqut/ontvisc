@@ -81,7 +81,7 @@ params {
 
 Download these locally, following the detailed steps available at https://www.ncbi.nlm.nih.gov/books/NBK569850/. Create a folder where you will store your NCBI databases. It is good practice to include the date of download. For instance:
 ```
-mkdir blastDB/20231130
+mkdir blastDB/20230930
 ```
 You will need to use the update_blastdb.pl script from the blast+ version used with the pipeline.
 For example:
@@ -96,12 +96,13 @@ Specify the path of your local NCBI blast nt directories in the nextflow.config 
 For instance:
 ```
 params {
-  blast_db_dir = '/work/hia_mt18005_db/blastDB/20231130'
+  blast_db_dir = '/work/hia_mt18005_db/blastDB/20230930'
 }
 ```
-To run nucleotide taxonomic classification of reads using Kraken2, download the index which is relevant to your data, provided by [`Kraken2`](https://benlangmead.github.io/aws-indexes/k2) (for example, PlusPFP can be chosen for searching viruses in plant samples).  
+To run nucleotide taxonomic classification of reads using Kraken2, download the pre-built index relevant to your data and provided by [`Kraken2`](https://benlangmead.github.io/aws-indexes/k2) (for example, PlusPFP can be chosen for searching viruses in plant samples).  
 
-To run protein taxonomic classification using Kaiju, download the index which is relevant to your data. Indexes are listed on theri README page of the [`tool`](https://github.com/bioinformatics-centre/kaiju) (for example refseq, refseq_nr, refseq_ref, progenomes, viruses, nr, nr_euk or rvdb).
+To run protein taxonomic classification using Kaiju, download the pre-built index relevant to your data. Indexes are listed on theri README page of the [`tool`](https://github.com/bioinformatics-centre/kaiju) (for example refseq, refseq_nr, refseq_ref, progenomes, viruses, nr, nr_euk or rvdb). After the download is finished, you should ahve 3 files: kaiju_db_*.fmi, nodes.dmp, and names.dmp, which are all needed to run Kaiju.
+You will have to specify the path to each of these files (using the ``--kaiju_dbname``, the ``--kaiju_nodes`` and the ``--kaiju_names`` parameters respectively.
 
 ## Example of commands
 
