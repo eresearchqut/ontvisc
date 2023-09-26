@@ -18,7 +18,65 @@ The reads can optionally be filtered from a plant host before performing downstr
 3. Download the pipeline and test it on minimal datatests:
 [ TO DO ]
 
-4. Provide required databases
+4. Run your own data
+
+- Provide an index.csv file.  
+  Create a TAB delimited text file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the ```--samplesheet [filename]``` in the nextflow run command. This text file requires the following columns (which needs to be included as a header): ```sampleid,sample_files``` 
+
+  **sampleid** will be the sample name that will be given to the files created by the pipeline  
+  **sample_path** is the full path to the fastq files that the pipeline requires as starting input  
+
+  This is an example of an index.csv file which specifies the name and path of fastq.gz files for 2 samples. If there are multiple fastq.gz files in the folder, the path can be specified on one line using an asterisk:
+  ```
+  sampleid,sample_files
+  MT212,/path_to_fastq_file/*fastq.gz
+  MT213,/path_to_fastq_file/*fastq.gz
+  ```
+
+- Run the command:
+  ```bash
+  nextflow run main.nf -profile {singularity, docker} --samplesheet index_example.csv
+  ```
+  setting the profile parameter to one of
+  ```
+  docker
+  singularity
+    ```  
+  to suit your environment.
+
+To set additional parameters, you can either include these in your nextflow run command:
+```
+nextflow run main.nf -profile {singularity, docker} --samplesheet index_example.csv --adapter_trimming
+```
+
+or set them to true in the nextflow.config file.
+```
+params {
+  adapter_trimming = true
+}
+```
+- Run only the quality control step to have a preliminary look at the data before proceeding with downstream analysis.
+```
+nextflow run ~/path/to/ontvisc_repo/main.nf  --qc_only
+```
+
+- Trim adapters using [`PoreChop ABI`](https://github.com/rrwick/Porechop)
+```
+nextflow run ~/path/to/ontvisc_repo/main.nf  --adapter_trimming
+```
+
+Additional PoreChop parameters can be specified using ```--porechop_options '{options}'```. Please refer to PoreChop manual.
+
+- If the data analysed was derived using RACE reactions, a final primer check can be performed after the de novo assembly step using the ```--final_primer_check``` option. The pipeline will check for the presence of any residual universal RACE primers at the end of the assembled contigs.
+
+- Perform a quality filtering step  using ```--qual_filt``` and either the ```chopper``` (default) or the ```nanoFilt``` option.
+Additional Chopper and NanoFilt parameters can be specified using ```--chopper_options``` and ```--nanofilt_options``` respectively.
+
+```
+nextflow run ~/path/to/ontvisc_repo/main.nf  --qual_filt
+```
+
+5. Provide required databases
 - If you have access to a reference host genome and want to filter your reads against these before running your analysis, you will have to specifyt the ``--host_filtering``parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``
 
 - If you  want to run homology searches against a viral database, you will need to specify the ``--blast_mode localdb`` parameter and provide the path to the database by specifying: ``--blastn_db /path/to/viral/db``
@@ -53,66 +111,9 @@ params {
 ```
 - To run nucleotide taxonomic classification of reads using Kraken2, download the pre-built index relevant to your data and provided by [`Kraken2`](https://benlangmead.github.io/aws-indexes/k2) (for example, PlusPFP can be chosen for searching viruses in plant samples).  
 
-- To run protein taxonomic classification using Kaiju, download the pre-built index relevant to your data. Indexes are listed on theri README page of the [`tool`](https://github.com/bioinformatics-centre/kaiju) (for example refseq, refseq_nr, refseq_ref, progenomes, viruses, nr, nr_euk or rvdb). After the download is finished, you should ahve 3 files: kaiju_db_*.fmi, nodes.dmp, and names.dmp, which are all needed to run Kaiju.
+- To run protein taxonomic classification using Kaiju, download the pre-built index relevant to your data. Indexes are listed on the README page of [`Kaiju`](https://github.com/bioinformatics-centre/kaiju) (for example refseq, refseq_nr, refseq_ref, progenomes, viruses, nr, nr_euk or rvdb). After the download is finished, you should have 3 files: kaiju_db_*.fmi, nodes.dmp, and names.dmp, which are all needed to run Kaiju.
 You will have to specify the path to each of these files (using the ``--kaiju_dbname``, the ``--kaiju_nodes`` and the ``--kaiju_names`` parameters respectively.
 
-5. Run with your own data
-
-- Provide an index.csv file.  
-  Create a TAB delimited text file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the ```--samplesheet [filename]``` in the nextflow run command. This text file requires the following columns (which needs to be included as a header): ```sampleid,sample_files``` 
-
-  **sampleid** will be the sample name that will be given to the files created by the pipeline  
-  **sample_path** is the full path to the fastq files that the pipeline requires as starting input  
-
-  This is an example of an index.csv file which specifies the name and path of fastq.gz files for 2 samples. If there are multiple fastq.gz files in the folder, the path can be specified on one line using an asterisk:
-  ```
-  sampleid,sample_files
-  MT212,/path_to_fastq_file/*fastq.gz
-  MT213,/path_to_fastq_file/*fastq.gz
-  ```
-
-- Run the command:
-  ```bash
-  nextflow run main.nf -profile {singularity, docker} --samplesheet index_example.csv
-  ```
-  setting the profile parameter to one of
-  ```
-  docker
-  singularity
-    ```  
-  to suit your environment.
-
-If you need to set additional parameters, you can either include these in your nextflow run command:
-```
-nextflow run main.nf -profile {singularity, docker} --samplesheet index_example.csv --adapter_trimming
-```
-
-or set them to true in the nextflow.config file.
-```
-params {
-  adapter_trimming = true
-}
-```
-- Run only the quality control step to have a preliminary look at the data before proceeding with downstream analysis.
-```
-nextflow run ~/path/to/ontvisc_repo/main.nf  --qc_only
-```
-
-- Trim adapters using [`PoreChop ABI`](https://github.com/rrwick/Porechop)
-```
-nextflow run ~/path/to/ontvisc_repo/main.nf  --adapter_trimming
-```
-
-Additional PoreChop parameters can be specified using ```--porechop_options '{options}'```. Please refer to PoreChop manual.
-
-- If the data analysed was derived using RACE reactions, a final primer check can be performed after de novo assembly using the ```--final_primer_check``` option. The pipeline will check for the presence of any residual universal RACE primers at the end of the assembled contigs.
-
-- Perform a quality filtering step  using ```--qual_filt``` and either the ```chopper``` (default) or the ```nanoFilt``` option.
-Additional Choper and NanoFilt parameters can be specified using ```--chopper_options``` and ```--nanofilt_options``` respectively.
-
-```
-nextflow run ~/path/to/ontvisc_repo/main.nf  --qual_filt
-```
 
 
 ## Example of commands
