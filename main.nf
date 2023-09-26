@@ -561,7 +561,8 @@ process EXTRACT_VIRAL_BLAST_HITS {
   file "${sampleid}_blastn_top_hits.txt"
   file "${sampleid}_blastn_top_viral_hits.txt"
   file "${sampleid}_blastn_top_viral_spp_hits.txt"
-  file "${sampleid}_contig_list_with_viral_match.txt"
+  file "${sampleid}_contigs_list_with_viral_match.txt"
+  file "${sampleid}_viral_spp_abundance.txt"
 
   script:
   """  

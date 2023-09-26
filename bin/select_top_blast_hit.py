@@ -23,7 +23,7 @@ def main():
         blastn_results = pd.read_csv(blastn_results_path, sep="\t", index_col=False, names=["qseqid", "sgi", "sacc", "length", "pident", "mismatch", "gapopen", "qstart", "qend", "qlen", "sstart", "send", "slen", "sstrand", "evalue", "bitscore", "qcovhsp", "stitle", "staxids", "qseq", "sseq", "sseqid", "qcovs", "qframe", "sframe", "species"], dtype={"stitle": 'str', "staxids": 'str', "species": 'str'})
         
         #remove synthetic construct hits
-        blastn_results = blastn_results[~blastn_results["species"].str.contains("synthetic construct")]
+        blastn_results = blastn_results[~blastn_results["species"].str.contains("synthetic construct", na=False)]
         
 
     elif mode == "localdb":
@@ -42,13 +42,13 @@ def main():
     
     #blastn_viral_top_hit = blastn_top_hit[blastn_top_hit['stitle'].str.contains('|'.join(l))]
     #extract all sequences showing top blast homology to virus or viroid hits.
-    blastn_viral_top_hit = blastn_top_hit[blastn_top_hit["species"].str.contains('virus|viroid')]
+    blastn_viral_top_hit = blastn_top_hit[blastn_top_hit["species"].str.contains('virus|viroid', na=False)]
     #only retain blast hits with qcovs < 90
     blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 90].index, inplace = True)
     #blastn_viral_top_hit['count'] = blastn_viral_top_hit.groupby('species')['species'].transform('count')
     #derive read/contig count per viral spp
     summary_per_spp = blastn_viral_top_hit['species'].value_counts()
-    #summary_per_spp.index.name = 'species'
+    summary_per_spp.index.name = 'species'
     summary_per_spp.to_csv(sample_name + "_viral_spp_abundance.txt", index=True, sep="\t", header=["Count"])
 
     #summary_per_qseqid = blastn_viral_top_hit[['species','sacc']].value_counts()
