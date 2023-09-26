@@ -1,5 +1,4 @@
 process MINIMAP2_ALIGN {
-  cpus "${params.minimap2_threads}"
   tag "${sampleid}"
   label "setting_8"
 
@@ -8,6 +7,7 @@ process MINIMAP2_ALIGN {
   path(reference)
   output:
   tuple val(sampleid), path(fastq), path("${sampleid}_unaligned_ids.txt"), emit: sequencing_ids
+  //tuple val(sampleid), path("${sampleid}.sam"), emit: sam
 
   def minimap_options = (params.minimap_options) ? " ${params.minimap_options}" : ''
 
@@ -17,6 +17,11 @@ process MINIMAP2_ALIGN {
   awk '\$6 == "*" { print \$0 }' ${sampleid}.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
   """
 }
+/*
+tuple val(sampleid), path(fastq), path("${sampleid}_unaligned_ids.txt"), emit: sequencing_ids
+awk '\$6 == "*" { print \$0 }' ${sampleid}.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
+*/
+
 
 process EXTRACT_READS {
   tag "${sampleid}"
@@ -25,15 +30,21 @@ process EXTRACT_READS {
   input:
   tuple val(sampleid), path(fastq), path(unaligned_ids)
   output:
+  path("*reads_count.txt"), emit: read_counts
+  file("*reads_count.txt")
   tuple val(sampleid), path("*_unaligned.fastq"), emit: unaligned_fq
 
   script:
   """
   seqtk subseq ${fastq} ${unaligned_ids} > ${fastq.baseName}_unaligned.fastq
+  
+  n_lines=\$(expr \$(cat ${fastq.baseName}_unaligned.fastq | wc -l) / 4)
+  echo \$n_lines > ${sampleid}_unaligned_reads_count.txt
   """
 }
 
 /*
+n_lines=\$(bc <<< \$(cat ${fastq.baseName}_unaligned.fastq | wc -l)/4)
 process MAP_BACK_TO_ASSEMBLY {
   cpus "${params.minimap2_threads}"
   tag "${sampleid}"
@@ -83,15 +94,23 @@ process NANOPLOT {
   output:
     path("*.html")
     path("*NanoStats.txt")
+    path("*NanoStats.txt"), emit: read_counts
   
   script:
  // if (sample.endsWith("quality_trimmed.fastq.gz")) {
   """
-  if [[ ${sample} == *quality_trimmed.fastq.gz ]];
+  if [[ ${sample} == *trimmed.fastq.gz ]];
   then
-    NanoPlot -t 2 --fastq ${sample} --prefix filtered_ --plots dot --N50 --tsv_stats
+    NanoPlot -t 2 --fastq ${sample} --prefix ${sampleid}_filtered_ --plots dot --N50 --tsv_stats
+    
   else
-    NanoPlot -t 2 --fastq ${sample} --prefix raw_ --plots dot --N50 --tsv_stats
+    NanoPlot -t 2 --fastq ${sample} --prefix ${sampleid}_raw_ --plots dot --N50 --tsv_stats
   fi
+  
   """
 }
+/*
+\$(expr \$(zcat ${sample}  | wc -l) / 4) >> ${sampleid}_quality_trimmed_reads_count.txt
+\$(expr \$(zcat ${sample}  | wc -l) / 4) >> ${sampleid}_raw_reads_count.txt
+  fi
+*/

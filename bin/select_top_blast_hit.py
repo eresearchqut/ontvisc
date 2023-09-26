@@ -19,7 +19,7 @@ def main():
     sample_name = args.sample_name
     mode = args.mode
 
-    if mode == "NCBI":
+    if mode == "ncbi":
         blastn_results = pd.read_csv(blastn_results_path, sep="\t", index_col=False, names=["qseqid", "sgi", "sacc", "length", "pident", "mismatch", "gapopen", "qstart", "qend", "qlen", "sstart", "send", "slen", "sstrand", "evalue", "bitscore", "qcovhsp", "stitle", "staxids", "qseq", "sseq", "sseqid", "qcovs", "qframe", "sframe", "species"], dtype={"stitle": 'str', "staxids": 'str', "species": 'str'})
         
         #remove synthetic construct hits
@@ -43,7 +43,7 @@ def main():
     #blastn_viral_top_hit = blastn_top_hit[blastn_top_hit['stitle'].str.contains('|'.join(l))]
     #extract all sequences showing top blast homology to virus or viroid hits.
     blastn_viral_top_hit = blastn_top_hit[blastn_top_hit["species"].str.contains('virus|viroid')]
-    blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 50].index, inplace = True)
+    blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 90].index, inplace = True)
     spp = blastn_viral_top_hit[['sacc','species','qseqid']]
     #spp = blastn_viral_top_hit[["sacc", "species", "qseqid"]]
     #collapse all contigs to given accession number and species

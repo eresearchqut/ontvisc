@@ -105,9 +105,14 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  --adapter_trimming
 
 Additional PoreChop parameters can be specified using ```--porechop_options '{options}'```. Please refer to PoreChop manual.
 
+- If the data analysed was derived using RACE reactions, a final primer check can be performed after de novo assembly using the ```--final_primer_check``` option. The pipeline will check for the presence of any residual universal RACE primers at the end of the assembled contigs.
 
-- If the data analysed used RACE reactions, a final primer check can be performed after de novo assembly using the ```--final_primer_check``` option. The pipeline will check for the presence of any residual universal RACE primers at the end of the assembled contigs.
+- Perform a quality filtering step  using ```--qual_filt``` and either the ```chopper``` (default) or the ```nanoFilt``` option.
+Additional Choper and NanoFilt parameters can be specified using ```--chopper_options``` and ```--nanofilt_options``` respectively.
 
+```
+nextflow run ~/path/to/ontvisc_repo/main.nf  --qual_filt
+```
 
 
 ## Example of commands

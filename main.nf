@@ -125,6 +125,22 @@ process MERGE {
   script:
   """
   cat ${lanes} > ${sampleid}.fastq.gz
+  
+  """
+}
+
+process QCREPORT {
+  publishDir "${params.outdir}/qc_report", mode: 'link'
+  containerOptions "${bindOptions}"
+
+  input:
+    path multiqc_files
+  output:
+     path("run_qc_report_*txt")
+
+  script:
+  """
+  seq_run_qc_report.py --host_filtering ${params.host_filtering} --adapter_trimming ${params.adapter_trimming} --quality_trimming ${params.qual_filt}
   """
 }
 /*
@@ -222,7 +238,24 @@ process NANOFILT {
 }
 
 //gunzip -c ${sample} | NanoFilt -q ${params.nanofilt_qual_threshold} -l ${params.nanofilt_min_read_length} | gzip > ${sampleid}_filtered.fastq.gz
+/*
+#recommended settings for CANU using metagnomics data
+https://github.com/marbl/canu/issues/2079
 
+genomeSize=20m
+maxInputCoverage=10000 corOutCoverage=10000
+corMhapSensitivity=high
+corMinCoverage=0
+redMemory=32 oeaMemory=32 batMemory=64
+useGrid=false 
+minReadLength=200 
+minOverlapLength=50
+maxThreads=4
+minInputCoverage=0
+stopOnLowCoverage=0
+
+maxInputCoverage=10000 corOutCoverage=10000 corMhapSensitivity=high corMinCoverage=0 redMemory=32 oeaMemory=32 batMemory=64 useGrid=false minReadLength=200 minOverlapLength=50 maxThreads=4 minInputCoverage=0 stopOnLowCoverage=0
+*/
 process CANU {
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link', overwrite: true
   tag "${sampleid}"
@@ -584,7 +617,7 @@ process BLASTN_SPLIT {
       -evalue 1e-3 \
       -num_threads ${params.blast_threads} \
       -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe sscinames' \
-      -max_target_seqs 5
+      -max_target_seqs 3
     """
   }
   
@@ -596,7 +629,7 @@ process BLASTN_SPLIT {
       -evalue 1e-3 \
       -num_threads ${params.blast_threads} \
       -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe' \
-      -max_target_seqs 5
+      -max_target_seqs 3
     """
   }
 }
@@ -833,6 +866,29 @@ process RATTLE {
   """
 }
 /*
+process EXTRACT_UNMAPPED {
+  tag "${sampleid}"
+  label "setting_8"
+
+  input:
+  tuple val(sampleid), path(sam)
+  output:
+  file "${sampleid}_unaligned_read_count.txt"
+  tuple val(sampleid), path(fastq), path("${sampleid}_unaligned_ids.txt"), emit: unaligned_fq
+  path("*reads_count.txt"), emit: read_counts
+
+  def minimap_options = (params.minimap_options) ? " ${params.minimap_options}" : ''
+
+  script:
+  """
+  samtools view -Sb ${sam} | samtools sort | samtools fasta -f 4 - > ${sampleid}_unaligned.fastq
+  cat ${sampleid}_unaligned.fastq  | \$((`wc -l`/4)) >> ${sampleid}_unaligned_read_count.txt
+
+  """
+}
+*/
+
+/*
 process CIRCLATOR {
 	label 'medium'
   publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
@@ -864,6 +920,7 @@ include { FASTQ2FASTA as FASTQ2FASTA_STEP1} from './modules.nf'
 include { FASTQ2FASTA as FASTQ2FASTA_STEP2} from './modules.nf'
 include { NANOPLOT as QC_PRE_DATA_PROCESSING } from './modules.nf'
 include { NANOPLOT as QC_POST_DATA_PROCESSING } from './modules.nf'
+
 
 workflow {
   if (params.samplesheet) {
@@ -912,6 +969,8 @@ workflow {
 
     REFORMAT( filtered_fq )
 
+  
+  
   /*
     if (params.adapter_trimming & params.qual_filt) {
       PORECHOP_ABI ( MERGE.out.merged )
@@ -944,18 +1003,61 @@ workflow {
     else if ( !params.adapter_trimming & !params.qual_filt ) {
       filtered_fq = REFORMAT ( MERGE.out.merged )
     }
-  */
+  */if ( params.qual_filt & params.adapter_trimming | !params.qual_filt & params.adapter_trimming | params.qual_filt & !params.adapter_trimming) {
+      QC_POST_DATA_PROCESSING ( filtered_fq )
+    }
+
     if (params.host_filtering) {
       FILTER_HOST ( REFORMAT.out.reformatted_fq, params.host_fasta )
-      final_fq = EXTRACT_READS_STEP1 ( FILTER_HOST.out.sequencing_ids )
+      EXTRACT_READS_STEP1 ( FILTER_HOST.out.sequencing_ids )
+      //EXTRACT_UNMAPPED ( FILTER_HOST.out.sam )
+      //final_fq = EXTRACT_UNMAPPED.out.unaligned_fq
+      final_fq = EXTRACT_READS_STEP1.out.unaligned_fq
     }
     else {
       final_fq = REFORMAT.out.reformatted_fq
     }
 
-    if (params.host_filtering | params.qual_filt | params.adapter_trimming ) {
-      QC_POST_DATA_PROCESSING ( final_fq )
+    
+
+  
+    if ( params.qual_filt | params.adapter_trimming & params.host_filtering) {
+      ch_multiqc_files = Channel.empty()
+      ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
+      ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS_STEP1.out.read_counts.collect().ifEmpty([]))
+      ch_multiqc_files = ch_multiqc_files.mix(QC_POST_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
+      QCREPORT(ch_multiqc_files.collect())
+      /*
+      if ( params.qual_filt ) {
+        ch_multiqc_files = ch_multiqc_files.mix(QC_POST_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
+      }
+      elif ( params.adapter_trimming ) {
+        ch_multiqc_files = ch_multiqc_files.mix(PORECHOP_ABI.out.read_counts.collect().ifEmpty([]))
+      }
+      */
     }
+
+    else if ( params.host_filtering & !params.adapter_trimming & !params.qual_filt ) {
+      ch_multiqc_files = Channel.empty()
+      ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
+      ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS_STEP1.out.read_counts.collect().ifEmpty([]))
+      QCREPORT(ch_multiqc_files.collect())
+    }
+    else if ( params.qual_filt | params.adapter_trimming & !params.host_filtering) {
+      ch_multiqc_files = Channel.empty()
+      ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
+      ch_multiqc_files = ch_multiqc_files.mix(QC_POST_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
+      QCREPORT(ch_multiqc_files.collect())
+    }
+
+    /*
+    else if ( params.adapter_trimming ) {
+      ch_multiqc_files = Channel.empty()
+      ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
+      ch_multiqc_files = ch_multiqc_files.mix(QC_POST_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
+      QCREPORT(ch_multiqc_files.collect())
+    }
+  
 
   
     /*
