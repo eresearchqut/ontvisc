@@ -208,10 +208,10 @@ nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
 # Run clustering (--clustering)
 Run the clustering tool [`RATTLE`](https://github.com/comprna/RATTLE#Description-of-clustering-parameters)
 Set the parameter ```--rattle_clustering_options '--raw'``` to use all the reads without any length filtering during the RATTLE clustering step if your amplicon is known to be shorter than 150 bp.
-Set the parameter ```--lower-length [number]``` to filter out reads shorter than this value (default: 150).
-Set the parameter ```--upper-length [number]``` to filter out reads longer than this value (default: 100,000).
-Set the parameter ```--rattle_clustering_options '--rna'``` if data is direct RNA (disables checking both strands).
-Set the parameter ```--rattle_polishing_options '--rna'``` if data is direct RNA (disables checking both strands).
+
+When the amplicon is of known size, we recommend setting up the parameters ```--lower-length [number]``` (default: 150) and ```--upper-length [number]``` (default: 100,000) to filter out reads shorter and longer than the expected size.
+
+Set the parameter ```--rattle_clustering_options '--rna'``` and ```--rattle_polishing_options '--rna'``` if the data is direct RNA (disables checking both strands).
 
 Example:
 ```
