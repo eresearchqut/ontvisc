@@ -697,12 +697,12 @@ process KAIJU {
 
   script:
   """
-  kaiju \\
-      -z ${params.kaiju_threads} \\
-      -t ${params.kaiju_nodes}  \\
-      -f ${params.kaiju_dbname} \\
-      -o ${sampleid}_kaiju.tsv \\
-      -i ${fastq} \\
+  kaiju \
+      -z ${params.kaiju_threads} \
+      -t ${params.kaiju_nodes}  \
+      -f ${params.kaiju_dbname} \
+      -o ${sampleid}_kaiju.tsv \
+      -i ${fastq} \
       -v
   
   kaiju-addTaxonNames -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju_name.tsv
@@ -791,13 +791,12 @@ process KRAKEN2 {
     tuple val(sampleid), path("${sampleid}_kraken_report.txt"), emit: results
 	script:
 	"""
-	kraken2 --db ${params.krkdb} \\
-          --use-names \\
-          --gzip-compressed \\
-          --threads 2 \\
-          --report ${sampleid}_kraken_report.txt  \\
-          --report-minimizer-data \\
-          --minimum-hit-groups 3 \\
+	kraken2 --db ${params.krkdb} \
+          --use-names \
+          --threads 2 \
+          --report ${sampleid}_kraken_report.txt \
+          --report-minimizer-data \
+          --minimum-hit-groups 3 \
           ${fastq} > ${sampleid}.kraken2
 
   #extract the reads IDs
@@ -1019,9 +1018,6 @@ workflow {
       final_fq = REFORMAT.out.reformatted_fq
     }
 
-    
-
-  
     if ( params.qual_filt | params.adapter_trimming & params.host_filtering) {
       ch_multiqc_files = Channel.empty()
       ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))

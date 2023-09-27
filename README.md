@@ -28,18 +28,18 @@ git clone https://github.com/maelyg/ontvisc.git
 
 | Mode | Index | Description |
 | --- | --- | --- |
-| --host_filtering | --host_fasta | reference fasta file |
-| --clustering --blast_mode --localdb | --blastn_db | viral database e.g. [`RVDB`](https://rvdb.dbi.udel.edu/) |
+| --host_filtering | --host_fasta | path to host fasta file |
+| --clustering --blast_mode --localdb | --blastn_db | path to viral blast database e.g. [`RVDB`](https://rvdb.dbi.udel.edu/) |
 | --denovo_assembly --blast_mode localdb | | |
 | --read_classification megablast --blast_mode localdb | | |
-| --clustering --blast_mode ncbi | blastn_db | NCBI NT |
+| --clustering --blast_mode ncbi | blastn_db | path to NCBI NT database, taxdb.btd and taxdb.bti |
 | --denovo_assembly --blast_mode ncbi | | |
 | --read_classification megablast --blast_mode ncbi | | |
-| --read_classification --kraken2 | krkdb | kraken index |
+| --read_classification --kraken2 | krkdb | path to kraken index |
 | --read_classification --kaiju | --kaiju_dbname | path to kaiju_db_*.fmi |
 |                           | --kaiju_nodes | path to nodes.dmp |
 |                           | --kaiju_names | path to names.dmp |
-| --map2ref or --blast_vs_ref | --reference | viral reference sequence |
+| --map2ref or --blast_vs_ref | --reference | path to viral reference sequence fasta file |
 
 - If you have access to a host genome reference or sequences and want to filter your reads against it/them before running your analysis, you will have to specify the ``--host_filtering``parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``
 
@@ -137,7 +137,6 @@ Additional Chopper and NanoFilt parameters can be specified using ```--chopper_o
 ```
 nextflow run ~/path/to/ontvisc_repo/main.nf  --qual_filt
 ```
-
 
 ## Example of commands
 

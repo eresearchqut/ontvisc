@@ -36,9 +36,9 @@ process EXTRACT_READS {
 
   script:
   """
-  seqtk subseq ${fastq} ${unaligned_ids} > ${fastq.baseName}_unaligned.fastq
+  seqtk subseq ${fastq} ${unaligned_ids} > ${sampleid}_unaligned.fastq
   
-  n_lines=\$(expr \$(cat ${fastq.baseName}_unaligned.fastq | wc -l) / 4)
+  n_lines=\$(expr \$(cat ${sampleid}_unaligned.fastq | wc -l) / 4)
   echo \$n_lines > ${sampleid}_unaligned_reads_count.txt
   """
 }
