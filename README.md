@@ -41,15 +41,9 @@ Depending on the mode you are intersted to run, you will need to install some da
 
 - If you have access to a host genome reference or sequences and want to filter your reads against it/them before running your analysis, specify the ``--host_filtering`` parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``.
 
-- If you want to run homology searches against a viral database (e.g. [`RVDB`](https://rvdb.dbi.udel.edu/), you will need to specify the ``--blast_mode localdb`` parameter and provide the path to the database by specifying: ``--blastn_db /path/to/viral/db``. 
+- The homology searches is set by default against the public NCBI NT database in the nextflow.config file (```--blast_mode ncbi```)
 
-- If you want to run homology searches against the public NCBI NT database instead, you need to set the parameter ```--blast_mode ncbi```
-This parameter is set by default in the nextflow.config file:
-```
-params {
-  blast_mode = ncbi
-}
-```
+- If you want to run homology searches against a viral database instead (e.g. [`RVDB`](https://rvdb.dbi.udel.edu/), you will need to specify the ``--blast_mode localdb`` parameter and provide the path to the database by specifying ``--blastn_db /path/to/viral/db``. 
 
 Download a local copy of the NCBI NT database, following the detailed steps available at https://www.ncbi.nlm.nih.gov/books/NBK569850/. Create a folder where you will store your NCBI databases. It is good practice to include the date of download. For instance:
 ```
@@ -162,7 +156,7 @@ nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
                                                     --read_classification \
                                                     --megablast \
                                                     --blast_threads 8 \
-                                                    --blast_mode ncbi \
+                                                    --blast_mode ncbi \ #default
                                                     --blastn_db /path/to/ncbi_blast_db/nt
 ```
 
@@ -206,8 +200,8 @@ nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
 ```
 
 # Run clustering (--clustering)
-Run the clustering tool [`RATTLE`](https://github.com/comprna/RATTLE#Description-of-clustering-parameters)
-Set the parameter ```--rattle_clustering_options '--raw'``` to use all the reads without any length filtering during the RATTLE clustering step if your amplicon is known to be shorter than 150 bp.
+In the clustering mode, the clustering tool [`RATTLE`](https://github.com/comprna/RATTLE#Description-of-clustering-parameters) will be run and the clusters obtained will be further collapsed using CAP3. 
+For RATTLE, use the parameter ```--rattle_clustering_options '--raw'``` to use all the reads without any length filtering during the RATTLE clustering step if your amplicon is known to be shorter than 150 bp.
 
 When the amplicon is of known size, we recommend setting up the parameters ```--lower-length [number]``` (default: 150) and ```--upper-length [number]``` (default: 100,000) to filter out reads shorter and longer than the expected size.
 
