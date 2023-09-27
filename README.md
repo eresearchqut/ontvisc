@@ -31,8 +31,8 @@ Depending on the mode you are intersted to run, you will need to install some da
 | --- | --- | --- |
 | --host_filtering | --host_fasta | path to host fasta file to use for read filtering|
 | --blast_vs_ref | --reference | path to viral reference sequence fasta file to perform homology search on reads (read_classification), clusters (clustering) or contigs (de novo) |
-| --blast_mode --localdb | --blastn_db | path to viral blast database e.g. [`RVDB`](https://rvdb.dbi.udel.edu/) |
-| --blast_mode ncbi | blastn_db | path to NCBI nt database, taxdb.btd and taxdb.bti to perform homology search on reads (read_classification), clusters (clustering) or contigs (de novo)|
+| --blast_mode localdb | --blastn_db | path to viral blast database e.g. [`RVDB`](https://rvdb.dbi.udel.edu/) to perform homology search on reads (read_classification), clusters (clustering) or contigs (de novo)|
+| --blast_mode ncbi | --blastn_db | path to NCBI nt database, taxdb.btd and taxdb.bti to perform homology search on reads (read_classification), clusters (clustering) or contigs (de novo)|
 | --read_classification --kraken2 | krkdb | path to kraken index folder e.g. PlusPFP|
 | --read_classification --kaiju | --kaiju_dbname | path to kaiju_db_*.fmi |
 |                           | --kaiju_nodes | path to nodes.dmp |
