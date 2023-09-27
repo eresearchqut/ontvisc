@@ -832,9 +832,9 @@ process BRACKEN {
 		file("${sampleid}_bracken_report.txt")
 	script:
 	"""
-	est_abundance.py -i ${kraken_report} \\
-                  -k ${params.krkdb}/database50mers.kmer_distrib \\
-                  -t 1 \\
+	est_abundance.py -i ${kraken_report} \
+                  -k ${params.krkdb}/database50mers.kmer_distrib \
+                  -t 1 \
                   -l S -o ${sampleid}_bracken_report.txt
   """
 }

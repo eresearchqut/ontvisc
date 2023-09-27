@@ -25,6 +25,7 @@ git clone https://github.com/maelyg/ontvisc.git
 ```
 
 ## Installing the required indexes and references
+Depending on the mode you are intersted to run, you will need to install some databases and references.
 
 | Mode | Index | Description |
 | --- | --- | --- |
@@ -32,10 +33,10 @@ git clone https://github.com/maelyg/ontvisc.git
 | --clustering --blast_mode --localdb | --blastn_db | path to viral blast database e.g. [`RVDB`](https://rvdb.dbi.udel.edu/) |
 | --denovo_assembly --blast_mode localdb | | |
 | --read_classification megablast --blast_mode localdb | | |
-| --clustering --blast_mode ncbi | blastn_db | path to NCBI NT database, taxdb.btd and taxdb.bti |
+| --clustering --blast_mode ncbi | blastn_db | path to NCBI nt database, taxdb.btd and taxdb.bti |
 | --denovo_assembly --blast_mode ncbi | | |
 | --read_classification megablast --blast_mode ncbi | | |
-| --read_classification --kraken2 | krkdb | path to kraken index |
+| --read_classification --kraken2 | krkdb | path to kraken index folder e.g. PlusPFP|
 | --read_classification --kaiju | --kaiju_dbname | path to kaiju_db_*.fmi |
 |                           | --kaiju_nodes | path to nodes.dmp |
 |                           | --kaiju_names | path to names.dmp |
@@ -53,11 +54,11 @@ params {
 }
 ```
 
-Download the NCBI NT database locally, following the detailed steps available at https://www.ncbi.nlm.nih.gov/books/NBK569850/. Create a folder where you will store your NCBI databases. It is good practice to include the date of download. For instance:
+Download a local copy of the NCBI NT database, following the detailed steps available at https://www.ncbi.nlm.nih.gov/books/NBK569850/. Create a folder where you will store your NCBI databases. It is good practice to include the date of download. For instance:
 ```
 mkdir blastDB/20230930
 ```
-You will need to use the update_blastdb.pl script from the blast+ version used with the pipeline.
+You will need to use a current update_blastdb.pl script from the blast+  version used with the pipeline (ie 2.13.0).
 For example:
 ```
 perl update_blastdb.pl --decompress nt [*]
