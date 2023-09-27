@@ -29,8 +29,12 @@ git clone https://github.com/maelyg/ontvisc.git
 | Mode | Index | Description |
 | --- | --- | --- |
 | host_filtering | host_fasta | reference fasta file |
-| clustering/denovo_assembly/read_classification blast_mode localdb | blastn_db | viral database e.g. [`RVDB`](https://rvdb.dbi.udel.edu/) |
-| clustering/denovo_assembly/read_classification blast_mode ncbi | blastn_db | NCBI NT |
+| clustering blast_mode localdb | blastn_db | viral database e.g. [`RVDB`](https://rvdb.dbi.udel.edu/) |
+| denovo_assembly blast_mode localdb | | |
+| read_classification  blast_mode localdb | | |
+| clustering blast_mode ncbi | blastn_db | NCBI NT |
+| denovo_assembly blast_mode ncbi | | |
+| read_classification  blast_mode ncbi | | |
 | read_classification kraken2 | krkdb | kraken index |
 | read_classification kaiju | kaiju_dbname | path to kaiju_db_*.fmi |
 |                           | kaiju_nodes | path to nodes.dmp |
