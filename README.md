@@ -213,11 +213,20 @@ When the amplicon is of known size, we recommend setting up the parameters ```--
 
 Set the parameter ```--rattle_clustering_options '--rna'``` and ```--rattle_polishing_options '--rna'``` if the data is direct RNA (disables checking both strands).
 
-Example:
+Example in which all reads will be retained during the clustering step:
+```
+# With this command 
+nextflow run ~/path/to/ontvisc_repo/main.nf -resume --clustering \
+                                                     --rattle_clustering_options '--raw' \
+                                                     --blast_threads 8 \
+                                                     --blastn_db /path/to/ncbi_blast_db/nt
+```
+
+Example in which only reads ranging between 500 and 2000 bp will be retained during the clustering step:
 ```
 # With this command all reads will be retained during the clustering step.
 nextflow run ~/path/to/ontvisc_repo/main.nf -resume --clustering \
-                                                     --rattle_clustering_options '--raw' \
+                                                     --rattle_clustering_options '--lower-length 500 --upper-length 2000 \
                                                      --blast_threads 8 \
                                                      --blastn_db /path/to/ncbi_blast_db/nt
 ```
