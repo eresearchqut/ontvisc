@@ -138,7 +138,6 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  --qual_filt
 
 ## Example of commands
 
-
 1) check for presence of adapters, perform de novo assembly with Canu and map the resulting contigs to a reference.
 If you do not know the size of your targetted genome, you can ommit the ```--canu_genome_size parameter```. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/))
 

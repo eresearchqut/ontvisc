@@ -692,11 +692,13 @@ process KAIJU {
   output:
   tuple val(sampleid), path('*kaiju.krona'), emit: results
   file "${sampleid}_kaiju_name.tsv"
-  file "${sampleid}_kaiju_summary.tsv"
+  file "${sampleid}_kaiju_summary*.tsv"
   file "${sampleid}_kaiju.krona"
 
   script:
   """
+  c1grep() { grep "\$@" || test \$? = 1; }
+
   kaiju \
       -z ${params.kaiju_threads} \
       -t ${params.kaiju_nodes}  \
@@ -706,9 +708,11 @@ process KAIJU {
       -v
   
   kaiju-addTaxonNames -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju_name.tsv
-  kaiju2table -t ${params.kaiju_nodes} -r species -n ${params.kaiju_names} -o ${sampleid}_kaiju_summary.tsv ${sampleid}_kaiju.tsv
+  kaiju2table -e -t ${params.kaiju_nodes} -r species -n ${params.kaiju_names} -o ${sampleid}_kaiju_summary.tsv ${sampleid}_kaiju.tsv
   kaiju2krona -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju.krona
   
+  c1grep "taxon_id\\|virus\\|viroid" ${sampleid}_kaiju_summary.tsv > ${sampleid}_kaiju_summary_viral.tsv
+  awk -F'\\t' '\$2>=0.05' ${sampleid}_kaiju_summary_viral.tsv > ${sampleid}_kaiju_summary_viral_filtered.tsv
   """
 }
 
@@ -801,7 +805,7 @@ process KRAKEN2 {
 
   #extract the reads IDs
   echo "seq_id" > ${sampleid}_seq_ids.txt
-	awk -F "\\t" '{print \$2}' ${sampleid}.kraken2 >> ${sampleid}_seq_ids.txt
+  awk -F "\\t" '{print \$2}' ${sampleid}.kraken2 >> ${sampleid}_seq_ids.txt
   """
 }
 /*
