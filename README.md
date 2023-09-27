@@ -115,6 +115,8 @@ params {
   adapter_trimming = true
 }
 ```
+
+#Run QC
 - Run only the quality control step to have a preliminary look at the data before proceeding with downstream analysis.
 ```
 nextflow run ~/path/to/ontvisc_repo/main.nf  --qc_only
@@ -125,15 +127,83 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  --qc_only
 nextflow run ~/path/to/ontvisc_repo/main.nf  --adapter_trimming
 ```
 
-Additional PoreChop parameters can be specified using ```--porechop_options '{options}'```. Please refer to PoreChop manual.
+PoreChop parameters can be specified using ```--porechop_options '{options}'```. Please refer to PoreChop manual.
 
 - If the data analysed was derived using RACE reactions, a final primer check can be performed after the de novo assembly step using the ```--final_primer_check``` option. The pipeline will check for the presence of any residual universal RACE primers at the end of the assembled contigs.
 
 - Perform a quality filtering step  using ```--qual_filt``` and either the ```chopper``` (default) or the ```nanoFilt``` option.
-Additional Chopper and NanoFilt parameters can be specified using ```--chopper_options``` and ```--nanofilt_options``` respectively.
+Chopper and NanoFilt parameters can be specified using ```--chopper_options``` and ```--nanofilt_options``` respectively.
 
 ```
 nextflow run ~/path/to/ontvisc_repo/main.nf  --qual_filt
+```
+# Run read classification (--read_classification)
+- Perform a direct blast homology search using megablast (``--megablast``).
+
+Example 1 using a viral database
+```
+# Check for presence of adapters.
+# Perform a direct read homology search using megablast against a viral database.
+
+nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
+                                                    --read_classification \
+                                                    --megablast \
+                                                    --blast_threads 8 \
+                                                    --blast_mode localdb \
+                                                    --blastn_db /path/to/local_blast_db
+```
+
+Example 2 using NCBI nt:
+```
+# Check for presence of adapters .
+# Perform a direct read homology search using megablast and the NCBI NT database. 
+# You will need to download a local copy of the NCBI NT database. 
+# The blast search will be split into several jobs, containing 10,000 reads each, that will run in parallel. 
+# The pipeline will use 8 cpus when running the blast process.
+
+nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
+                                                    --read_classification \
+                                                    --megablast \
+                                                    --blast_threads 8 \
+                                                    --blast_mode ncbi \
+                                                    --blastn_db /path/to/ncbi_blast_db/nt
+```
+
+- Perform a direct taxonomic classification of reads using Kraken2 and Kaiju
+Example:
+```
+# Check for presence of adapters
+# Perform a direct taxonomic classification of reads using Kraken2 and Kaiju. 
+# You will need to download Kraken2 index (e.g. PlusPFP) and Kaiju indexes (e.g. kaiju_db_rvdb).
+
+nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
+                                                    --read_classification \
+                                                    --kraken2 \
+                                                    --krkdb = /path/to/kraken2_db \
+                                                    --kaiju \
+                                                    --kaiju_dbname /path/to/kaiju/kaiju.fmi \
+                                                    --kaiju_nodes /path/to/kaiju/nodes.dmp \
+                                                    --kaiju_names /path/to/kaiju/names.dmp
+```
+
+# Run de novo assembly (--read_classification)
+
+
+# Run clustering (--clustering)
+Run the clustering tool [`RATTLE`](https://github.com/comprna/RATTLE#Description-of-clustering-parameters)
+Set the parameter ```--rattle_clustering_options '--raw'``` to use all the reads without any length filtering during the RATTLE clustering step if your amplicon is known to be shorter than 150 bp.
+Set the parameter ```--lower-length [number]``` to filter out reads shorter than this value (default: 150)
+Set the parameter ```--upper-length [number]``` to filter out reads longer than this value (default: 100,000)
+Set the parameter ```--rattle_clustering_options '--rna'``` if data is direct RNA (disables checking both strands).
+Set the parameter ```--rattle_polishing_options '--rna'``` if data is direct RNA (disables checking both strands).
+
+Example:
+```
+# With this command all reads will be retained during the clustering step.
+nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --clustering \
+                                                     --rattle_clustering_options '--raw' \
+                                                     --blast_threads 8 \
+                                                     --blastn_db /path/to/ncbi_blast_db/nt
 ```
 
 ## Example of commands
@@ -150,38 +220,13 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
                                                     --reference /path/to/reference/reference.fasta
 ```
 
-2) check for presence of adapters and perform a direct read homology search using megablast and the NCBI NT database. You will need to download a local copy of the NCBI NT database. The blast search will be split into several jobs, containing 10,000 reads each, that will run in parallel. The pipeline will use 8 cpus when running the blast process.
-
-```
-nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
-                                                    --read_classification \
-                                                    --megablast \
-                                                    --blast_threads 8 \
-                                                    --blast_mode ncbi \
-                                                    --blastn_db /path/to/ncbi_blast_db/nt
-```
-
-3) check for presence of adapters and this time perform a direct read homology search using megablast against a viral database.
-
-```
-nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
-                                                    --read_classification \
-                                                    --megablast \
-                                                    --blast_threads 8 \
-                                                    --blast_mode localdb \
-                                                    --blastn_db /path/to/local_blast_db
-```
-
-4) check for presence of adapters and perform a direct taxonomic classification of reads using Kraken2 and Kaiju. You will need to download Kraken2 index (e.g. PlusPFP) and Kaiju indexes (e.g. kaiju_db_rvdb).
+2) 
 
 
-```
-nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
-                                                    --read_classification \
-                                                    --kraken2 \
-                                                    --krkdb = /path/to/kraken2_db \
-                                                    --kaiju \
-                                                    --kaiju_dbname /path/to/kaiju/kaiju.fmi \
-                                                    --kaiju_nodes /path/to/kaiju/nodes.dmp \
-                                                    --kaiju_names /path/to/kaiju/names.dmp
-```
+
+3) 
+
+4) 
+
+
+
