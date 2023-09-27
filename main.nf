@@ -829,13 +829,18 @@ process BRACKEN {
 		tuple val(sampleid), path(kraken_report)
 
 	output:
-		file("${sampleid}_bracken_report.txt")
+		file("${sampleid}_bracken_report*.txt")
 	script:
 	"""
 	est_abundance.py -i ${kraken_report} \
                   -k ${params.krkdb}/database50mers.kmer_distrib \
                   -t 1 \
                   -l S -o ${sampleid}_bracken_report.txt
+
+
+  grep \"taxonomy_id\" ${sampleid}_bracken_report.txt > ${sampleid}_bracken_report_viral.txt
+  grep virus ${sampleid}_bracken_report.txt > ${sampleid}_bracken_report_viral.txt
+  grep viroid ${sampleid}_bracken_report.txt > ${sampleid}_bracken_report_viral.txt
   """
 }
 
