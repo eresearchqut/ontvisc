@@ -123,11 +123,11 @@ By default the pipeline will run a quality control check of the raw reads using 
 
 # Preparing reads before analysis
 Raw read can be trimmed of adapters and/or quality filtered.
-- Trim adapters can be trimmed using [`PoreChop ABI`](https://github.com/rrwick/Porechop) by specifying the ``--adapter_trimming`` parameter. PoreChop ABI options can be specified using ```--porechop_options '{options}'```. Please refer to PoreChop manual.
+- Trim adapters can be trimmed using [`PoreChop ABI`](https://github.com/rrwick/Porechop) by specifying the ``--adapter_trimming`` parameter. PoreChop ABI options can be specified using ```--porechop_options '{options}'```. Please refer to the PoreChop manual.
 
 - If the data analysed was derived using RACE reactions, a final primer check can be performed after the de novo assembly step using the ```--final_primer_check``` option. The pipeline will check for the presence of any residual universal RACE primers at the end of the assembled contigs.
 
-- Perform a quality filtering step using ```--qual_filt``` and run either [`Chopper`](https://github.com/wdecoster/chopper)` or [`NanoFilt`](https://github.com/wdecoster/nanofilt) by specifying the ```chopper``` (default) or the ```nanoFilt``` option respectively. Chopper and NanoFilt options can be specified using the ```--chopper_options``` and the ```--nanofilt_options``` respectively. Please refer to Chopper and NanoFilt manuals.
+- Perform a quality filtering step using ```--qual_filt``` and run either [`Chopper`](https://github.com/wdecoster/chopper) or [`NanoFilt`](https://github.com/wdecoster/nanofilt) by specifying the ```chopper``` (default) or the ```nanofilt``` option respectively. Chopper and NanoFilt options can be specified using the ```--chopper_options``` and the ```--nanofilt_options``` respectively. Please refer to the Chopper and NanoFilt manuals.
 
 - If you trim raw read of adapters and/or quality filter the raw reads, an additional quality control step will be performed and a qc report will be generated summarising the read counts retained at each step.
 
@@ -142,7 +142,7 @@ Example 1 using a viral database:
 # Check for presence of adapters.
 # Perform a direct read homology search using megablast against a viral database.
 
-nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
+nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
                                                     --read_classification \
                                                     --megablast \
                                                     --blast_threads 8 \
@@ -158,7 +158,7 @@ Example 2 using NCBI nt:
 # The blast search will be split into several jobs, containing 10,000 reads each, that will run in parallel. 
 # The pipeline will use 8 cpus when running the blast process.
 
-nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
+nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
                                                     --read_classification \
                                                     --megablast \
                                                     --blast_threads 8 \
@@ -173,7 +173,7 @@ Example:
 # Perform a direct taxonomic classification of reads using Kraken2 and Kaiju. 
 # You will need to download Kraken2 index (e.g. PlusPFP) and Kaiju indexes (e.g. kaiju_db_rvdb).
 
-nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
+nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
                                                     --read_classification \
                                                     --kraken2 \
                                                     --krkdb = /path/to/kraken2_db \
@@ -186,7 +186,7 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
 # Run de novo assembly (--denovo_assembly)
 You can run a de novo assembly using either either Flye or Canu. 
 
-- Canu
+- Canu:
 Canu options can be specified using the ```--canu_options``` parameter.
 If you do not know the size of your targetted genome, you can ommit the ```--canu_genome_size [genome size of virus target]```. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/))
 
@@ -197,7 +197,7 @@ Example:
 # Check for presence of adapters
 # Perform de novo assembly with Canu
 # Blast the resulting contigs to a reference.
-nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
+nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
                                                     --denovo_assembly --canu \
                                                     --canu_options 'useGrid=false' \
                                                     --canu_genome_size 0.01m \
@@ -208,15 +208,15 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
 # Run clustering (--clustering)
 Run the clustering tool [`RATTLE`](https://github.com/comprna/RATTLE#Description-of-clustering-parameters)
 Set the parameter ```--rattle_clustering_options '--raw'``` to use all the reads without any length filtering during the RATTLE clustering step if your amplicon is known to be shorter than 150 bp.
-Set the parameter ```--lower-length [number]``` to filter out reads shorter than this value (default: 150)
-Set the parameter ```--upper-length [number]``` to filter out reads longer than this value (default: 100,000)
+Set the parameter ```--lower-length [number]``` to filter out reads shorter than this value (default: 150).
+Set the parameter ```--upper-length [number]``` to filter out reads longer than this value (default: 100,000).
 Set the parameter ```--rattle_clustering_options '--rna'``` if data is direct RNA (disables checking both strands).
 Set the parameter ```--rattle_polishing_options '--rna'``` if data is direct RNA (disables checking both strands).
 
 Example:
 ```
 # With this command all reads will be retained during the clustering step.
-nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --clustering \
+nextflow run ~/path/to/ontvisc_repo/main.nf -resume --clustering \
                                                      --rattle_clustering_options '--raw' \
                                                      --blast_threads 8 \
                                                      --blastn_db /path/to/ncbi_blast_db/nt
