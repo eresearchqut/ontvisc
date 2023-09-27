@@ -29,18 +29,15 @@ Depending on the mode you are intersted to run, you will need to install some da
 
 | Mode | Index | Description |
 | --- | --- | --- |
-| --host_filtering | --host_fasta | path to host fasta file |
-| --clustering --blast_mode --localdb | --blastn_db | path to viral blast database e.g. [`RVDB`](https://rvdb.dbi.udel.edu/) |
-| --denovo_assembly --blast_mode localdb | | |
-| --read_classification megablast --blast_mode localdb | | |
-| --clustering --blast_mode ncbi | blastn_db | path to NCBI nt database, taxdb.btd and taxdb.bti |
-| --denovo_assembly --blast_mode ncbi | | |
-| --read_classification megablast --blast_mode ncbi | | |
+| --host_filtering | --host_fasta | path to host fasta file to use for read filtering|
+| --blast_vs_ref | --reference | path to viral reference sequence fasta file to perform homology search on reads (read_classification), clusters (clustering) or contigs (de novo) |
+| --blast_mode --localdb | --blastn_db | path to viral blast database e.g. [`RVDB`](https://rvdb.dbi.udel.edu/) |
+| --blast_mode ncbi | blastn_db | path to NCBI nt database, taxdb.btd and taxdb.bti to perform homology search on reads (read_classification), clusters (clustering) or contigs (de novo)|
 | --read_classification --kraken2 | krkdb | path to kraken index folder e.g. PlusPFP|
 | --read_classification --kaiju | --kaiju_dbname | path to kaiju_db_*.fmi |
 |                           | --kaiju_nodes | path to nodes.dmp |
 |                           | --kaiju_names | path to names.dmp |
-| --map2ref or --blast_vs_ref | --reference | path to viral reference sequence fasta file |
+| --map2ref | --reference | path to viral reference sequence fasta file to perform alignment |
 
 - If you have access to a host genome reference or sequences and want to filter your reads against it/them before running your analysis, you will have to specify the ``--host_filtering``parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``
 
