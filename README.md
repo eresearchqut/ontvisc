@@ -1,6 +1,6 @@
 # ONTViSc (ONT-based Viral Screening for Biosecurity)
 
-###Authors
+### Authors
 Marie-Emilie Gauthier <gauthiem@qut.edu.au>
 
 ## Introduction
@@ -39,11 +39,11 @@ Depending on the mode you are intersted to run, you will need to install some da
 |                           | --kaiju_names | path to names.dmp |
 | --map2ref | --reference | path to viral reference sequence fasta file to perform alignment |
 
-- If you have access to a host genome reference or sequences and want to filter your reads against it/them before running your analysis, you will have to specify the ``--host_filtering``parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``
+- If you have access to a host genome reference or sequences and want to filter your reads against it/them before running your analysis, specify the ``--host_filtering`` parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``.
 
-- If you  want to run homology searches against a viral database (e.g. [`RVDB`](https://rvdb.dbi.udel.edu/), you will need to specify the ``--blast_mode localdb`` parameter and provide the path to the database by specifying: ``--blastn_db /path/to/viral/db``. 
+- If you want to run homology searches against a viral database (e.g. [`RVDB`](https://rvdb.dbi.udel.edu/), you will need to specify the ``--blast_mode localdb`` parameter and provide the path to the database by specifying: ``--blastn_db /path/to/viral/db``. 
 
-- If you  want to run homology searches against the public NCBI NT database instead, you need to set the parameter ```--blast_mode ncbi```
+- If you want to run homology searches against the public NCBI NT database instead, you need to set the parameter ```--blast_mode ncbi```
 This parameter is set by default in the nextflow.config file:
 ```
 params {
@@ -116,31 +116,28 @@ params {
 }
 ```
 
-#Run QC
-- Run only the quality control step to have a preliminary look at the data before proceeding with downstream analysis.
-```
-nextflow run ~/path/to/ontvisc_repo/main.nf  --qc_only
-```
+# Running QC step
+By default the pipeline will run a quality control check of the raw reads using NanoPlot.
 
-- Trim adapters using [`PoreChop ABI`](https://github.com/rrwick/Porechop)
-```
-nextflow run ~/path/to/ontvisc_repo/main.nf  --adapter_trimming
-```
+- Run only the quality control step to have a preliminary look at the data before proceeding with downstream analysis by specifying the ```--qc_only``` parameter.
 
-PoreChop parameters can be specified using ```--porechop_options '{options}'```. Please refer to PoreChop manual.
+# Preparing reads before analysis
+Raw read can be trimmed of adapters and/or quality filtered.
+- Trim adapters can be trimmed using [`PoreChop ABI`](https://github.com/rrwick/Porechop) by specifying the ``--adapter_trimming`` parameter. PoreChop ABI options can be specified using ```--porechop_options '{options}'```. Please refer to PoreChop manual.
 
 - If the data analysed was derived using RACE reactions, a final primer check can be performed after the de novo assembly step using the ```--final_primer_check``` option. The pipeline will check for the presence of any residual universal RACE primers at the end of the assembled contigs.
 
-- Perform a quality filtering step  using ```--qual_filt``` and either the ```chopper``` (default) or the ```nanoFilt``` option.
-Chopper and NanoFilt parameters can be specified using ```--chopper_options``` and ```--nanofilt_options``` respectively.
+- Perform a quality filtering step using ```--qual_filt``` and run either [`Chopper`](https://github.com/wdecoster/chopper)` or [`NanoFilt`](https://github.com/wdecoster/nanofilt) by specifying the ```chopper``` (default) or the ```nanoFilt``` option respectively. Chopper and NanoFilt options can be specified using the ```--chopper_options``` and the ```--nanofilt_options``` respectively. Please refer to Chopper and NanoFilt manuals.
 
-```
-nextflow run ~/path/to/ontvisc_repo/main.nf  --qual_filt
-```
-# Run read classification (--read_classification)
+- If you trim raw read of adapters and/or quality filter the raw reads, an additional quality control step will be performed and a qc report will be generated summarising the read counts retained at each step.
+
+# Filtering host reads
+- Reads mapping to a host genome reference or sequences can be filtered out by specifying the ``--host_filtering`` parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``.
+
+# Running read classification (--read_classification)
 - Perform a direct blast homology search using megablast (``--megablast``).
 
-Example 1 using a viral database
+Example 1 using a viral database:
 ```
 # Check for presence of adapters.
 # Perform a direct read homology search using megablast against a viral database.
@@ -186,8 +183,27 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
                                                     --kaiju_names /path/to/kaiju/names.dmp
 ```
 
-# Run de novo assembly (--read_classification)
+# Run de novo assembly (--denovo_assembly)
+You can run a de novo assembly using either either Flye or Canu. 
 
+- Canu
+Canu options can be specified using the ```--canu_options``` parameter.
+If you do not know the size of your targetted genome, you can ommit the ```--canu_genome_size [genome size of virus target]```. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/))
+
+You can perform a homology search against the contigs generated using either a viral genome reference, a viral database or NCBI nt.
+
+Example:
+```
+# Check for presence of adapters
+# Perform de novo assembly with Canu
+# Blast the resulting contigs to a reference.
+nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
+                                                    --denovo_assembly --canu \
+                                                    --canu_options 'useGrid=false' \
+                                                    --canu_genome_size 0.01m \
+                                                    --blast_vs_ref  \
+                                                    --reference /path/to/reference/reference.fasta
+```
 
 # Run clustering (--clustering)
 Run the clustering tool [`RATTLE`](https://github.com/comprna/RATTLE#Description-of-clustering-parameters)
@@ -205,28 +221,3 @@ nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --clustering \
                                                      --blast_threads 8 \
                                                      --blastn_db /path/to/ncbi_blast_db/nt
 ```
-
-## Example of commands
-
-1) check for presence of adapters, perform de novo assembly with Canu and map the resulting contigs to a reference.
-If you do not know the size of your targetted genome, you can ommit the ```--canu_genome_size parameter```. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/))
-
-```
-nextflow run ~/path/to/ontvisc_repo/main.nf  -resume --adapter_trimming \
-                                                    --denovo_assembly --canu \
-                                                    --canu_options 'useGrid=false' \
-                                                    --canu_genome_size [genome size of virus target] \
-                                                    --blast_vs_ref  \
-                                                    --reference /path/to/reference/reference.fasta
-```
-
-2) 
-
-
-
-3) 
-
-4) 
-
-
-
