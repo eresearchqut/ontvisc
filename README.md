@@ -80,8 +80,7 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
 
 - If you want to align your reads to a reference genome (--map2ref) or blast against a reference (--blast_vs_ref), you will have to specify its path using `--reference`.
 
-
-
+## Running the pipeline
 
 - Provide an index.csv file.  
   Create a TAB delimited text file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the ```--samplesheet [filename]``` in the nextflow run command. This text file requires the following columns (which needs to be included as a header): ```sampleid,sample_files``` 
@@ -96,7 +95,7 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
   MT213,/path_to_fastq_file/*fastq.gz
   ```
 
-- Run the command:
+- Specify a profile:
   ```bash
   nextflow run main.nf -profile {singularity, docker} --samplesheet index_example.csv
   ```
@@ -138,10 +137,6 @@ Additional Chopper and NanoFilt parameters can be specified using ```--chopper_o
 ```
 nextflow run ~/path/to/ontvisc_repo/main.nf  --qual_filt
 ```
-
-5. Provide required databases
-
-
 
 
 ## Example of commands
