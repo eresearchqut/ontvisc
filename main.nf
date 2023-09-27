@@ -832,15 +832,16 @@ process BRACKEN {
 		file("${sampleid}_bracken_report*.txt")
 	script:
 	"""
+  c1grep() { grep "\$@" || test \$? = 1; }
+  
 	est_abundance.py -i ${kraken_report} \
                   -k ${params.krkdb}/database50mers.kmer_distrib \
                   -t 1 \
                   -l S -o ${sampleid}_bracken_report.txt
 
 
-  grep \"taxonomy_id\" ${sampleid}_bracken_report.txt > ${sampleid}_bracken_report_viral.txt
-  grep virus ${sampleid}_bracken_report.txt > ${sampleid}_bracken_report_viral.txt
-  grep viroid ${sampleid}_bracken_report.txt > ${sampleid}_bracken_report_viral.txt
+  c1grep  "taxonomy_id\\|virus\\|viroid" ${sampleid}_bracken_report.txt > ${sampleid}_bracken_report_viral.txt
+  awk -F'\\t'  '\$7>=0.0001'  ${sampleid}_bracken_report_viral.txt > ${sampleid}_bracken_report_viral_filtered.txt 
   """
 }
 
