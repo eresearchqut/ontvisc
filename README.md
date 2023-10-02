@@ -98,7 +98,9 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
     ```  
   to suit your environment.
 
-To set additional parameters, you can either include these in your nextflow run command:
+- Specify an analysis mode: read classification, clustering, assembly, map2ref (see below for more details)
+
+- To set additional parameters, you can either include these in your nextflow run command:
 ```
 nextflow run main.nf -profile {singularity, docker} --samplesheet index_example.csv --adapter_trimming
 ```
