@@ -1,3 +1,20 @@
+if (params.blastn_db != null) {
+    blastn_db_name = file(params.blastn_db).name
+    blastn_db_dir = file(params.blastn_db).parent
+}
+
+switch (workflow.containerEngine) {
+  case "singularity":
+    bindbuild = "";
+    if (params.blastn_db != null) {
+      bindbuild = (bindbuild + "-B ${blastn_db_dir} ")
+    }
+    bindOptions = bindbuild;
+    break;
+  default:
+    bindOptions = "";
+}
+
 process MINIMAP2_ALIGN {
   tag "${sampleid}"
   label "setting_8"
@@ -114,3 +131,42 @@ process NANOPLOT {
 \$(expr \$(zcat ${sample}  | wc -l) / 4) >> ${sampleid}_raw_reads_count.txt
   fi
 */
+process BLASTN {
+  tag "${sampleid}"
+  containerOptions "${bindOptions}"
+  label "setting_10"
+
+  input:
+    tuple val(sampleid), path(assembly)
+  output:
+    tuple val(sampleid), path("${sampleid}*_blastn.bls"), emit: blast_results
+
+  script:
+  def blastoutput = assembly.getBaseName() + "_blastn.bls"
+  
+  if (params.blast_mode == "ncbi") {
+    """
+    cp ${blastn_db_dir}/taxdb.btd .
+    cp ${blastn_db_dir}/taxdb.bti .
+    blastn -query ${assembly} \
+      -db ${params.blastn_db} \
+      -out ${blastoutput} \
+      -evalue 1e-3 \
+      -num_threads ${params.blast_threads} \
+      -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe sscinames' \
+      -max_target_seqs 1
+    """
+  }
+  
+  else if (params.blast_mode == "localdb") {
+    """
+    blastn -query ${assembly} \
+      -db ${params.blastn_db} \
+      -out ${blastoutput} \
+      -evalue 1e-3 \
+      -num_threads ${params.blast_threads} \
+      -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe' \
+      -max_target_seqs 1
+    """
+  }
+}

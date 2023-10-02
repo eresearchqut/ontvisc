@@ -68,14 +68,14 @@ def main():
     spp = spp[["species", "sacc", "count", "qseqid"]].sort_values(["count"], ascending=[False])
     
     print(spp)
-    spp.to_csv(sample_name +  "_contigs_list_with_viral_match.txt", index=False, sep="\t",float_format="%.2f")
+    spp.to_csv(sample_name +  "_queryid_list_with_viral_match.txt", index=False, sep="\t",float_format="%.2f")
     #replace space with underscore
     #blastn_blastn_top_evalue.replace('Elephantopus_scaber_closterovirus', 'Citrus_tristeza_virus',regex=True,inplace=True)
     #blastn_blastn_top_evalue.replace('Hop_stunt_viroid_-_cucumber', 'Hop_stunt_viroid',regex=True,inplace=True)
     
     blastn_viral_top_hit.to_csv(sample_name +  "_blastn_top_viral_hits.txt", index=False, sep="\t",float_format="%.2f")
     #just retain longest contig for each virus/viroid species
-    blastn_viral_top_hit_spp= blastn_viral_top_hit.sort_values(["evalue", "length"], ascending=[True, False])
+    blastn_viral_top_hit_spp= blastn_viral_top_hit.sort_values(["evalue", "length"], ascending=[True, False]).groupby("species").first().reset_index()
     #print(blastn_viral_top_hit.head())
     blastn_viral_top_hit_spp.to_csv(sample_name + "_blastn_top_viral_spp_hits.txt", index=False, sep="\t",float_format="%.2f")
     #print(blastn_viral_top_hit_spp.dtypes)

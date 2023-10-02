@@ -115,11 +115,9 @@ By default the pipeline will run a quality control check of the raw reads using 
 
 - Run only the quality control step to have a preliminary look at the data before proceeding with downstream analysis by specifying the ```--qc_only``` parameter.
 
-# Preparing reads before analysis
+# Pre-processing reads (optional)
 Raw read can be trimmed of adapters and/or quality filtered.
 - Trim adapters can be trimmed using [`PoreChop ABI`](https://github.com/rrwick/Porechop) by specifying the ``--adapter_trimming`` parameter. PoreChop ABI options can be specified using ```--porechop_options '{options}'```. Please refer to the PoreChop manual.
-
-- If the data analysed was derived using RACE reactions, a final primer check can be performed after the de novo assembly step using the ```--final_primer_check``` option. The pipeline will check for the presence of any residual universal RACE primers at the end of the assembled contigs.
 
 - Perform a quality filtering step using ```--qual_filt``` and run either [`Chopper`](https://github.com/wdecoster/chopper) or [`NanoFilt`](https://github.com/wdecoster/nanofilt) by specifying the ```chopper``` (default) or the ```nanofilt``` option respectively. Chopper and NanoFilt options can be specified using the ```--chopper_options``` and the ```--nanofilt_options``` respectively. Please refer to the Chopper and NanoFilt manuals.
 
@@ -177,14 +175,18 @@ nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
                                                     --kaiju_names /path/to/kaiju/names.dmp
 ```
 
-# Run de novo assembly (--denovo_assembly)
-You can run a de novo assembly using either either Flye or Canu. 
+# Running de novo assembly (--denovo_assembly)
+You can run a de novo assembly using either Flye or Canu. 
 
-- Canu:
+If the data analysed was derived using RACE reactions, a final primer check can be performed after the de novo assembly step using the ```--final_primer_check``` option. The pipeline will check for the presence of any residual universal RACE primers at the end of the assembled contigs.
+
+
+- Canu (--canu):
+
 Canu options can be specified using the ```--canu_options``` parameter.
 If you do not know the size of your targetted genome, you can ommit the ```--canu_genome_size [genome size of virus target]```. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/))
 
-You can perform a homology search against the contigs generated using either a viral genome reference, a viral database or NCBI nt.
+You can perform an homology search against the contigs generated using either a viral genome reference, a viral database or NCBI nt.
 
 Example:
 ```
@@ -220,7 +222,7 @@ Example in which only reads ranging between 500 and 2000 bp will be retained dur
 ```
 # With this command all reads will be retained during the clustering step.
 nextflow run ~/path/to/ontvisc_repo/main.nf -resume --clustering \
-                                                     --rattle_clustering_options '--lower-length 500 --upper-length 2000 \
+                                                     --rattle_clustering_options '--lower-length 500 --upper-length 2000' \
                                                      --blast_threads 8 \
                                                      --blastn_db /path/to/ncbi_blast_db/nt
 ```

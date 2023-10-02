@@ -257,7 +257,7 @@ stopOnLowCoverage=0
 maxInputCoverage=10000 corOutCoverage=10000 corMhapSensitivity=high corMinCoverage=0 redMemory=32 oeaMemory=32 batMemory=64 useGrid=false minReadLength=200 minOverlapLength=50 maxThreads=4 minInputCoverage=0 stopOnLowCoverage=0
 */
 process CANU {
-  publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link', overwrite: true
+  publishDir "${params.outdir}/${sampleid}/assembly", mode: 'link', overwrite: true
   tag "${sampleid}"
   label 'setting_8'
 
@@ -290,7 +290,7 @@ process CANU {
 }
 
 process FLYE {
-  publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/assembly", mode: 'link'
   tag "${sampleid}"
   label 'setting_9'
 
@@ -503,17 +503,17 @@ process CAP3 {
   tag "${sampleid}"
   label "setting_3"
   time "3h"
-  publishDir "$params.outdir/$sampleid/cap3", mode: 'copy', pattern: '*_cap3.fasta', saveAs: { filename -> "${sampleid}_cap3.fasta"}
+  publishDir "$params.outdir/$sampleid/clustering", mode: 'copy', pattern: '*_clustering.fasta'
 
   input:
   tuple val(sampleid), path(fasta)
   output:
-  tuple val(sampleid), path("${sampleid}_cap3.fasta"), emit: scaffolds
+  tuple val(sampleid), path("${sampleid}_clustering.fasta"), emit: scaffolds
 
   script:
   """
   cap3 ${fasta}
-  cat ${fasta}.cap.singlets ${fasta}.cap.contigs > ${sampleid}_cap3.fasta
+  cat ${fasta}.cap.singlets ${fasta}.cap.contigs > ${sampleid}_clustering.fasta
   """
 }
 /*
@@ -552,7 +552,7 @@ process BLASTN {
 process EXTRACT_VIRAL_BLAST_HITS {
   tag "${sampleid}"
   label "setting_2"
-  publishDir "$params.outdir/$sampleid/blastn",  mode: 'link', overwrite: true
+  publishDir "$params.outdir/$sampleid/blastn",  mode: 'copy', pattern: '*txt'
   containerOptions "${bindOptions}"
 
   input:
@@ -561,14 +561,14 @@ process EXTRACT_VIRAL_BLAST_HITS {
   file "${sampleid}_blastn_top_hits.txt"
   file "${sampleid}_blastn_top_viral_hits.txt"
   file "${sampleid}_blastn_top_viral_spp_hits.txt"
-  file "${sampleid}_contigs_list_with_viral_match.txt"
+  file "${sampleid}_queryid_list_with_viral_match.txt"
   file "${sampleid}_viral_spp_abundance.txt"
 
   script:
   """  
-  cat ${blast_results} > ${sampleid}_blastn_vs_NT.txt
+  cat ${blast_results} > ${sampleid}_blastn.txt
 
-  select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn_vs_NT.txt --mode ${params.blast_mode}
+  select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --mode ${params.blast_mode}
   """
 }
 
@@ -593,7 +593,7 @@ process CONCATENATE_FASTA {
   cat  ${sampleid}_canu_assembly_1l.fasta ${sampleid}_cap3_1l.fasta  ${sampleid}.fasta > ${sampleid}_merged.fasta
   """
 }
-
+/*
 process BLASTN_SPLIT {
   publishDir "${params.outdir}/${sampleid}/blastn", mode: 'link'
   tag "${sampleid}"
@@ -634,6 +634,7 @@ process BLASTN_SPLIT {
     """
   }
 }
+*/
 /*
 KAIJU notes
 The default run mode is Greedy with three allowed mismatches. 
@@ -930,6 +931,9 @@ include { FASTQ2FASTA as FASTQ2FASTA_STEP1} from './modules.nf'
 include { FASTQ2FASTA as FASTQ2FASTA_STEP2} from './modules.nf'
 include { NANOPLOT as QC_PRE_DATA_PROCESSING } from './modules.nf'
 include { NANOPLOT as QC_POST_DATA_PROCESSING } from './modules.nf'
+include { BLASTN as READ_CLASSIFICATION_BLASTN } from './modules.nf'
+include { BLASTN as ASSEMBLY_BLASTN } from './modules.nf'
+include { BLASTN as CLUSTERING_BLASTN } from './modules.nf'
 
 
 workflow {
@@ -1013,7 +1017,8 @@ workflow {
     else if ( !params.adapter_trimming & !params.qual_filt ) {
       filtered_fq = REFORMAT ( MERGE.out.merged )
     }
-  */if ( params.qual_filt & params.adapter_trimming | !params.qual_filt & params.adapter_trimming | params.qual_filt & !params.adapter_trimming) {
+  */
+    if ( params.qual_filt & params.adapter_trimming | !params.qual_filt & params.adapter_trimming | params.qual_filt & !params.adapter_trimming) {
       QC_POST_DATA_PROCESSING ( filtered_fq )
     }
 
@@ -1096,50 +1101,61 @@ workflow {
       }
     }
     */
-    if (params.clustering | params.denovo_assembly) {
-      //perform clustering using Rattle
-      if (params.clustering) {
-        RATTLE ( final_fq )
-        FASTQ2FASTA( RATTLE.out.clusters )
-        CAP3( FASTQ2FASTA.out.fasta )
-        contigs = CAP3.out.scaffolds
-      }
-      //perform de novo assembly using either canu or flye
-      else if (params.denovo_assembly) {
-        if (params.canu) {
-          CANU ( final_fq )
-          contigs = CANU.out.assembly2
-        }
-        else if (params.flye) {
-          FLYE ( final_fq )
-          contigs = FLYE.out.assembly2
-        }
-        if (params.final_primer_check) {
-          CUTADAPT ( contigs )
-          contigs = CUTADAPT.out.trimmed
-        }
-      }
-      
-      //limit blast homology search to a reference
+    
+    //perform clustering using Rattle
+    if (params.clustering) {
+      RATTLE ( final_fq )
+      FASTQ2FASTA( RATTLE.out.clusters )
+      CAP3( FASTQ2FASTA.out.fasta )
+      contigs = CAP3.out.scaffolds
+
       if (params.blast_vs_ref) {
         BLASTN2REF ( contigs )
       }
-      //blast against a database
-      else {
-        BLASTN_SPLIT( contigs.splitFasta(by: 5000, file: true) )
-        BLASTN_SPLIT.out.blast_results
-          .groupTuple()
-          .set { ch_blastresults }
-        EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
+      else { 
+        CLUSTERING_BLASTN ( contigs )
+        EXTRACT_VIRAL_BLAST_HITS ( CLUSTERING_BLASTN.out.blast_results )
+      }
+    
+    }
+    //perform de novo assembly using either canu or flye
+    else if ( params.denovo_assembly ) {
+      if (params.canu) {
+        CANU ( final_fq )
+        contigs = CANU.out.assembly2
+      }
+      else if (params.flye) {
+        FLYE ( final_fq )
+        contigs = FLYE.out.assembly2
+      }
+      if (params.final_primer_check) {
+        CUTADAPT ( contigs )
+        contigs = CUTADAPT.out.trimmed
+      }
+    
+    //limit blast homology search to a reference
+      if (params.blast_vs_ref) {
+        BLASTN2REF ( contigs )
+      }
+    //blast against a database
+    //else {
+    //  BLASTN( contigs.splitFasta(by: 5000, file: true) )
+    //  BLASTN.out.blast_results
+    //    .groupTuple()
+    //    .set { ch_blastresults }
+      else { 
+        ASSEMBLY_BLASTN ( contigs )
+        EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
       }
     }
+    
 
     else if (params.read_classification) {
     //just perform direct read search
       if (params.megablast) {
         FASTQ2FASTA_STEP1( final_fq )
-        BLASTN_SPLIT( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 10000, file: true) )
-        BLASTN_SPLIT.out.blast_results
+        READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 10000, file: true) )
+        READ_CLASSIFICATION_BLASTN.out.blast_results
           .groupTuple()
           .set { ch_blastresults }
         EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
@@ -1155,7 +1171,7 @@ workflow {
     }
 
       //just perform direct alignment 
-    if (params.map2ref) {
+    else if (params.map2ref) {
       MINIMAP2_REF ( REFORMAT.out.final_fq )
       if (params.infoseq) {
         INFOSEQ ( MINIMAP2_REF.out.aligned_sample )
@@ -1163,6 +1179,7 @@ workflow {
         NANOQ ( SAMTOOLS.out.sorted_sample )
       }
     }
+    else { exit 1, "Please specify an analysis mode: read classification, clustering, assembly, map2ref" }
   }
 }
    
