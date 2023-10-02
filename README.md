@@ -213,7 +213,6 @@ Set the parameter ```--rattle_clustering_options '--rna'``` and ```--rattle_poli
 
 Example in which all reads will be retained during the clustering step:
 ```
-# With this command 
 nextflow run ~/path/to/ontvisc_repo/main.nf -resume --clustering \
                                                      --rattle_clustering_options '--raw' \
                                                      --blast_threads 8 \
@@ -222,7 +221,6 @@ nextflow run ~/path/to/ontvisc_repo/main.nf -resume --clustering \
 
 Example in which only reads ranging between 500 and 2000 bp will be retained during the clustering step:
 ```
-# With this command all reads will be retained during the clustering step.
 nextflow run ~/path/to/ontvisc_repo/main.nf -resume --clustering \
                                                      --rattle_clustering_options '--lower-length 500 --upper-length 2000' \
                                                      --blast_threads 8 \
