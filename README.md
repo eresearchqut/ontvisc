@@ -207,7 +207,7 @@ If the data analysed was derived using RACE reactions, a final primer check can 
 - Canu (--canu):
 
 Canu options can be specified using the ```--canu_options``` parameter.
-If you do not know the size of your targetted genome, you can ommit the ```--canu_genome_size [genome size of virus target]```. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/))
+If you do not know the size of your targetted genome, you can ommit the ```--canu_genome_size [genome size of virus target]```. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/)), which would correspond to ```--canu_genome_size 0.01m```
 
 You can perform an homology search against the contigs generated using either a viral genome reference, a viral database or NCBI nt.
 
