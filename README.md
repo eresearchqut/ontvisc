@@ -164,18 +164,34 @@ nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
 Example:
 ```
 # Check for presence of adapters
-# Perform a direct taxonomic classification of reads using Kraken2 and Kaiju. 
+# Perform a direct taxonomic read classification using Kraken2 and Kaiju. 
 # You will need to download Kraken2 index (e.g. PlusPFP) and Kaiju indexes (e.g. kaiju_db_rvdb).
 
 nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
                                                     --read_classification \
                                                     --kraken2 \
-                                                    --krkdb = /path/to/kraken2_db \
+                                                    --krkdb /path/to/kraken2_db \
                                                     --kaiju \
                                                     --kaiju_dbname /path/to/kaiju/kaiju.fmi \
                                                     --kaiju_nodes /path/to/kaiju/nodes.dmp \
                                                     --kaiju_names /path/to/kaiju/names.dmp
 ```
+
+- Perform direct read homology search using megablast and the NCBI NT database and direct taxonomic read classification using Kraken2 and Kaiju
+```
+nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
+                                            --host_filtering \
+                                            --host_fasta /path/to/host/fasta/file \
+                                            --read_classification \
+                                            --kraken2 \
+                                            --krkdb /path/to/kraken2_db \
+                                            --kaiju \
+                                            --kaiju_dbname /path/to/kaiju/kaiju.fmi \
+                                            --kaiju_nodes /path/to/kaiju/nodes.dmp \
+                                            --kaiju_names /path/to/kaiju/names.dmp \
+                                            --megablast --blast_mode ncbi \
+                                            --blast_threads 8 \
+                                            --blastn_db /path/to/ncbi_blast_db/nt```
 
 # Running de novo assembly (--denovo_assembly)
 You can run a de novo assembly using either Flye or Canu. 
