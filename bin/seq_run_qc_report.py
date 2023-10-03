@@ -62,19 +62,20 @@ def main():
             #qt_reads = int(first_line[0].strip())
         f.close()
         summary_dict[sample].append(qt_reads)
-        
-    for host_filt_read_out in glob.glob("*unaligned_reads_count.txt"):
-        hf_reads = ()
-        sample = (os.path.basename(host_filt_read_out).replace('_unaligned_reads_count.txt', ''))
-        with open(host_filt_read_out, 'r') as f:
-            first_line = next(f)
-            hf_reads = int(first_line.strip())
-            print(hf_reads)
-        f.close()
-        summary_dict[sample].append(hf_reads)
-        print(summary_dict)
+    
+    if host_filtering == "true":
+        for host_filt_read_out in glob.glob("*unaligned_reads_count.txt"):
+            hf_reads = ()
+            sample = (os.path.basename(host_filt_read_out).replace('_unaligned_reads_count.txt', ''))
+            with open(host_filt_read_out, 'r') as f:
+                first_line = next(f)
+                hf_reads = int(first_line.strip())
+                print(hf_reads)
+            f.close()
+            summary_dict[sample].append(hf_reads)
+            print(summary_dict)
 
-    if adapter_trimming == "true" or quality_trimming == "true" and host_filtering == "true":
+    if (adapter_trimming == "true" or quality_trimming == "true") and host_filtering == "true":
         run_data_df = pd.DataFrame([([k] + v) for k, v in summary_dict.items()], columns=['Sample','raw_reads','quality_filtered_reads', 'host_filtered_reads'])
         run_data_df['percent_quality_filtered'] = run_data_df['quality_filtered_reads'] / run_data_df['raw_reads'] * 100
         run_data_df['percent_host_filtered'] = run_data_df['host_filtered_reads'] / run_data_df['raw_reads'] * 100
