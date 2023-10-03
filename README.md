@@ -119,7 +119,7 @@ By default the pipeline will run a quality control check of the raw reads using 
 
 # Pre-processing reads (optional)
 Raw read can be trimmed of adapters and/or quality filtered.
-- Trim adapters can be trimmed using [`PoreChop ABI`](https://github.com/rrwick/Porechop) by specifying the ``--adapter_trimming`` parameter. PoreChop ABI options can be specified using ```--porechop_options '{options}'```. Please refer to the PoreChop manual.
+- Search for presence of adapters in sequences reads using [`PoreChop ABI`](https://github.com/rrwick/Porechop) by specifying the ``--adapter_trimming`` parameter. PoreChop ABI options can be specified using ```--porechop_options '{options}'```. Please refer to the PoreChop manual.
 
 - Perform a quality filtering step using ```--qual_filt``` and run either [`Chopper`](https://github.com/wdecoster/chopper) or [`NanoFilt`](https://github.com/wdecoster/nanofilt) by specifying the ```chopper``` (default) or the ```nanofilt``` option respectively. Chopper and NanoFilt options can be specified using the ```--chopper_options``` and the ```--nanofilt_options``` respectively. Please refer to the Chopper and NanoFilt manuals.
 
@@ -179,6 +179,10 @@ nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
 
 - Perform direct read homology search using megablast and the NCBI NT database and direct taxonomic read classification using Kraken2 and Kaiju
 ```
+# Check for presence of adapters
+# Filter reads against reference host
+# Perform a direct read homology search using megablast and the NCBI NT database.
+# Perform a direct taxonomic read classification using Kraken2 and Kaiju.
 nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
                                             --host_filtering \
                                             --host_fasta /path/to/host/fasta/file \
@@ -191,7 +195,8 @@ nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
                                             --kaiju_names /path/to/kaiju/names.dmp \
                                             --megablast --blast_mode ncbi \
                                             --blast_threads 8 \
-                                            --blastn_db /path/to/ncbi_blast_db/nt```
+                                            --blastn_db /path/to/ncbi_blast_db/nt
+```
 
 # Running de novo assembly (--denovo_assembly)
 You can run a de novo assembly using either Flye or Canu. 
