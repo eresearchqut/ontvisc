@@ -176,8 +176,8 @@ process CUTADAPT_RACE {
 }
 */
 process CUTADAPT {
-  publishDir "${params.outdir}/${sampleid}/denovo", pattern: '*_filtered.fa', mode: 'link'
-  publishDir "${params.outdir}/${sampleid}/denovo", pattern: '*_cutadapt.log', mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/assembly", pattern: '*_filtered.fa', mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/assembly", pattern: '*_cutadapt.log', mode: 'link'
   tag "${sampleid}"
   label 'medium'
 
