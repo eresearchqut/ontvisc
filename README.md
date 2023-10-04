@@ -95,8 +95,16 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
   ```
   docker
   singularity
-    ```  
-  to suit your environment.
+  ```  
+  to suit your environment. 
+  
+  Alternatively you can set which profile to use in the nextflow.config file. You would add the following lines, if you want to use singularity:
+  ```
+  singularity {
+  enabled = true
+  autoMounts = true
+  }
+  ```
 
 - Specify an analysis mode: read classification, clustering, assembly, map2ref (see below for more details)
 
@@ -136,7 +144,8 @@ Example 1 using a viral database:
 # Check for presence of adapters.
 # Perform a direct read homology search using megablast against a viral database.
 
-nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
+nextflow run ~/path/to/ontvisc_repo/main.nf -resume -profile {singularity, docker} \
+                                                    --adapter_trimming \
                                                     --read_classification \
                                                     --megablast \
                                                     --blast_threads 8 \
@@ -152,7 +161,8 @@ Example 2 using NCBI nt:
 # The blast search will be split into several jobs, containing 10,000 reads each, that will run in parallel. 
 # The pipeline will use 8 cpus when running the blast process.
 
-nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
+nextflow run ~/path/to/ontvisc_repo/main.nf -resume -profile {singularity, docker}
+                                                    --adapter_trimming \
                                                     --read_classification \
                                                     --megablast \
                                                     --blast_threads 8 \
