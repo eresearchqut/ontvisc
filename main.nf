@@ -39,10 +39,8 @@ def helpMessage () {
                                       [null]
       --qual_filt                     Run quality filtering step
                                       [False]
-      --chopper                       Use chopper to perform quality filtering step
-                                      [True]
-      --nanofilt                      Use NanoFilt to perform quality filtering step
-                                      [False]                                 
+      --qual_filt_method              Specify which method to use (chopper or nanofilt) to perform quality filtering step
+                                      [chopper]                                 
       --host_filtering                Run host filtering step using Minimap2
                                       Default: false
       --minimap_options               Set to 'splice' for RNA or ‘map-ont’ for DNA libraries
@@ -467,6 +465,7 @@ process PORECHOP_ABI {
   tag "${sampleid}"
   publishDir "$params.outdir/${sampleid}/porechop",  mode: 'link'
   label "setting_8"
+  containerOptions "${bindOptions}"
 
   input:
     tuple val(sampleid), path(sample)
@@ -479,7 +478,11 @@ process PORECHOP_ABI {
   def porechop_options = (params.porechop_options) ? " ${params.porechop_options}" : ''
   script:
   """
-  porechop_abi -abi -i ${sample} -t ${task.cpus} -o ${sampleid}_porechop_trimmed.fastq.gz ${params.porechop_options} > ${sampleid}_porechop.log
+  if [[ ${params.porechop_custom_primers} == true ]]; then
+    porechop_abi ${params.porechop_options} -i ${sample} -t ${task.cpus} -o ${sampleid}_porechop_trimmed.fastq.gz --custom_adapters ${projectDir}/bin/adapters.txt  > ${sampleid}_porechop.log
+  else
+    porechop_abi ${params.porechop_options} -i ${sample} -t ${task.cpus} -o ${sampleid}_porechop_trimmed.fastq.gz > ${sampleid}_porechop.log
+  fi
   """
 }
 
@@ -969,11 +972,11 @@ workflow {
 
     // Qualit filtering of reads using either nanofilt or chopper
     if (params.qual_filt) {
-      if (params.nanofilt) {
+      if (params.qual_filt_method == "nanofilt") {
         NANOFILT ( trimmed_fq )
         filtered_fq = NANOFILT.out.nanofilt_filtered_fq
       }
-      else if (params.chopper) {
+      else if (params.qual_filt_method == "chopper") {
         CHOPPER ( trimmed_fq)
         filtered_fq = CHOPPER.out.chopper_filtered_fq
       }
@@ -1033,7 +1036,7 @@ workflow {
       final_fq = REFORMAT.out.reformatted_fq
     }
 
-    if ( params.qual_filt | params.adapter_trimming & params.host_filtering) {
+    if ( ( params.qual_filt | params.adapter_trimming ) & params.host_filtering) {
       ch_multiqc_files = Channel.empty()
       ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
       ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS_STEP1.out.read_counts.collect().ifEmpty([]))
@@ -1055,7 +1058,7 @@ workflow {
       ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS_STEP1.out.read_counts.collect().ifEmpty([]))
       QCREPORT(ch_multiqc_files.collect())
     }
-    else if ( params.qual_filt | params.adapter_trimming & !params.host_filtering) {
+    else if ( ( params.qual_filt | params.adapter_trimming ) & !params.host_filtering) {
       ch_multiqc_files = Channel.empty()
       ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
       ch_multiqc_files = ch_multiqc_files.mix(QC_POST_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))

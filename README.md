@@ -2,6 +2,9 @@
 
 ### Authors
 Marie-Emilie Gauthier <gauthiem@qut.edu.au>
+Craig Windell <c.windell@qut.edu.au>
+Magdalena Antczak <magdalena.antczak@qcif.edu.au>
+Roberto Barrero <roberto.barrero@qut.edu.au>
 
 ## Introduction
 eresearchqut/ontvisc is a Nextflow-based bioinformatics pipeline designed to help diagnostics of viruses and viroid pathogens for biosecurity. It takes fastq files generated from either amplicon or whole-genome sequencing using Oxford Nanopore Technologies as input.
@@ -13,16 +16,11 @@ The reads can optionally be filtered from a plant host before performing downstr
 ## Pipeline summary
 ![diagram pipeline](docs/images/ONTViSc_pipeline.jpeg)
 
-## Installation
+## Requirements
 1. Install Nextflow [`Nextflow`](https://www.nextflow.io/docs/latest/getstarted.html#installation)
 
 2. Install [`Docker`](https://docs.docker.com/get-docker/) or [`Singularity`](https://docs.sylabs.io/guides/3.0/user-guide/quick_start.html#quick-installation-steps) to suit your environment.
 
-3. Download the pipeline and test it on minimal datatests:
-The source code can be downloaded directly from GitHub using the git command line client:
-```
-git clone https://github.com/maelyg/ontvisc.git
-```
 
 ## Installing the required indexes and references
 Depending on the mode you are intersted to run, you will need to install some databases and references.
@@ -74,8 +72,20 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
 
 ## Running the pipeline
 
+- Download the pipeline:
+The source code can be downloaded directly from GitHub using the git command line client:
+```
+git clone https://github.com/maelyg/ontvisc.git
+```
+
+Or you can run the command:
+```
+nextflow run maelyg/ontvisc -profile {singularity, docker} --samplesheet index.csv
+```
+The first time the command runs, it will download the pipeline and save it into your assets.
+
 - Provide an index.csv file.  
-  Create a TAB delimited text file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the ```--samplesheet [filename]``` in the nextflow run command. This text file requires the following columns (which needs to be included as a header): ```sampleid,sample_files``` 
+  Create a comma separated file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the ```--samplesheet [filename]``` in the nextflow run command. This text file requires the following columns (which needs to be included as a header): ```sampleid,sample_files``` 
 
   **sampleid** will be the sample name that will be given to the files created by the pipeline  
   **sample_path** is the full path to the fastq files that the pipeline requires as starting input  
@@ -88,17 +98,12 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
   ```
 
 - Specify a profile:
-  ```bash
-  nextflow run main.nf -profile {singularity, docker} --samplesheet index_example.csv
   ```
-  setting the profile parameter to one of
+  nextflow run maelyg/ontvisc -profile {singularity, docker} --samplesheet index_example.csv
   ```
-  docker
-  singularity
-  ```  
-  to suit your environment. 
+  setting the profile parameter to one of ```docker``` or ```singularity``` to suit your environment.
   
-  Alternatively you can set which profile to use in the nextflow.config file. You would add the following lines, if you want to use singularity:
+  Alternatively you can set which profile to use in the nextflow.config file. For example, you would add the following lines, if you want to use singularity:
   ```
   singularity {
   enabled = true
@@ -110,7 +115,7 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
 
 - To set additional parameters, you can either include these in your nextflow run command:
 ```
-nextflow run main.nf -profile {singularity, docker} --samplesheet index_example.csv --adapter_trimming
+nextflow run maelyg/ontvisc -profile {singularity, docker} --samplesheet index_example.csv --adapter_trimming
 ```
 
 or set them to true in the nextflow.config file.
@@ -129,7 +134,9 @@ By default the pipeline will run a quality control check of the raw reads using 
 Raw read can be trimmed of adapters and/or quality filtered.
 - Search for presence of adapters in sequences reads using [`PoreChop ABI`](https://github.com/rrwick/Porechop) by specifying the ``--adapter_trimming`` parameter. PoreChop ABI options can be specified using ```--porechop_options '{options}'```. Please refer to the PoreChop manual.
 
-- Perform a quality filtering step using ```--qual_filt``` and run either [`Chopper`](https://github.com/wdecoster/chopper) or [`NanoFilt`](https://github.com/wdecoster/nanofilt) by specifying the ```chopper``` (default) or the ```nanofilt``` option respectively. Chopper and NanoFilt options can be specified using the ```--chopper_options``` and the ```--nanofilt_options``` respectively. Please refer to the Chopper and NanoFilt manuals.
+- Perform a quality filtering step using ```--qual_filt``` and run either [`Chopper`](https://github.com/wdecoster/chopper) or [`NanoFilt`](https://github.com/wdecoster/nanofilt) by specifying ```--qual_filt_method chopper``` (default) or the ```--qual_filt_method nanofilt``` respectively. Chopper and NanoFilt options can be specified using the ```--chopper_options``` and the ```--nanofilt_options``` respectively. Please refer to the Chopper and NanoFilt manuals.
+
+For instance to use the tool Chopper to filter reads shorter than 1000 bp and longer than 20000 bp, and reads with a minimum Phred average quality score of 10, you would specify: ```--qual_filt --qual_filt_method chopper --chopper_options '-q 10 -l 1000 --maxlength 20000'```.
 
 - If you trim raw read of adapters and/or quality filter the raw reads, an additional quality control step will be performed and a qc report will be generated summarising the read counts retained at each step.
 
@@ -144,13 +151,13 @@ Example 1 using a viral database:
 # Check for presence of adapters.
 # Perform a direct read homology search using megablast against a viral database.
 
-nextflow run ~/path/to/ontvisc_repo/main.nf -resume -profile {singularity, docker} \
-                                                    --adapter_trimming \
-                                                    --read_classification \
-                                                    --megablast \
-                                                    --blast_threads 8 \
-                                                    --blast_mode localdb \
-                                                    --blastn_db /path/to/local_blast_db
+nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
+                            --adapter_trimming \
+                            --read_classification \
+                            --megablast \
+                            --blast_threads 8 \
+                            --blast_mode localdb \
+                            --blastn_db /path/to/local_blast_db
 ```
 
 Example 2 using NCBI nt:
@@ -161,13 +168,13 @@ Example 2 using NCBI nt:
 # The blast search will be split into several jobs, containing 10,000 reads each, that will run in parallel. 
 # The pipeline will use 8 cpus when running the blast process.
 
-nextflow run ~/path/to/ontvisc_repo/main.nf -resume -profile {singularity, docker}
-                                                    --adapter_trimming \
-                                                    --read_classification \
-                                                    --megablast \
-                                                    --blast_threads 8 \
-                                                    --blast_mode ncbi \ #default
-                                                    --blastn_db /path/to/ncbi_blast_db/nt
+nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
+                            --adapter_trimming \
+                            --read_classification \
+                            --megablast \
+                            --blast_threads 8 \
+                            --blast_mode ncbi \ #default
+                            --blastn_db /path/to/ncbi_blast_db/nt
 ```
 
 - Perform a direct taxonomic classification of reads using Kraken2 and Kaiju
@@ -177,14 +184,15 @@ Example:
 # Perform a direct taxonomic read classification using Kraken2 and Kaiju. 
 # You will need to download Kraken2 index (e.g. PlusPFP) and Kaiju indexes (e.g. kaiju_db_rvdb).
 
-nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
-                                                    --read_classification \
-                                                    --kraken2 \
-                                                    --krkdb /path/to/kraken2_db \
-                                                    --kaiju \
-                                                    --kaiju_dbname /path/to/kaiju/kaiju.fmi \
-                                                    --kaiju_nodes /path/to/kaiju/nodes.dmp \
-                                                    --kaiju_names /path/to/kaiju/names.dmp
+nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
+                            --adapter_trimming \
+                            --read_classification \
+                            --kraken2 \
+                            --krkdb /path/to/kraken2_db \
+                            --kaiju \
+                            --kaiju_dbname /path/to/kaiju/kaiju.fmi \
+                            --kaiju_nodes /path/to/kaiju/nodes.dmp \
+                            --kaiju_names /path/to/kaiju/names.dmp
 ```
 
 - Perform direct read homology search using megablast and the NCBI NT database and direct taxonomic read classification using Kraken2 and Kaiju
@@ -193,19 +201,20 @@ nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
 # Filter reads against reference host
 # Perform a direct read homology search using megablast and the NCBI NT database.
 # Perform a direct taxonomic read classification using Kraken2 and Kaiju.
-nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
-                                            --host_filtering \
-                                            --host_fasta /path/to/host/fasta/file \
-                                            --read_classification \
-                                            --kraken2 \
-                                            --krkdb /path/to/kraken2_db \
-                                            --kaiju \
-                                            --kaiju_dbname /path/to/kaiju/kaiju.fmi \
-                                            --kaiju_nodes /path/to/kaiju/nodes.dmp \
-                                            --kaiju_names /path/to/kaiju/names.dmp \
-                                            --megablast --blast_mode ncbi \
-                                            --blast_threads 8 \
-                                            --blastn_db /path/to/ncbi_blast_db/nt
+nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
+                            --adapter_trimming \
+                            --host_filtering \
+                            --host_fasta /path/to/host/fasta/file \
+                            --read_classification \
+                            --kraken2 \
+                            --krkdb /path/to/kraken2_db \
+                            --kaiju \
+                            --kaiju_dbname /path/to/kaiju/kaiju.fmi \
+                            --kaiju_nodes /path/to/kaiju/nodes.dmp \
+                            --kaiju_names /path/to/kaiju/names.dmp \
+                            --megablast --blast_mode ncbi \
+                            --blast_threads 8 \
+                            --blastn_db /path/to/ncbi_blast_db/nt
 ```
 
 # Running de novo assembly (--denovo_assembly)
@@ -226,12 +235,13 @@ Example:
 # Check for presence of adapters
 # Perform de novo assembly with Canu
 # Blast the resulting contigs to a reference.
-nextflow run ~/path/to/ontvisc_repo/main.nf -resume --adapter_trimming \
-                                                    --denovo_assembly --canu \
-                                                    --canu_options 'useGrid=false' \
-                                                    --canu_genome_size 0.01m \
-                                                    --blast_vs_ref  \
-                                                    --reference /path/to/reference/reference.fasta
+nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
+                            --adapter_trimming \
+                            --denovo_assembly --canu \
+                            --canu_options 'useGrid=false' \
+                            --canu_genome_size 0.01m \
+                            --blast_vs_ref  \
+                            --reference /path/to/reference/reference.fasta
 ```
 
 # Run clustering (--clustering)
@@ -244,16 +254,19 @@ Set the parameter ```--rattle_clustering_options '--rna'``` and ```--rattle_poli
 
 Example in which all reads will be retained during the clustering step:
 ```
-nextflow run ~/path/to/ontvisc_repo/main.nf -resume --clustering \
-                                                     --rattle_clustering_options '--raw' \
-                                                     --blast_threads 8 \
-                                                     --blastn_db /path/to/ncbi_blast_db/nt
+nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
+                            --clustering \
+                            --rattle_clustering_options '--raw' \
+                            --blast_threads 8 \
+                            --blastn_db /path/to/ncbi_blast_db/nt
 ```
 
-Example in which only reads ranging between 500 and 2000 bp will be retained during the clustering step:
+Example in which reads are first quality filtered using the tool chopper (only reads with a Phread average quality score above 10 are retained). Then for the clustering step, only reads ranging between 500 and 2000 bp will be retained:
 ```
-nextflow run ~/path/to/ontvisc_repo/main.nf -resume --clustering \
-                                                     --rattle_clustering_options '--lower-length 500 --upper-length 2000' \
-                                                     --blast_threads 8 \
-                                                     --blastn_db /path/to/ncbi_blast_db/nt
+nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
+                            --qual_filt --qual_filt_method chopper --chopper_options '-q 10'
+                            --clustering \
+                            --rattle_clustering_options '--lower-length 500 --upper-length 2000' \
+                            --blast_threads 8 \
+                            --blastn_db /path/to/ncbi_blast_db/nt
 ```

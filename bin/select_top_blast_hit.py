@@ -24,7 +24,6 @@ def main():
         
         #remove synthetic construct hits
         blastn_results = blastn_results[~blastn_results["species"].str.contains("synthetic construct", na=False)]
-        
 
     elif mode == "localdb":
         #retrieve spp name and accession from local db fasta header
