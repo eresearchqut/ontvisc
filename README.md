@@ -130,16 +130,15 @@ Raw read can be trimmed of adapters and/or quality filtered.
 To limit the search to known adapters listed in [`adapter.py`](https://github.com/bonsai-team/Porechop_ABI/blob/master/porechop_abi/adapters.py), just specify the ```--adapter_trimming``` option.  
 To search ab initio for adapters on top of known adapters, specify ```--adapter_trimming --porechop_options '-abi'```.  
 To limit the search to custom adapters, specify ```--adapter_trimming --porechop_custom_primers --porechop_options '-ddb'``` and list the custom adapters in the text file located under bin/adapters.txt following the format:
-```
- line 1: Adapter name
- line 2: Start adapter sequence
- line 3: End adapter sequence
- --- repeat for each adapter pair---
-```
+    ```
+     line 1: Adapter name
+     line 2: Start adapter sequence
+     line 3: End adapter sequence
+     --- repeat for each adapter pair---
+     ```
 
 
-- Perform a quality filtering step using ```--qual_filt``` and run either [`Chopper`](https://github.com/wdecoster/chopper) or [`NanoFilt`](https://github.com/wdecoster/nanofilt) by specifying ```--qual_filt_method chopper``` (default) or the ```--qual_filt_method nanofilt``` respectively. Chopper and NanoFilt options can be specified using the ```--chopper_options``` and the ```--nanofilt_options``` respectively. Please refer to the Chopper and NanoFilt manuals.
-
+- Perform a quality filtering step using ```--qual_filt``` and run either [`Chopper`](https://github.com/wdecoster/chopper) or [`NanoFilt`](https://github.com/wdecoster/nanofilt) by specifying ```--qual_filt_method chopper``` (default) or the ```--qual_filt_method nanofilt``` respectively. Chopper and NanoFilt options can be specified using the ```--chopper_options``` and the ```--nanofilt_options``` respectively. Please refer to the Chopper and NanoFilt manuals.  
 For instance to use the tool Chopper to filter reads shorter than 1000 bp and longer than 20000 bp, and reads with a minimum Phred average quality score of 10, you would specify: ```--qual_filt --qual_filt_method chopper --chopper_options '-q 10 -l 1000 --maxlength 20000'```.
 
 - If you trim raw read of adapters and/or quality filter the raw reads, an additional quality control step will be performed and a qc report will be generated summarising the read counts retained at each step.
