@@ -149,76 +149,77 @@ For instance to use the tool Chopper to filter reads shorter than 1000 bp and lo
 # Running read classification (--read_classification)
 - Perform a direct blast homology search using megablast (``--megablast``).
 
-Example 1 using a viral database:
-```
-# Check for presence of adapters.
-# Perform a direct read homology search using megablast against a viral database.
+  Example 1 using a viral database:
+  ```
+  # Check for presence of adapters.
+  # Perform a direct read homology search using megablast against a viral database.
 
-nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
-                            --adapter_trimming \
-                            --read_classification \
-                            --megablast \
-                            --blast_threads 8 \
-                            --blast_mode localdb \
-                            --blastn_db /path/to/local_blast_db
-```
+  nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
+                              --adapter_trimming \
+                              --read_classification \
+                              --megablast \
+                              --blast_threads 8 \
+                              --blast_mode localdb \
+                              --blastn_db /path/to/local_blast_db
+  ```
 
-Example 2 using NCBI nt:
-```
-# Check for presence of adapters .
-# Perform a direct read homology search using megablast and the NCBI NT database. 
-# You will need to download a local copy of the NCBI NT database. 
-# The blast search will be split into several jobs, containing 10,000 reads each, that will run in parallel. 
-# The pipeline will use 8 cpus when running the blast process.
+  Example 2 using NCBI nt:
+  ```
+  # Check for presence of adapters .
+  # Perform a direct read homology search using megablast and the NCBI NT database. 
+  # You will need to download a local copy of the NCBI NT database. 
+  # The blast search will be split into several jobs, containing 10,000 reads each, that will run in parallel. 
+  # The pipeline will use 8 cpus when running the blast process.
 
-nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
-                            --adapter_trimming \
-                            --read_classification \
-                            --megablast \
-                            --blast_threads 8 \
-                            --blast_mode ncbi \ #default
-                            --blastn_db /path/to/ncbi_blast_db/nt
-```
+  nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
+                              --adapter_trimming \
+                              --read_classification \
+                              --megablast \
+                              --blast_threads 8 \
+                              --blast_mode ncbi \ #default
+                              --blastn_db /path/to/ncbi_blast_db/nt
+  ```
 
 - Perform a direct taxonomic classification of reads using Kraken2 and Kaiju
-Example:
-```
-# Check for presence of adapters
-# Perform a direct taxonomic read classification using Kraken2 and Kaiju. 
-# You will need to download Kraken2 index (e.g. PlusPFP) and Kaiju indexes (e.g. kaiju_db_rvdb).
+  Example:
+  ```
+  # Check for presence of adapters
+  # Perform a direct taxonomic read classification using Kraken2 and Kaiju. 
+  # You will need to download Kraken2 index (e.g. PlusPFP) and Kaiju indexes (e.g. kaiju_db_rvdb).
 
-nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
-                            --adapter_trimming \
-                            --read_classification \
-                            --kraken2 \
-                            --krkdb /path/to/kraken2_db \
-                            --kaiju \
-                            --kaiju_dbname /path/to/kaiju/kaiju.fmi \
-                            --kaiju_nodes /path/to/kaiju/nodes.dmp \
-                            --kaiju_names /path/to/kaiju/names.dmp
-```
+  nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
+                              --adapter_trimming \
+                              --read_classification \
+                              --kraken2 \
+                              --krkdb /path/to/kraken2_db \
+                              --kaiju \
+                              --kaiju_dbname /path/to/kaiju/kaiju.fmi \
+                              --kaiju_nodes /path/to/kaiju/nodes.dmp \
+                              --kaiju_names /path/to/kaiju/names.dmp
+  ```
 
-- Perform direct read homology search using megablast and the NCBI NT database and direct taxonomic read classification using Kraken2 and Kaiju
-```
-# Check for presence of adapters
-# Filter reads against reference host
-# Perform a direct read homology search using megablast and the NCBI NT database.
-# Perform a direct taxonomic read classification using Kraken2 and Kaiju.
-nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
-                            --adapter_trimming \
-                            --host_filtering \
-                            --host_fasta /path/to/host/fasta/file \
-                            --read_classification \
-                            --kraken2 \
-                            --krkdb /path/to/kraken2_db \
-                            --kaiju \
-                            --kaiju_dbname /path/to/kaiju/kaiju.fmi \
-                            --kaiju_nodes /path/to/kaiju/nodes.dmp \
-                            --kaiju_names /path/to/kaiju/names.dmp \
-                            --megablast --blast_mode ncbi \
-                            --blast_threads 8 \
-                            --blastn_db /path/to/ncbi_blast_db/nt
-```
+- Perform direct read homology search using megablast and the NCBI NT database and direct taxonomic read classification using Kraken2 and Kaiju.
+  Example:
+  ```
+  # Check for presence of adapters
+  # Filter reads against reference host
+  # Perform a direct read homology search using megablast and the NCBI NT database.
+  # Perform a direct taxonomic read classification using Kraken2 and Kaiju.
+  nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
+                              --adapter_trimming \
+                              --host_filtering \
+                              --host_fasta /path/to/host/fasta/file \
+                              --read_classification \
+                              --kraken2 \
+                              --krkdb /path/to/kraken2_db \
+                              --kaiju \
+                              --kaiju_dbname /path/to/kaiju/kaiju.fmi \
+                              --kaiju_nodes /path/to/kaiju/nodes.dmp \
+                              --kaiju_names /path/to/kaiju/names.dmp \
+                              --megablast --blast_mode ncbi \
+                              --blast_threads 8 \
+                              --blastn_db /path/to/ncbi_blast_db/nt
+    ```
 
 # Running de novo assembly (--denovo_assembly)
 You can run a de novo assembly using either Flye or Canu. 
@@ -228,24 +229,24 @@ If the data analysed was derived using RACE reactions, a final primer check can 
 
 - Canu (--canu):
 
-Canu options can be specified using the ```--canu_options``` parameter.
-If you do not know the size of your targetted genome, you can ommit the ```--canu_genome_size [genome size of virus target]```. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/)), which would correspond to ```--canu_genome_size 0.01m```
+  Canu options can be specified using the ```--canu_options``` parameter.
+  If you do not know the size of your targetted genome, you can ommit the ```--canu_genome_size [genome size of virus target]```. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/)), which would correspond to ```--canu_genome_size 0.01m```
 
-You can perform an homology search against the contigs generated using either a viral genome reference, a viral database or NCBI nt.
+  You can perform an homology search against the contigs generated using either a viral genome reference, a viral database or NCBI nt.
 
-Example:
-```
-# Check for presence of adapters
-# Perform de novo assembly with Canu
-# Blast the resulting contigs to a reference.
-nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
-                            --adapter_trimming \
-                            --denovo_assembly --canu \
-                            --canu_options 'useGrid=false' \
-                            --canu_genome_size 0.01m \
-                            --blast_vs_ref  \
-                            --reference /path/to/reference/reference.fasta
-```
+  Example:
+  ```
+  # Check for presence of adapters
+  # Perform de novo assembly with Canu
+  # Blast the resulting contigs to a reference.
+  nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
+                              --adapter_trimming \
+                              --denovo_assembly --canu \
+                              --canu_options 'useGrid=false' \
+                              --canu_genome_size 0.01m \
+                              --blast_vs_ref  \
+                              --reference /path/to/reference/reference.fasta
+  ```
 
 # Run clustering (--clustering)
 In the clustering mode, the clustering tool [`RATTLE`](https://github.com/comprna/RATTLE#Description-of-clustering-parameters) will be run and the clusters obtained will be further collapsed using CAP3. 
