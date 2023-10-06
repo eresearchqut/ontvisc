@@ -54,7 +54,7 @@ Depending on the mode you are intersted to run, you will need to install some da
   For instance:
   ```
   params {
-  --blastn_db = '/work/hia_mt18005_db/blastDB/20230930/nt'
+    --blastn_db = '/work/hia_mt18005_db/blastDB/20230930/nt'
   }
   ```
 - To run nucleotide taxonomic classification of reads using Kraken2, download the pre-built index relevant to your data and provided by [`Kraken2`](https://benlangmead.github.io/aws-indexes/k2) (for example, PlusPFP can be chosen for searching viruses in plant samples).  
@@ -100,24 +100,24 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
   Alternatively you can set which profile to use in the nextflow.config file. For example, you would add the following lines, if you want to use singularity:
   ```
   singularity {
-  enabled = true
-  autoMounts = true
+    enabled = true
+    autoMounts = true
   }
   ```
 
 - Specify an analysis mode: read classification, clustering, assembly, map2ref (see below for more details)
 
 - To set additional parameters, you can either include these in your nextflow run command:
-```
-nextflow run maelyg/ontvisc -profile {singularity, docker} --samplesheet index_example.csv --adapter_trimming
-```
+  ```
+  nextflow run maelyg/ontvisc -profile {singularity, docker} --samplesheet index_example.csv --adapter_trimming
+  ```
 
-or set them to true in the nextflow.config file.
-```
-params {
-  adapter_trimming = true
-}
-```
+  or set them to true in the nextflow.config file.
+  ```
+  params {
+    adapter_trimming = true
+  }
+  ```
 
 # Running QC step
 By default the pipeline will run a quality control check of the raw reads using NanoPlot.
