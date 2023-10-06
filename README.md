@@ -37,26 +37,26 @@ Depending on the mode you are intersted to run, you will need to install some da
 
 - If you want to run homology searches against a viral database instead (e.g. [`RVDB`](https://rvdb.dbi.udel.edu/), you will need to specify the ``--blast_mode localdb`` parameter and provide the path to the database by specifying ``--blastn_db /path/to/viral/db``. 
 
-Download a local copy of the NCBI NT database, following the detailed steps available at https://www.ncbi.nlm.nih.gov/books/NBK569850/. Create a folder where you will store your NCBI databases. It is good practice to include the date of download. For instance:
-```
-mkdir blastDB/20230930
-```
-You will need to use a current update_blastdb.pl script from the blast+  version used with the pipeline (ie 2.13.0).
-For example:
-```
-perl update_blastdb.pl --decompress nt [*]
-perl update_blastdb.pl taxdb
-tar -xzf taxdb.tar.gz
-```
+  Download a local copy of the NCBI NT database, following the detailed steps available at https://www.ncbi.nlm.nih.gov/books/NBK569850/. Create a folder where you will store your NCBI databases. It is good practice to include the date of download. For instance:
+  ```
+  mkdir blastDB/20230930
+  ```
+  You will need to use a current update_blastdb.pl script from the blast+  version used with the pipeline (ie 2.13.0).
+  For example:
+  ```
+  perl update_blastdb.pl --decompress nt [*]
+  perl update_blastdb.pl taxdb
+  tar -xzf taxdb.tar.gz
+  ```
 
-Make sure the taxdb.btd and the taxdb.bti files are present in the same directory as your blast databases.
-Specify the path of your local NCBI blast nt directories in the nextflow.config file.
-For instance:
-```
-params {
+  Make sure the taxdb.btd and the taxdb.bti files are present in the same directory as your blast databases.
+  Specify the path of your local NCBI blast nt directories in the nextflow.config file.
+  For instance:
+  ```
+  params {
   --blastn_db = '/work/hia_mt18005_db/blastDB/20230930/nt'
-}
-```
+  }
+  ```
 - To run nucleotide taxonomic classification of reads using Kraken2, download the pre-built index relevant to your data and provided by [`Kraken2`](https://benlangmead.github.io/aws-indexes/k2) (for example, PlusPFP can be chosen for searching viruses in plant samples).  
 
 - To run protein taxonomic classification using Kaiju, download the pre-built index relevant to your data. Indexes are listed on the README page of [`Kaiju`](https://github.com/bioinformatics-centre/kaiju) (for example refseq, refseq_nr, refseq_ref, progenomes, viruses, nr, nr_euk or rvdb). After the download is finished, you should have 3 files: kaiju_db_*.fmi, nodes.dmp, and names.dmp, which are all needed to run Kaiju.
@@ -67,16 +67,16 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
 ## Running the pipeline
 
 - Download the pipeline:
-The source code can be downloaded directly from GitHub using the git command line client:
-```
-git clone https://github.com/maelyg/ontvisc.git
-```
+  The source code can be downloaded directly from GitHub using the git command line client:
+  ```
+  git clone https://github.com/maelyg/ontvisc.git
+  ```
 
-Or you can run the command:
-```
-nextflow run maelyg/ontvisc -profile {singularity, docker} --samplesheet index.csv
-```
-The first time the command runs, it will download the pipeline and save it into your assets.
+  Or you can run the command:
+  ```
+  nextflow run maelyg/ontvisc -profile {singularity, docker} --samplesheet index.csv
+  ```
+  The first time the command runs, it will download the pipeline and save it into your assets.
 
 - Provide an index.csv file.  
   Create a comma separated file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the ```--samplesheet [filename]``` in the nextflow run command. This text file requires the following columns (which needs to be included as a header): ```sampleid,sample_files``` 
