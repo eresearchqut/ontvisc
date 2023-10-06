@@ -1,11 +1,5 @@
 # ONTViSc (ONT-based Viral Screening for Biosecurity)
 
-### Authors
-Marie-Emilie Gauthier <gauthiem@qut.edu.au>
-Craig Windell <c.windell@qut.edu.au>
-Magdalena Antczak <magdalena.antczak@qcif.edu.au>
-Roberto Barrero <roberto.barrero@qut.edu.au>
-
 ## Introduction
 eresearchqut/ontvisc is a Nextflow-based bioinformatics pipeline designed to help diagnostics of viruses and viroid pathogens for biosecurity. It takes fastq files generated from either amplicon or whole-genome sequencing using Oxford Nanopore Technologies as input.
 
@@ -277,3 +271,9 @@ nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
                             --blast_threads 8 \
                             --blastn_db /path/to/ncbi_blast_db/nt
 ```
+
+### Authors
+Marie-Emilie Gauthier <gauthiem@qut.edu.au>  
+Craig Windell <c.windell@qut.edu.au>  
+Magdalena Antczak <magdalena.antczak@qcif.edu.au>  
+Roberto Barrero <roberto.barrero@qut.edu.au>  
