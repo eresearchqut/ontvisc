@@ -126,7 +126,10 @@ By default the pipeline will run a quality control check of the raw reads using 
 
 # Pre-processing reads (optional)
 Raw read can be trimmed of adapters and/or quality filtered.
-- Search for presence of adapters in sequences reads using [`Porechop ABI`](https://github.com/rrwick/Porechop) by specifying the ``--adapter_trimming`` parameter. Porechop ABI parameters can be specified using ```--porechop_options '{options}'```. Please refer to the Porechop manual. To limit the search to known adapters listed in [`adapter.py`](https://github.com/bonsai-team/Porechop_ABI/blob/master/porechop_abi/adapters.py), just specify the ```--adapter_trimming``` option. To search ab initio for adapters on top of known adapters, specify ```--adapter_trimming --porechop_options '-abi'```. To limit the search to custom adapters, specify ```--adapter_trimming --porechop_custom_primers --porechop_options '-ddb'``` and list the custom adapters in the text file located under bin/adapters.txt following the format:
+- Search for presence of adapters in sequences reads using [`Porechop ABI`](https://github.com/rrwick/Porechop) by specifying the ``--adapter_trimming`` parameter. Porechop ABI parameters can be specified using ```--porechop_options '{options}'```. Please refer to the Porechop manual.  
+To limit the search to known adapters listed in [`adapter.py`](https://github.com/bonsai-team/Porechop_ABI/blob/master/porechop_abi/adapters.py), just specify the ```--adapter_trimming``` option.  
+To search ab initio for adapters on top of known adapters, specify ```--adapter_trimming --porechop_options '-abi'```.  
+To limit the search to custom adapters, specify ```--adapter_trimming --porechop_custom_primers --porechop_options '-ddb'``` and list the custom adapters in the text file located under bin/adapters.txt following the format:
 ```
  line 1: Adapter name
  line 2: Start adapter sequence
@@ -249,7 +252,7 @@ nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
 In the clustering mode, the clustering tool [`RATTLE`](https://github.com/comprna/RATTLE#Description-of-clustering-parameters) will be run and the clusters obtained will be further collapsed using CAP3. 
 For RATTLE, use the parameter ```--rattle_clustering_options '--raw'``` to use all the reads without any length filtering during the RATTLE clustering step if your amplicon is known to be shorter than 150 bp.
 
-When the amplicon is of known size, we recommend setting up the parameters ```--lower-length [number]``` (default: 150) and ```--upper-length [number]``` (default: 100,000) to filter out reads shorter and longer than the expected size.
+When the amplicon is of known size, we recommend setting up the parameters ```--lower-length [number]``` (by default: 150) and ```--upper-length [number]``` (by default: 100,000) to filter out reads shorter and longer than the expected size.
 
 Set the parameter ```--rattle_clustering_options '--rna'``` and ```--rattle_polishing_options '--rna'``` if the data is direct RNA (disables checking both strands).
 
