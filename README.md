@@ -180,7 +180,7 @@ For instance to use the tool Chopper to filter reads shorter than 1000 bp and lo
                               --blastn_db /path/to/ncbi_blast_db/nt
   ```
 
-- Perform a direct taxonomic classification of reads using Kraken2 and Kaiju
+- Perform a direct taxonomic classification of reads using Kraken2 and/or Kaiju.  
   Example:
   ```
   # Check for presence of adapters
@@ -198,7 +198,7 @@ For instance to use the tool Chopper to filter reads shorter than 1000 bp and lo
                               --kaiju_names /path/to/kaiju/names.dmp
   ```
 
-- Perform direct read homology search using megablast and the NCBI NT database and direct taxonomic read classification using Kraken2 and Kaiju.
+- Perform direct read homology search using megablast and the NCBI NT database and direct taxonomic read classification using Kraken2 and Kaiju.  
   Example:
   ```
   # Check for presence of adapters
