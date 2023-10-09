@@ -141,10 +141,12 @@ To limit the search to custom adapters, specify ```--adapter_trimming --porechop
 - Perform a quality filtering step using ```--qual_filt``` and run either [`Chopper`](https://github.com/wdecoster/chopper) or [`NanoFilt`](https://github.com/wdecoster/nanofilt) by specifying ```--qual_filt_method chopper``` (default) or the ```--qual_filt_method nanofilt``` respectively. Chopper and NanoFilt options can be specified using the ```--chopper_options``` and the ```--nanofilt_options``` respectively. Please refer to the Chopper and NanoFilt manuals.  
 For instance to use the tool Chopper to filter reads shorter than 1000 bp and longer than 20000 bp, and reads with a minimum Phred average quality score of 10, you would specify: ```--qual_filt --qual_filt_method chopper --chopper_options '-q 10 -l 1000 --maxlength 20000'```.
 
-- If you trim raw read of adapters and/or quality filter the raw reads, an additional quality control step will be performed and a qc report will be generated summarising the read counts retained at each step.
+- If you trim raw read of adapters and/or quality filter the raw reads, an additional quality control step will be performed and a qc report will be generated summarising the read counts recovered before and after preprocessing.
 
 # Filtering host reads
-- Reads mapping to a host genome reference or sequences can be filtered out by specifying the ``--host_filtering`` parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``.
+- Reads mapping to a host genome reference or sequences can be filtered out by specifying the ``--host_filtering`` parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``.  
+A qc report will be generated summrising the read counts recovered after host filtering.
+
 
 # Running read classification (--read_classification)
 - Perform a direct blast homology search using megablast (``--megablast``).
@@ -226,17 +228,16 @@ You can run a de novo assembly using either Flye or Canu.
 
 If the data analysed was derived using RACE reactions, a final primer check can be performed after the de novo assembly step using the ```--final_primer_check``` option. The pipeline will check for the presence of any residual universal RACE primers at the end of the assembled contigs.
 
-
 - Canu (--canu):
 
-  Canu options can be specified using the ```--canu_options``` parameter.
-  If you do not know the size of your targetted genome, you can ommit the ```--canu_genome_size [genome size of virus target]```. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/)), which would correspond to ```--canu_genome_size 0.01m```
+  Canu options can be specified using the `--canu_options` parameter.
+  If you do not know the size of your targetted genome, you can ommit the `--canu_genome_size [genome size of target virus]`. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/)), which would correspond to `--canu_genome_size 0.01m`.
 
-  You can perform an homology search against the contigs generated using either a viral genome reference, a viral database or NCBI nt.
+  By default the pipeline will perform an homology search against the contigs generated using NCBI nt. Alternatively, you can perform an homology search against a viral genome reference (using `--blast_vs_ref`) or a viral database `--blast_mode localdb`.
 
   Example:
   ```
-  # Check for presence of adapters
+  # Check for the presence of adapters
   # Perform de novo assembly with Canu
   # Blast the resulting contigs to a reference.
   nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
@@ -246,6 +247,27 @@ If the data analysed was derived using RACE reactions, a final primer check can 
                               --canu_genome_size 0.01m \
                               --blast_vs_ref  \
                               --reference /path/to/reference/reference.fasta
+  ```
+
+- [`Flye`](https://github.com/fenderglass/Flye) (--flye):
+  
+  The running mode for Flye can be specified using ``--flye_ont_mode [mode]``. Since Flye was primarily developed to run on uncorrected reads, the mode is set by default to ``--nano-raw`` in the nextflow.config file, for regular ONT reads, pre-Guppy5 (ie <20% error). Alternatively, you can specify the ``--nano-corr`` mode for ONT reads that were corrected with other methods (ie <3% error) and the ``--nano-hq`` mode for ONT high-quality reads: Guppy5+ SUP or Q20 (ie <5% error).  
+  
+  Flye options can be specified using the ``--flye_options`` parameter. Please refer to the [`Flye manual`](https://github.com/fenderglass/Flye/blob/flye/docs/USAGE.md).  
+  Use ``--genome-size [genome size of target virus]`` to specify the estimated genome size (for example 0.01m).  
+  Use ``--meta`` for metagenome samples with uneven coverage.  
+  Use ``--min-overlap`` to specify a minimum overlap between reads (automatically derived by default).  
+
+  Example:
+  ```
+  # Perform de novo assembly with Flye
+  # Blast the resulting contigs to a reference.
+  nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
+                              --denovo_assembly --flye \
+                              --flye_options '--genome-size 0.01m --meta' \
+                              --flye_ont_mode '--nano-raw'
+                              --blast_threads 8 \
+                              --blastn_db /path/to/ncbi_blast_db/nt
   ```
 
 # Run clustering (--clustering)
@@ -268,7 +290,7 @@ nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
 Example in which reads are first quality filtered using the tool chopper (only reads with a Phread average quality score above 10 are retained). Then for the clustering step, only reads ranging between 500 and 2000 bp will be retained:
 ```
 nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
-                            --qual_filt --qual_filt_method chopper --chopper_options '-q 10'
+                            --qual_filt --qual_filt_method chopper --chopper_options '-q 10' \
                             --clustering \
                             --rattle_clustering_options '--lower-length 500 --upper-length 2000' \
                             --blast_threads 8 \

@@ -43,7 +43,10 @@ def main():
     #extract all sequences showing top blast homology to virus or viroid hits.
     blastn_viral_top_hit = blastn_top_hit[blastn_top_hit["species"].str.contains('virus|viroid', na=False)]
     #only retain blast hits with qcovs < 90
-    blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 90].index, inplace = True)
+    if mode == "ncbi":
+        blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 90].index, inplace = True)
+    elif mode == "localdb":
+        blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 95].index, inplace = True)
     #blastn_viral_top_hit['count'] = blastn_viral_top_hit.groupby('species')['species'].transform('count')
     #derive read/contig count per viral spp
     summary_per_spp = blastn_viral_top_hit['species'].value_counts()

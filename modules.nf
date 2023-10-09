@@ -34,26 +34,23 @@ process MINIMAP2_ALIGN {
   awk '\$6 == "*" { print \$0 }' ${sampleid}.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
   """
 }
-/*
-tuple val(sampleid), path(fastq), path("${sampleid}_unaligned_ids.txt"), emit: sequencing_ids
-awk '\$6 == "*" { print \$0 }' ${sampleid}.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
-*/
-
-
 process EXTRACT_READS {
   tag "${sampleid}"
-  label "setting_2"
+  label "setting_11"
+  publishDir "${params.outdir}/${sampleid}/host_filtering", mode: 'copy', pattern: '{*.fastq.gz,*reads_count.txt}'
 
   input:
   tuple val(sampleid), path(fastq), path(unaligned_ids)
   output:
   path("*reads_count.txt"), emit: read_counts
-  file("*reads_count.txt")
+  file("${sampleid}_unaligned_reads_count.txt")
+  file("${sampleid}_unaligned.fastq.gz")
   tuple val(sampleid), path("*_unaligned.fastq"), emit: unaligned_fq
 
   script:
   """
   seqtk subseq ${fastq} ${unaligned_ids} > ${sampleid}_unaligned.fastq
+  gzip -c ${sampleid}_unaligned.fastq > ${sampleid}_unaligned.fastq.gz
   
   n_lines=\$(expr \$(cat ${sampleid}_unaligned.fastq | wc -l) / 4)
   echo \$n_lines > ${sampleid}_unaligned_reads_count.txt

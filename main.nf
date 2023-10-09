@@ -194,8 +194,7 @@ process CUTADAPT {
 }
 
 process CHOPPER {
-  //publishDir "${params.outdir}/${sampleid}/chopper", pattern:'*_filtered.fastq.gz', mode: 'link'
-  publishDir "${params.outdir}/${sampleid}/chopper", pattern: '*_chopper.log', mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/preprocessing/chopper", pattern: '*_chopper.log', mode: 'link'
   tag "${sampleid}"
   label 'setting_3'
 
@@ -215,8 +214,7 @@ process CHOPPER {
 }
 
 process NANOFILT {
-  publishDir "${params.outdir}/${sampleid}/nanofilt", pattern:'*_filtered.fastq.gz', mode: 'link'
-  //publishDir "${params.outdir}/${sampleid}/canu", pattern: '*_nanofilt.log', mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/preprocessing/nanofilt", pattern: '*_nanofilt.log', mode: 'link'
   tag "${sampleid}"
   label 'setting_1'
 
@@ -225,7 +223,6 @@ process NANOFILT {
 
   output:
     path("${sampleid}_filtered.fastq.gz")
-    //path("${sampleid}_nanofilt.log")
     tuple val(sampleid), path("${sampleid}_filtered.fastq.gz"), emit: nanofilt_filtered_fq
 
   script:
@@ -295,21 +292,23 @@ process FLYE {
   input:
     tuple val(sampleid), path(fastq)
   output:
-    path("outdir/*")
     path("${sampleid}_flye_assembly.fasta")
+    path("${sampleid}_flye.log")
     tuple val(sampleid), path("${sampleid}_flye.fastq"), path("${sampleid}_flye_assembly.fasta"), emit: assembly
     tuple val(sampleid), path("${sampleid}_flye_assembly.fasta"), emit: assembly2
   
   script:
   def flye_options = (params.flye_options) ? " ${params.flye_options}" : ''
+  
   """
-  flye  --out-dir outdir --threads ${task.cpus} ${flye_options} --${params.flye_ont_mode} ${fastq}
+  flye  --out-dir outdir --threads ${task.cpus} ${flye_options} ${params.flye_ont_mode} ${fastq}
   
   if [[ ! -s outdir/assembly.fasta ]]
     then
       touch ${sampleid}_flye_assembly.fasta
   else 
     cp outdir/assembly.fasta ${sampleid}_flye_assembly.fasta
+  cp outdir/flye.log ${sampleid}_flye.log
   fi
   cp ${fastq} ${sampleid}_flye.fastq
   """
@@ -463,7 +462,7 @@ process PORECHOP {
 */
 process PORECHOP_ABI {
   tag "${sampleid}"
-  publishDir "$params.outdir/${sampleid}/porechop",  mode: 'link'
+  publishDir "$params.outdir/${sampleid}/preprocessing/porechop",  mode: 'link', pattern: '*_porechop.log'
   label "setting_8"
   containerOptions "${bindOptions}"
 
@@ -489,7 +488,7 @@ process PORECHOP_ABI {
 process REFORMAT {
   tag "${sampleid}"
   label "setting_3"
-  publishDir "$params.outdir/${sampleid}",  mode: 'copy'
+  publishDir "$params.outdir/${sampleid}/preprocessing", mode: 'copy'
 
   input:
   tuple val(sampleid), path(fastq)
