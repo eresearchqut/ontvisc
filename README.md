@@ -145,7 +145,7 @@ For instance to use the tool Chopper to filter reads shorter than 1000 bp and lo
 
 # Filtering host reads
 - Reads mapping to a host genome reference or sequences can be filtered out by specifying the ``--host_filtering`` parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``.  
-A qc report will be generated summrising the read counts recovered after host filtering.
+A qc report will be generated summarising the read counts recovered after host filtering.
 
 
 # Running read classification (--read_classification)
