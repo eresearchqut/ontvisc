@@ -98,7 +98,7 @@ process FASTQ2FASTA {
 }
 
 process NANOPLOT {
-  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '{*.html,*.txt}', mode: 'link', saveAs: { filename -> "${sampleid}_$filename" }
+  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '{*.html,*.txt}', mode: 'link'
 //  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '*.NanoStats.txt', mode: 'link', saveAs: { filename -> "${sampleid}_$filename" }
   tag "${sampleid}"
   label "setting_2"

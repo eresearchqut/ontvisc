@@ -137,9 +137,9 @@ To limit the search to custom adapters, specify ```--adapter_trimming --porechop
      --- repeat for each adapter pair---
      ```
 
-
 - Perform a quality filtering step using ```--qual_filt``` and run either [`Chopper`](https://github.com/wdecoster/chopper) or [`NanoFilt`](https://github.com/wdecoster/nanofilt) by specifying ```--qual_filt_method chopper``` (default) or the ```--qual_filt_method nanofilt``` respectively. Chopper and NanoFilt options can be specified using the ```--chopper_options``` and the ```--nanofilt_options``` respectively. Please refer to the Chopper and NanoFilt manuals.  
-For instance to use the tool Chopper to filter reads shorter than 1000 bp and longer than 20000 bp, and reads with a minimum Phred average quality score of 10, you would specify: ```--qual_filt --qual_filt_method chopper --chopper_options '-q 10 -l 1000 --maxlength 20000'```.
+For instance to use the tool Chopper to filter reads shorter than 1000 bp and longer than 20000 bp, and reads with a minimum Phred average quality score of 10, you would specify: ```--qual_filt --qual_filt_method chopper --chopper_options '-q 10 -l 1000 --maxlength 20000'```.  
+These same options can be used with NanoFilt.  
 
 - If you trim raw read of adapters and/or quality filter the raw reads, an additional quality control step will be performed and a qc report will be generated summarising the read counts recovered before and after preprocessing.
 

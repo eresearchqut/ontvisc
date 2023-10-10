@@ -35,8 +35,6 @@ def helpMessage () {
                                       [False]
       --porechop_options              Porechop_ABI options
                                       [null]
-      --race                          Filter for RACE universal primers using cutadapt
-                                      [null]
       --qual_filt                     Run quality filtering step
                                       [False]
       --qual_filt_method              Specify which method to use (chopper or nanofilt) to perform quality filtering step
@@ -47,13 +45,10 @@ def helpMessage () {
                                       Default:  splice'                          
       --host_fasta              Fasta file of nucleotide sequences to filter
                                       [null]
-
       --denovo_assembly               Skip de novo assembly step
                                       Default: false
       --canu                          Use Canu for de novo assembly step
                                       Default:  false
-      --canu_genome_size              Target genome size
-                                      Default:  '0.01m'
       --canu_options                  Canu options
                                       Default:  ''
       --flye                          Use Flye for de novo assembly step
@@ -61,12 +56,12 @@ def helpMessage () {
                                       Default:  'nano-raw'
       --flye_options                  Flye options
                                       Default:  ''
-      --clustering                    Skip clustering step using Rattle
+      --clustering                    Run clustering step using Rattle
                                       Default:  false
-      --rattle_min_len                Minimum length cut off for read size
-                                      Default:  250
-      --rattle_max_len                Maximum length cut off for read size
-                                      Default:  2000
+      --rattle_clustering_options     Rattle clustering options
+                                      Default:  ''
+      --rattle_polishing_options      Rattle polishing options
+                                      Default:  ''
 
     """.stripIndent()
 }
