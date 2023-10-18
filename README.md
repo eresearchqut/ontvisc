@@ -118,10 +118,10 @@ By default the pipeline will run a quality control check of the raw reads using 
 During this step, read names in the fastq files will be trimmed after the first whitespace, for compatiblity purposes with all downstream tools.  
 
 Reads can also be optionally trimmed of adapters and/or quality filtered:  
-- Search for presence of adapters in sequences reads using [`Porechop ABI`](https://github.com/rrwick/Porechop) by specifying the ``--adapter_trimming`` parameter. Porechop ABI parameters can be specified using ```--porechop_options '{options}'```. Please refer to the Porechop manual.  
+- Search for presence of adapters in sequences reads using [`Porechop ABI`](https://github.com/rrwick/Porechop) by specifying the ``--adapter_trimming`` parameter. Porechop ABI parameters can be specified using ```--porechop_options '{options} '```. Please refer to the Porechop manual.  
 To limit the search to known adapters listed in [`adapter.py`](https://github.com/bonsai-team/Porechop_ABI/blob/master/porechop_abi/adapters.py), just specify the ```--adapter_trimming``` option.  
-To search ab initio for adapters on top of known adapters, specify ```--adapter_trimming --porechop_options '-abi'```.  
-To limit the search to custom adapters, specify ```--adapter_trimming --porechop_custom_primers --porechop_options '-ddb'``` and list the custom adapters in the text file located under bin/adapters.txt following the format:
+To search ab initio for adapters on top of known adapters, specify ```--adapter_trimming --porechop_options '-abi '```.  
+To limit the search to custom adapters, specify ```--adapter_trimming --porechop_custom_primers --porechop_options '-ddb '``` and list the custom adapters in the text file located under bin/adapters.txt following the format:
     ```
      line 1: Adapter name
      line 2: Start adapter sequence

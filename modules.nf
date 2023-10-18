@@ -129,7 +129,6 @@ process NANOPLOT {
   if [[ ${sample} == *trimmed.fastq.gz ]] || [[ ${sample} == *filtered.fastq.gz ]] ;
   then
     NanoPlot -t 2 --fastq ${sample} --prefix ${sampleid}_filtered_ --plots dot --N50 --tsv_stats
-    
   else
     NanoPlot -t 2 --fastq ${sample} --prefix ${sampleid}_raw_ --plots dot --N50 --tsv_stats
   fi

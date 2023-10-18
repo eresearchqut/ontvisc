@@ -488,13 +488,13 @@ process PORECHOP_ABI {
     file("${sampleid}_porechop.log")
     tuple val(sampleid), file("${sampleid}_porechop_trimmed.fastq.gz"), emit: porechopabi_trimmed_fq
 
-  def porechop_options = (params.porechop_options) ? " ${params.porechop_options}" : ''
   script:
+  def porechop_options = (params.porechop_options) ? " ${params.porechop_options}" : ''
   """
   if [[ ${params.porechop_custom_primers} == true ]]; then
-    porechop_abi ${params.porechop_options} -i ${sample} -t ${task.cpus} -o ${sampleid}_porechop_trimmed.fastq.gz --custom_adapters ${projectDir}/bin/adapters.txt  > ${sampleid}_porechop.log
+    porechop_abi -i ${sample} -t ${task.cpus} -o ${sampleid}_porechop_trimmed.fastq.gz --custom_adapters ${projectDir}/bin/adapters.txt ${porechop_options}  > ${sampleid}_porechop.log
   else
-    porechop_abi ${params.porechop_options} -i ${sample} -t ${task.cpus} -o ${sampleid}_porechop_trimmed.fastq.gz > ${sampleid}_porechop.log
+    porechop_abi -i ${sample} -t ${task.cpus} -o ${sampleid}_porechop_trimmed.fastq.gz ${porechop_options}  > ${sampleid}_porechop.log
   fi
   """
 }
@@ -1127,5 +1127,3 @@ workflow {
       exit 1, "Please specify one analysis mode out of: read_classification, clustering, denovo_assembly, map2ref" }
   }
 }
-   
-  
