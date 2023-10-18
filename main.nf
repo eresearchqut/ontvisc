@@ -31,35 +31,33 @@ def helpMessage () {
 
       #### Pre-processing and QC options ####
       --qc_only                       Only perform preliminary QC step using Nanoplot
+      --analysis_mode                 clustering, denovo_assembly, read_classification, map2ref
+                                      Default: ''
       --adapter_trimming              Run porechop step
                                       [False]
       --porechop_options              Porechop_ABI options
                                       [null]
       --qual_filt                     Run quality filtering step
                                       [False]
-      --qual_filt_method              Specify which method to use (chopper or nanofilt) to perform quality filtering step
-                                      [chopper]                                 
+      --chopper_options               Chopper options
+                                      [null]                                        
       --host_filtering                Run host filtering step using Minimap2
                                       Default: false                 
       --host_fasta                    Fasta file of nucleotide sequences to filter
                                       [null]
-      --denovo_assembly               Skip de novo assembly step
-                                      Default: false
       --canu                          Use Canu for de novo assembly step
-                                      Default:  false
+                                      Default: false
       --canu_options                  Canu options
                                       Default:  ''
       --flye                          Use Flye for de novo assembly step
       --flye_ont_mode                 Select from nano-raw, nano-corr, nano-hq
                                       Default:  'nano-raw'
       --flye_options                  Flye options
-                                      Default:  ''
-      --clustering                    Run clustering step using Rattle
-                                      Default:  false
+                                      Default: ''
       --rattle_clustering_options     Rattle clustering options
-                                      Default:  ''
+                                      Default: ''
       --rattle_polishing_options      Rattle polishing options
-                                      Default:  ''
+                                      Default: ''
       --final_primer_check            Performs a final primer check after performing de novo assembly step
                                       Default: false
 
@@ -198,32 +196,12 @@ process CHOPPER {
 
   output:
     path("${sampleid}_chopper.log")
-    path("${sampleid}_filtered.fastq.gz")
     tuple val(sampleid), path("${sampleid}_filtered.fastq.gz"), emit: chopper_filtered_fq
 
   script:
   def chopper_options = (params.chopper_options) ? " ${params.chopper_options}" : ''
   """
   gunzip -c ${sample} | chopper ${chopper_options} 2> ${sampleid}_chopper.log | gzip > ${sampleid}_filtered.fastq.gz
-  """
-}
-
-process NANOFILT {
-  publishDir "${params.outdir}/${sampleid}/preprocessing/nanofilt", pattern: '*_nanofilt.log', mode: 'link'
-  tag "${sampleid}"
-  label 'setting_1'
-
-  input:
-    tuple val(sampleid), path(sample)
-
-  output:
-    path("${sampleid}_filtered.fastq.gz")
-    tuple val(sampleid), path("${sampleid}_filtered.fastq.gz"), emit: nanofilt_filtered_fq
-
-  script:
-  def nanofilt_options = (params.nanofilt_options) ? " ${params.nanofilt_options}" : ''
-  """
-  gunzip -c ${sample} | NanoFilt ${nanofilt_options} | gzip > ${sampleid}_filtered.fastq.gz
   """
 }
 
@@ -865,20 +843,6 @@ process KRAKEN2 {
   awk -F "\\t" '{print \$2}' ${sampleid}.kraken2 >> ${sampleid}_seq_ids.txt
   """
 }
-/*
-gawk 'match($0, pattern, ary) {print ary[1]}'
-	echo "seq_id" > seq_ids.txt 
-	awk -F "\\t" '{print \$2}' krakenreport.txt >> seq_ids.txt       
-	gawk -F "\\t" 'match(\$0, /\\(taxid\s([0-9]+)\\)/, ary) {print ary[1]}' krakenreport.txt | taxonkit lineage --data-dir $taxondb > lineage.txt
-	cat lineage.txt | taxonkit reformat --data-dir $taxondb | csvtk -H -t cut -f 1,3 | csvtk -H -t sep -f 2 -s ';' -R > seq_tax.txt
-	cat lineage.txt | taxonkit reformat -P --data-dir $taxondb | csvtk -H -t cut -f 1,3 > seq_tax_otu.txt
-	paste seq_ids.txt seq_tax.txt > kraken_report_annotated.txt
-	paste seq_ids.txt seq_tax_otu.txt > kraken_report_annotated_otu.txt
-	"""
-
-set +eu
-	sed '/^@/s/.\s./_/g' ${filtered} > krkinput.fastq
-*/
 
 process BRACKEN {
   tag "${sampleid}"
@@ -1023,15 +987,10 @@ workflow {
       trimmed_fq = MERGE.out.merged
     }
 
-    // Qualit filtering of reads using either nanofilt or chopper
+    // Qualit filtering of reads using chopper
     if (params.qual_filt) {
-      if (params.qual_filt_method == "nanofilt") {
-        NANOFILT ( trimmed_fq )
-        filtered_fq = NANOFILT.out.nanofilt_filtered_fq
-      }
-      else if (params.qual_filt_method == "chopper") {
-        CHOPPER ( trimmed_fq)
-        filtered_fq = CHOPPER.out.chopper_filtered_fq
+      CHOPPER ( trimmed_fq)
+      filtered_fq = CHOPPER.out.chopper_filtered_fq
       }
     }
     else { filtered_fq = trimmed_fq
@@ -1039,41 +998,6 @@ workflow {
 
     REFORMAT( filtered_fq )
 
-  
-  
-  /*
-    if (params.adapter_trimming & params.qual_filt) {
-      PORECHOP_ABI ( MERGE.out.merged )
-      if (params.nanofilt) {
-        NANOFILT ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
-        filtered_fq = REFORMAT( NANOFILT.out.nanofilt_filtered_fq )
-      }
-      else if (params.chopper) {
-        CHOPPER ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
-        filtered_fq = REFORMAT( CHOPPER.out.chopper_filtered_fq )
-      }
-    }
-
-    else if (params.adapter_trimming & !params.qual_filt) {
-      PORECHOP_ABI ( MERGE.out.merged )
-      filtered_fq = REFORMAT( PORECHOP_ABI.out.porechopabi_trimmed_fq )
-    }
-
-    else if (!params.adapter_trimming & params.qual_filt) {
-      if (params.nanofilt) {
-        NANOFILT ( MERGE.out.merged )
-        filtered_fq = REFORMAT( NANOFILT.out.nanofilt_filtered_fq )
-      }
-      else if (params.chopper) {
-        CHOPPER ( MERGE.out.merged )
-        filtered_fq = REFORMAT ( CHOPPER.out.chopper_filtered_fq )
-      }
-    }
-
-    else if ( !params.adapter_trimming & !params.qual_filt ) {
-      filtered_fq = REFORMAT ( MERGE.out.merged )
-    }
-  */
     if ( params.qual_filt & params.adapter_trimming | !params.qual_filt & params.adapter_trimming | params.qual_filt & !params.adapter_trimming) {
       QC_POST_DATA_PROCESSING ( filtered_fq )
     }
@@ -1095,14 +1019,6 @@ workflow {
       ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS_STEP1.out.read_counts.collect().ifEmpty([]))
       ch_multiqc_files = ch_multiqc_files.mix(QC_POST_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
       QCREPORT(ch_multiqc_files.collect())
-      /*
-      if ( params.qual_filt ) {
-        ch_multiqc_files = ch_multiqc_files.mix(QC_POST_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
-      }
-      elif ( params.adapter_trimming ) {
-        ch_multiqc_files = ch_multiqc_files.mix(PORECHOP_ABI.out.read_counts.collect().ifEmpty([]))
-      }
-      */
     }
 
     else if ( params.host_filtering & !params.adapter_trimming & !params.qual_filt ) {
@@ -1111,6 +1027,7 @@ workflow {
       ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS_STEP1.out.read_counts.collect().ifEmpty([]))
       QCREPORT(ch_multiqc_files.collect())
     }
+
     else if ( ( params.qual_filt | params.adapter_trimming ) & !params.host_filtering) {
       ch_multiqc_files = Channel.empty()
       ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
@@ -1118,16 +1035,6 @@ workflow {
       QCREPORT(ch_multiqc_files.collect())
     }
 
-    /*
-    else if ( params.adapter_trimming ) {
-      ch_multiqc_files = Channel.empty()
-      ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
-      ch_multiqc_files = ch_multiqc_files.mix(QC_POST_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
-      QCREPORT(ch_multiqc_files.collect())
-    }
-  
-
-  
     /*
     if (params.hybrid) {
       if (params.canu) {
@@ -1159,7 +1066,7 @@ workflow {
     */
     
     //perform clustering using Rattle
-    if (params.clustering) {
+    if ( params.analysis_mode == 'clustering' ) {
       RATTLE ( final_fq )
       FASTQ2FASTA( RATTLE.out.clusters )
       CAP3( FASTQ2FASTA.out.fasta )
@@ -1175,7 +1082,7 @@ workflow {
     
     }
     //perform de novo assembly using either canu or flye
-    else if ( params.denovo_assembly ) {
+    else if ( params.analysis_mode == 'denovo_assembly' ) {
       if (params.canu) {
         CANU ( final_fq )
         contigs = CANU.out.assembly2
@@ -1204,9 +1111,8 @@ workflow {
         EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
       }
     }
-    
 
-    else if (params.read_classification) {
+    else if ( params.analysis_mode == 'read_classification') {
     //just perform direct read search
       if (params.megablast) {
         FASTQ2FASTA_STEP1( final_fq )
@@ -1227,7 +1133,7 @@ workflow {
     }
 
       //just perform direct alignment 
-    else if (params.map2ref) {
+    else if ( params.analysis_mode == 'map2ref') {
       MINIMAP2_REF ( final_fq )
       SAMTOOLS ( MINIMAP2_REF.out.aligned_sample )
       BAMCOVERAGE ( SAMTOOLS.out.sorted_sample )
@@ -1238,7 +1144,7 @@ workflow {
       }
 */
     }
-    else { exit 1, "Please specify an analysis mode: read classification, clustering, assembly, map2ref" }
+    else { exit 1, "Please specify one analysis mode: read_classification, clustering, denovo_assembly, map2ref" }
   }
 }
    

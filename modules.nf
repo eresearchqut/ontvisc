@@ -24,7 +24,6 @@ process MINIMAP2_ALIGN_DNA {
   path(reference)
   output:
   tuple val(sampleid), path(fastq), path("${sampleid}_unaligned_ids.txt"), emit: sequencing_ids
-  //tuple val(sampleid), path("${sampleid}.sam"), emit: sam
 
   script:
   """
@@ -42,7 +41,6 @@ process MINIMAP2_ALIGN_RNA {
   path(reference)
   output:
   tuple val(sampleid), path(fastq), path("${sampleid}_unaligned_ids.txt"), emit: sequencing_ids
-  //tuple val(sampleid), path("${sampleid}.sam"), emit: sam
 
   script:
   """
@@ -101,7 +99,6 @@ process MAP_BACK_TO_ASSEMBLY {
 process FASTQ2FASTA {
   tag "${sampleid}"
   label "setting_2"
-  //publishDir "$params.outdir/$sampleid/fasta", mode: 'copy', pattern: '*.fasta'
 
   input:
   tuple val(sampleid), path(fastq)
@@ -128,7 +125,6 @@ process NANOPLOT {
     path("*NanoStats.txt"), emit: read_counts
   
   script:
- // if (sample.endsWith("quality_trimmed.fastq.gz")) {
   """
   if [[ ${sample} == *trimmed.fastq.gz ]] || [[ ${sample} == *filtered.fastq.gz ]] ;
   then
@@ -139,11 +135,7 @@ process NANOPLOT {
   fi
   """
 }
-/*
-\$(expr \$(zcat ${sample}  | wc -l) / 4) >> ${sampleid}_quality_trimmed_reads_count.txt
-\$(expr \$(zcat ${sample}  | wc -l) / 4) >> ${sampleid}_raw_reads_count.txt
-  fi
-*/
+
 process BLASTN {
   tag "${sampleid}"
   containerOptions "${bindOptions}"

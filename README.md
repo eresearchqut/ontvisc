@@ -66,11 +66,11 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
 
 ## Running the pipeline
 
-- Download the pipeline:
+- Run the command:
   ```
   nextflow run maelyg/ontvisc -profile {singularity, docker} --samplesheet index.csv
   ```
-  The first time the command runs, it will download the pipeline and save it into your assets.  
+  The first time the command runs, it will download the pipeline into your assets.  
 
   The source code can also be downloaded directly from GitHub using the git command:
   ```
@@ -96,7 +96,7 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
   ```
   setting the profile parameter to one of ```docker``` or ```singularity``` to suit your environment.
   
-- Specify an analysis mode: read classification, clustering, assembly, map2ref (see below for more details)
+- Specify one analysis mode: --analysis_mode {read classification, clustering, assembly, map2ref} (see below for more details)
 
 - To set additional parameters, you can either include these in your nextflow run command:
   ```
@@ -130,9 +130,8 @@ To limit the search to custom adapters, specify ```--adapter_trimming --porechop
      --- repeat for each adapter pair---
      ```
 
-- Perform a quality filtering step using ```--qual_filt``` and run either [`Chopper`](https://github.com/wdecoster/chopper) or [`NanoFilt`](https://github.com/wdecoster/nanofilt) by specifying ```--qual_filt_method chopper``` (default) or the ```--qual_filt_method nanofilt``` respectively. Chopper and NanoFilt options can be specified using the ```--chopper_options``` and the ```--nanofilt_options``` respectively. Please refer to the Chopper and NanoFilt manuals.  
-For instance to use the tool Chopper to filter reads shorter than 1000 bp and longer than 20000 bp, and reads with a minimum Phred average quality score of 10, you would specify: ```--qual_filt --qual_filt_method chopper --chopper_options '-q 10 -l 1000 --maxlength 20000'```.  
-These same options can be used with NanoFilt.  
+- Perform a quality filtering step using ```--qual_filt``` using [`Chopper`](https://github.com/wdecoster/chopper). Chopper options can be specified using the ```--chopper_options```. Please refer to the Chopper manual.  
+For instance to filter reads shorter than 1000 bp and longer than 20000 bp, and reads with a minimum Phred average quality score of 10, you would specify: ```--qual_filt --chopper_options '-q 10 -l 1000 --maxlength 20000'```.  
 
 A zipped copy of the resulting preprocessed and/or quality filtered fastq file will be saved in the preprocessing folder.  
 
