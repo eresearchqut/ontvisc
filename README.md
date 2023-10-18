@@ -141,7 +141,8 @@ If you trim raw read of adapters and/or quality filter the raw reads, an additio
 
 A qc report will be generated summarising the read counts recovered after host filtering.
 
-# Running read classification (--analysis_mode read_classification)
+# Analysis modes
+1) Read classification (--analysis_mode read_classification)
 - Perform a direct blast homology search using megablast (``--megablast``).
 
   Example 1 using a viral database:
@@ -216,7 +217,7 @@ A qc report will be generated summarising the read counts recovered after host f
                               --blastn_db /path/to/ncbi_blast_db/nt
     ```
 
-# Running de novo assembly (--analysis_mode denovo_assembly)
+2) De novo assembly (--analysis_mode denovo_assembly)
 You can run a de novo assembly using either Flye or Canu. 
 
 If the data analysed was derived using RACE reactions, a final primer check can be performed after the de novo assembly step using the ```--final_primer_check``` option. The pipeline will check for the presence of any residual universal RACE primers at the end of the assembled contigs.
@@ -263,7 +264,7 @@ If the data analysed was derived using RACE reactions, a final primer check can 
                               --blastn_db /path/to/ncbi_blast_db/nt
   ```
 
-# Run clustering (--analysis_mode clustering)
+3) Clustering (--analysis_mode clustering)
 In the clustering mode, the tool [`RATTLE`](https://github.com/comprna/RATTLE#Description-of-clustering-parameters) will be run and the clusters obtained will be further collapsed using CAP3. 
 For RATTLE, use the parameter ```--rattle_clustering_options '--raw'``` to use all the reads without any length filtering during the RATTLE clustering step if your amplicon is known to be shorter than 150 bp.
 
@@ -290,7 +291,7 @@ nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
                             --blastn_db /path/to/ncbi_blast_db/nt
 ```
 
-# Directly mapping to reference (--analysis_mode map2ref)
+4) Direct mapping to reference (--analysis_mode map2ref)
 In this mode, the reads are directly mapped to a reference using minimap2 and a bam file is generated. Samtools is then used to generate summary statistics and a coverage histogram.  
 
 Example of command:
