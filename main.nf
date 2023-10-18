@@ -352,7 +352,6 @@ process MINIASM {
 }
 */
 process MINIMAP2_REF {
-  publishDir "${params.outdir}/${sampleid}/mapping", mode: 'link'
   tag "${sampleid}"
   label 'setting_2'
   containerOptions "${bindOptions}"
@@ -1113,8 +1112,9 @@ workflow {
     else if ( params.analysis_mode == 'map2ref') {
       MINIMAP2_REF ( final_fq )
       SAMTOOLS ( MINIMAP2_REF.out.aligned_sample )
-      BAMCOVERAGE ( SAMTOOLS.out.sorted_sample )
-/*      if (params.infoseq) {
+      
+/*    BAMCOVERAGE ( SAMTOOLS.out.sorted_sample )  
+if (params.infoseq) {
         INFOSEQ ( MINIMAP2_REF.out.aligned_sample )
         SAMTOOLS ( INFOSEQ.out.infoseq_ref )
         NANOQ ( SAMTOOLS.out.sorted_sample )

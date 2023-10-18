@@ -137,11 +137,11 @@ A zipped copy of the resulting preprocessed and/or quality filtered fastq file w
 If you trim raw read of adapters and/or quality filter the raw reads, an additional quality control step will be performed and a qc report will be generated summarising the read counts recovered before and after preprocessing for all samples listed in the index.csv file.
 
 # Filtering host reads
-- Reads mapping to a host genome reference or sequences can be filtered out by specifying the ``--host_filtering`` parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``..
+- Reads mapping to a host genome reference or sequences can be filtered out by specifying the ``--host_filtering`` parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``.
 
 A qc report will be generated summarising the read counts recovered after host filtering.
 
-# Running read classification (--read_classification)
+# Running read classification (--analysis_mode read_classification)
 - Perform a direct blast homology search using megablast (``--megablast``).
 
   Example 1 using a viral database:
@@ -151,7 +151,7 @@ A qc report will be generated summarising the read counts recovered after host f
 
   nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
                               --adapter_trimming \
-                              --read_classification \
+                              --analysis_mode read_classification \
                               --megablast \
                               --blast_threads 8 \
                               --blast_mode localdb \
@@ -168,7 +168,7 @@ A qc report will be generated summarising the read counts recovered after host f
 
   nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
                               --adapter_trimming \
-                              --read_classification \
+                              --analysis_mode read_classification \
                               --megablast \
                               --blast_threads 8 \
                               --blast_mode ncbi \ #default
@@ -184,7 +184,7 @@ A qc report will be generated summarising the read counts recovered after host f
 
   nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
                               --adapter_trimming \
-                              --read_classification \
+                              --analysis_mode read_classification \
                               --kraken2 \
                               --krkdb /path/to/kraken2_db \
                               --kaiju \
@@ -204,7 +204,7 @@ A qc report will be generated summarising the read counts recovered after host f
                               --adapter_trimming \
                               --host_filtering \
                               --host_fasta /path/to/host/fasta/file \
-                              --read_classification \
+                              --analysis_mode read_classification \
                               --kraken2 \
                               --krkdb /path/to/kraken2_db \
                               --kaiju \
@@ -216,7 +216,7 @@ A qc report will be generated summarising the read counts recovered after host f
                               --blastn_db /path/to/ncbi_blast_db/nt
     ```
 
-# Running de novo assembly (--denovo_assembly)
+# Running de novo assembly (--analysis_mode denovo_assembly)
 You can run a de novo assembly using either Flye or Canu. 
 
 If the data analysed was derived using RACE reactions, a final primer check can be performed after the de novo assembly step using the ```--final_primer_check``` option. The pipeline will check for the presence of any residual universal RACE primers at the end of the assembled contigs.
@@ -235,7 +235,7 @@ If the data analysed was derived using RACE reactions, a final primer check can 
   # Blast the resulting contigs to a reference.
   nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
                               --adapter_trimming \
-                              --denovo_assembly --canu \
+                              --analysis_mode denovo_assembly --canu \
                               --canu_options 'useGrid=false' \
                               --canu_genome_size 0.01m \
                               --blast_vs_ref  \
@@ -256,15 +256,15 @@ If the data analysed was derived using RACE reactions, a final primer check can 
   # Perform de novo assembly with Flye
   # Blast the resulting contigs to a reference.
   nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
-                              --denovo_assembly --flye \
+                              --analysis_mode denovo_assembly --flye \
                               --flye_options '--genome-size 0.01m --meta' \
                               --flye_ont_mode '--nano-raw'
                               --blast_threads 8 \
                               --blastn_db /path/to/ncbi_blast_db/nt
   ```
 
-# Run clustering (--clustering)
-In the clustering mode, the clustering tool [`RATTLE`](https://github.com/comprna/RATTLE#Description-of-clustering-parameters) will be run and the clusters obtained will be further collapsed using CAP3. 
+# Run clustering (--analysis_mode clustering)
+In the clustering mode, the tool [`RATTLE`](https://github.com/comprna/RATTLE#Description-of-clustering-parameters) will be run and the clusters obtained will be further collapsed using CAP3. 
 For RATTLE, use the parameter ```--rattle_clustering_options '--raw'``` to use all the reads without any length filtering during the RATTLE clustering step if your amplicon is known to be shorter than 150 bp.
 
 When the amplicon is of known size, we recommend setting up the parameters ```--lower-length [number]``` (by default: 150) and ```--upper-length [number]``` (by default: 100,000) to filter out reads shorter and longer than the expected size.
@@ -274,7 +274,7 @@ Set the parameter ```--rattle_clustering_options '--rna'``` and ```--rattle_poli
 Example in which all reads will be retained during the clustering step:
 ```
 nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
-                            --clustering \
+                            --analysis_mode clustering \
                             --rattle_clustering_options '--raw' \
                             --blast_threads 8 \
                             --blastn_db /path/to/ncbi_blast_db/nt
@@ -284,12 +284,21 @@ Example in which reads are first quality filtered using the tool chopper (only r
 ```
 nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
                             --qual_filt --qual_filt_method chopper --chopper_options '-q 10' \
-                            --clustering \
+                            --analysis_mode clustering \
                             --rattle_clustering_options '--lower-length 500 --upper-length 2000' \
                             --blast_threads 8 \
                             --blastn_db /path/to/ncbi_blast_db/nt
 ```
 
+# Directly mapping to reference (--analysis_mode map2ref)
+In this mode, the reads are directly mapped to a reference using minimap2 and a bam file is generated. Samtools is then used to generate summary statistics and a coverage histogram.  
+
+Example of command:
+```
+nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
+                            --analysis_mode map2ref \
+                            --reference /path/to/reference.fasta
+```
 ### Authors
 Marie-Emilie Gauthier <gauthiem@qut.edu.au>  
 Craig Windell <c.windell@qut.edu.au>  
