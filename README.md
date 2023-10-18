@@ -67,16 +67,15 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
 ## Running the pipeline
 
 - Download the pipeline:
-  The source code can be downloaded directly from GitHub using the git command line client:
-  ```
-  git clone https://github.com/maelyg/ontvisc.git
-  ```
-
-  Or you can run the command:
   ```
   nextflow run maelyg/ontvisc -profile {singularity, docker} --samplesheet index.csv
   ```
-  The first time the command runs, it will download the pipeline and save it into your assets.
+  The first time the command runs, it will download the pipeline and save it into your assets.  
+
+  The source code can also be downloaded directly from GitHub using the git command:
+  ```
+  git clone https://github.com/maelyg/ontvisc.git
+  ```
 
 - Provide an index.csv file.  
   Create a comma separated file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the ```--samplesheet [filename]``` in the nextflow run command. This text file requires the following columns (which needs to be included as a header): ```sampleid,sample_files``` 
@@ -97,14 +96,6 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
   ```
   setting the profile parameter to one of ```docker``` or ```singularity``` to suit your environment.
   
-  Alternatively you can set which profile to use in the nextflow.config file. For example, you would add the following lines, if you want to use singularity:
-  ```
-  singularity {
-    enabled = true
-    autoMounts = true
-  }
-  ```
-
 - Specify an analysis mode: read classification, clustering, assembly, map2ref (see below for more details)
 
 - To set additional parameters, you can either include these in your nextflow run command:
@@ -122,10 +113,12 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
 # Running QC step
 By default the pipeline will run a quality control check of the raw reads using NanoPlot.
 
-- Run only the quality control step to have a preliminary look at the data before proceeding with downstream analysis by specifying the ```--qc_only``` parameter.
+- Run only the quality control step to have a preliminary look at the data before proceeding with downstream analyses by specifying the ```--qc_only``` parameter.
 
-# Pre-processing reads (optional)
-Raw read can be trimmed of adapters and/or quality filtered.
+# Pre-processing reads
+During this step, read names iun the fastq files will be trimmed after the first whitespace, for compatiblity purposes with all downstream tools.  
+
+Reads can also be optionally trimmed of adapters and/or quality filtered.  
 - Search for presence of adapters in sequences reads using [`Porechop ABI`](https://github.com/rrwick/Porechop) by specifying the ``--adapter_trimming`` parameter. Porechop ABI parameters can be specified using ```--porechop_options '{options}'```. Please refer to the Porechop manual.  
 To limit the search to known adapters listed in [`adapter.py`](https://github.com/bonsai-team/Porechop_ABI/blob/master/porechop_abi/adapters.py), just specify the ```--adapter_trimming``` option.  
 To search ab initio for adapters on top of known adapters, specify ```--adapter_trimming --porechop_options '-abi'```.  
@@ -141,12 +134,14 @@ To limit the search to custom adapters, specify ```--adapter_trimming --porechop
 For instance to use the tool Chopper to filter reads shorter than 1000 bp and longer than 20000 bp, and reads with a minimum Phred average quality score of 10, you would specify: ```--qual_filt --qual_filt_method chopper --chopper_options '-q 10 -l 1000 --maxlength 20000'```.  
 These same options can be used with NanoFilt.  
 
-- If you trim raw read of adapters and/or quality filter the raw reads, an additional quality control step will be performed and a qc report will be generated summarising the read counts recovered before and after preprocessing.
+A zipped copy of the resulting preprocessed and/or quality filtered fastq file will be saved in the preprocessing folder.
+
+- If you trim raw read of adapters and/or quality filter the raw reads, an additional quality control step will be performed and a qc report will be generated summarising the read counts recovered before and after preprocessing for all samples listed in the index.csv file.
 
 # Filtering host reads
-- Reads mapping to a host genome reference or sequences can be filtered out by specifying the ``--host_filtering`` parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``.  
-A qc report will be generated summarising the read counts recovered after host filtering.
+- Reads mapping to a host genome reference or sequences can be filtered out by specifying the ``--host_filtering`` parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``..
 
+A qc report will be generated summarising the read counts recovered after host filtering.
 
 # Running read classification (--read_classification)
 - Perform a direct blast homology search using megablast (``--megablast``).

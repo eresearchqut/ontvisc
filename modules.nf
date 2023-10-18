@@ -15,7 +15,7 @@ switch (workflow.containerEngine) {
     bindOptions = "";
 }
 
-process MINIMAP2_ALIGN {
+process MINIMAP2_ALIGN_DNA {
   tag "${sampleid}"
   label "setting_8"
 
@@ -26,14 +26,31 @@ process MINIMAP2_ALIGN {
   tuple val(sampleid), path(fastq), path("${sampleid}_unaligned_ids.txt"), emit: sequencing_ids
   //tuple val(sampleid), path("${sampleid}.sam"), emit: sam
 
-  def minimap_options = (params.minimap_options) ? " ${params.minimap_options}" : ''
-
   script:
   """
-  minimap2 -ax ${minimap_options} -uf -k14 ${reference} ${fastq} -t ${task.cpus} > ${sampleid}.sam
+  minimap2 -ax map-ont -L ${reference} ${fastq} -t ${task.cpus} > ${sampleid}.sam
   awk '\$6 == "*" { print \$0 }' ${sampleid}.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
   """
 }
+
+process MINIMAP2_ALIGN_RNA {
+  tag "${sampleid}"
+  label "setting_8"
+
+  input:
+  tuple val(sampleid), path(fastq)
+  path(reference)
+  output:
+  tuple val(sampleid), path(fastq), path("${sampleid}_unaligned_ids.txt"), emit: sequencing_ids
+  //tuple val(sampleid), path("${sampleid}.sam"), emit: sam
+
+  script:
+  """
+  minimap2 -ax splice -uf -k14 -L ${reference} ${fastq} -t ${task.cpus} > ${sampleid}.sam
+  awk '\$6 == "*" { print \$0 }' ${sampleid}.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
+  """
+}
+
 process EXTRACT_READS {
   tag "${sampleid}"
   label "setting_11"

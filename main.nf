@@ -40,10 +40,8 @@ def helpMessage () {
       --qual_filt_method              Specify which method to use (chopper or nanofilt) to perform quality filtering step
                                       [chopper]                                 
       --host_filtering                Run host filtering step using Minimap2
-                                      Default: false
-      --minimap_options               Set to 'splice' for RNA or ‘map-ont’ for DNA libraries
-                                      Default:  splice'                          
-      --host_fasta              Fasta file of nucleotide sequences to filter
+                                      Default: false                 
+      --host_fasta                    Fasta file of nucleotide sequences to filter
                                       [null]
       --denovo_assembly               Skip de novo assembly step
                                       Default: false
@@ -62,6 +60,8 @@ def helpMessage () {
                                       Default:  ''
       --rattle_polishing_options      Rattle polishing options
                                       Default:  ''
+      --final_primer_check            Performs a final primer check after performing de novo assembly step
+                                      Default: false
 
     """.stripIndent()
 }
@@ -374,7 +374,7 @@ process MINIASM {
 }
 */
 process MINIMAP2_REF {
-  publishDir "${params.outdir}/${sampleid}/minimap2", mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/mapping", mode: 'link'
   tag "${sampleid}"
   label 'setting_2'
   containerOptions "${bindOptions}"
@@ -385,10 +385,66 @@ process MINIMAP2_REF {
     tuple val(sampleid), file("${sampleid}_aln.sam"), emit: aligned_sample
   script:
   """
-  minimap2 -a --MD ${reference_dir}/${reference_name} ${sample} > ${sampleid}_aln.sam
+  minimap2 -ax map-ont --MD --sam-hit-only ${reference_dir}/${reference_name} ${sample} > ${sampleid}_aln.sam
   """
 }
 
+process SAMTOOLS {
+  publishDir "${params.outdir}/${sampleid}/mapping", mode: 'link'
+  tag "${sampleid}"
+  label 'setting_2'
+
+  input:
+    tuple val(sampleid), path(sample)
+  output:
+    path "${sampleid}_aln.sorted.bam"
+    path "${sampleid}_aln.sorted.bam.bai"
+    path "${sampleid}_coverage.txt"
+    path "${sampleid}_histogram"
+    tuple val(sampleid), path("${sampleid}_aln.sorted.bam"), path("${sampleid}_aln.sorted.bam.bai"), emit: sorted_sample
+  script:
+  """
+  samtools view -Sb ${sample} | samtools sort -o ${sampleid}_aln.sorted.bam
+  samtools index ${sampleid}_aln.sorted.bam
+  samtools coverage ${sampleid}_aln.sorted.bam > ${sampleid}_histogram.txt  > ${sampleid}_coverage.txt
+  samtools coverage -A -w 50 ${sampleid}_aln.sorted.bam > ${sampleid}_histogram
+
+  """
+}
+
+/*
+process BAMCOVERAGE {
+  publishDir "${params.outdir}/${sampleid}/mapping", mode: 'link'
+  tag "${sampleid}"
+  label 'setting_11'
+
+  input:
+    tuple val(sampleid), path(bam), path(bai)
+  output:
+    path "${sampleid}.bw"
+  script:
+  """
+  bamCoverage -b ${bam} -o ${sampleid}.bw
+  """
+}
+
+
+process BAMCOVERAGE {
+  publishDir "${params.outdir}/${sampleid}/mapping", mode: 'link'
+  tag "${sampleid}"
+  label 'setting_11'
+
+  input:
+    tuple val(sampleid), path(bam), path(bai)
+  output:
+    path "${sampleid}.bamcov.txt"
+  script:
+  """
+  bamcov -H ${bam} > ${sampleid}.bamcov.txt
+  """
+}
+
+/*
 process INFOSEQ {
   publishDir "${params.outdir}/${sampleid}/infoseq", mode: 'link'
   tag "${sampleid}"
@@ -412,6 +468,8 @@ process SAMTOOLS {
   input:
     tuple val(sampleid), path(sample)
   output:
+    path "${sampleid}_aln.sorted.bam"
+    path "${sampleid}_aln.sorted.bam.bai"
     tuple val(sampleid), path("${sampleid}_aln.sorted.bam"), path("${sampleid}_aln.sorted.bam.bai"), emit: sorted_sample
   script:
   """
@@ -480,6 +538,7 @@ process PORECHOP_ABI {
   """
 }
 
+//trims fastq read names after the first whitespace
 process REFORMAT {
   tag "${sampleid}"
   label "setting_3"
@@ -488,11 +547,11 @@ process REFORMAT {
   input:
   tuple val(sampleid), path(fastq)
   output:
-  tuple val(sampleid), path("${sampleid}_quality_trimmed.fastq.gz"), emit: reformatted_fq
+  tuple val(sampleid), path("${sampleid}_preprocessed.fastq.gz"), emit: reformatted_fq
 
   script:
   """
-  reformat.sh in=${fastq} out=${sampleid}_quality_trimmed.fastq.gz trd qin=33
+  reformat.sh in=${fastq} out=${sampleid}_preprocessed.fastq.gz trd qin=33
   """
 }
 
@@ -917,12 +976,12 @@ process CIRCLATOR {
 	"""
 }
 */
-include { MINIMAP2_ALIGN as FILTER_HOST} from './modules.nf'
+include { MINIMAP2_ALIGN_RNA } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP1 } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP2 } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP3 } from './modules.nf'
-include { MINIMAP2_ALIGN as MAP_BACK_TO_CONTIGS } from './modules.nf'
-include { MINIMAP2_ALIGN as MAP_BACK_TO_CLUSTERS } from './modules.nf'
+include { MINIMAP2_ALIGN_DNA as MAP_BACK_TO_CONTIGS } from './modules.nf'
+include { MINIMAP2_ALIGN_DNA as MAP_BACK_TO_CLUSTERS } from './modules.nf'
 include { FASTQ2FASTA } from './modules.nf'
 include { FASTQ2FASTA as FASTQ2FASTA_STEP1} from './modules.nf'
 include { FASTQ2FASTA as FASTQ2FASTA_STEP2} from './modules.nf'
@@ -1020,8 +1079,8 @@ workflow {
     }
 
     if (params.host_filtering) {
-      FILTER_HOST ( REFORMAT.out.reformatted_fq, params.host_fasta )
-      EXTRACT_READS_STEP1 ( FILTER_HOST.out.sequencing_ids )
+      MINIMAP2_ALIGN_RNA ( REFORMAT.out.reformatted_fq, params.host_fasta )
+      EXTRACT_READS_STEP1 ( MINIMAP2_ALIGN_RNA.out.sequencing_ids )
       //EXTRACT_UNMAPPED ( FILTER_HOST.out.sam )
       //final_fq = EXTRACT_UNMAPPED.out.unaligned_fq
       final_fq = EXTRACT_READS_STEP1.out.unaligned_fq
@@ -1169,12 +1228,15 @@ workflow {
 
       //just perform direct alignment 
     else if (params.map2ref) {
-      MINIMAP2_REF ( REFORMAT.out.final_fq )
-      if (params.infoseq) {
+      MINIMAP2_REF ( final_fq )
+      SAMTOOLS ( MINIMAP2_REF.out.aligned_sample )
+      BAMCOVERAGE ( SAMTOOLS.out.sorted_sample )
+/*      if (params.infoseq) {
         INFOSEQ ( MINIMAP2_REF.out.aligned_sample )
         SAMTOOLS ( INFOSEQ.out.infoseq_ref )
         NANOQ ( SAMTOOLS.out.sorted_sample )
       }
+*/
     }
     else { exit 1, "Please specify an analysis mode: read classification, clustering, assembly, map2ref" }
   }
