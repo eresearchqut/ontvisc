@@ -473,23 +473,6 @@ process NANOQ {
   nano-q.py -b ${sorted_sample} -c ${params.nanoq_code_start} -l ${params.nanoq_read_length} -nr ${params.nanoq_num_ref} -q ${params.nanoq_qual_threshhold} -j ${params.nanoq_jump}
   """
 }
-/*
-process PORECHOP {
-	tag "${sampleid}"
-	label "xlarge2"
-	publishDir "$params.outdir/${sampleid}/porechop",  mode: 'copy', pattern: "*.log", saveAs: { filename -> "${sample}_$filename" }
-
-  container = 'docker://quay.io/biocontainers/porechop:0.2.3_seqan2.1.1--0'
-
-	input:
-		tuple val(sampleid), path(sample)
-	output:
-		tuple val(sampleid), file("porechop_trimmed.fastq.gz"), emit: porechop_trimmed_fq
-	script:
-	"""
-	porechop -i ${sample} -t ${params.porechop_threads} -o porechop_trimmed.fastq.gz ${params.porechop_args}
-	"""
-}
 */
 process PORECHOP_ABI {
   tag "${sampleid}"
@@ -977,12 +960,7 @@ workflow {
       PORECHOP_ABI ( MERGE.out.merged )
       trimmed_fq = PORECHOP_ABI.out.porechopabi_trimmed_fq
     }
-    /*
-    else if (params.race) {
-      CUTADAPT ( MERGE.out.merged )
-      trimmed_fq = CUTADAPT.out.cutadapt_filtered
-    }
-    */
+    
     else { 
       trimmed_fq = MERGE.out.merged
     }
@@ -992,7 +970,6 @@ workflow {
       CHOPPER ( trimmed_fq)
       filtered_fq = CHOPPER.out.chopper_filtered_fq
       }
-    }
     else { filtered_fq = trimmed_fq
     }
 
