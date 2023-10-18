@@ -1119,9 +1119,12 @@ workflow {
         SAMTOOLS ( INFOSEQ.out.infoseq_ref )
         NANOQ ( SAMTOOLS.out.sorted_sample )
       }
+      else if ( params.analysis_mode != 'map2ref' & params.analysis_mode != 'read_classification' & params.analysis_mode != 'denovo_assembly' & params.analysis_mode != 'clustering' ) {
+      exit 1, "Please specify one analysis mode out of: read_classification, clustering, denovo_assembly, map2ref" }
 */
     }
-    else { exit 1, "Please specify one analysis mode: read_classification, clustering, denovo_assembly, map2ref" }
+    else {
+      exit 1, "Please specify one analysis mode out of: read_classification, clustering, denovo_assembly, map2ref" }
   }
 }
    
