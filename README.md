@@ -303,7 +303,6 @@ nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
 
 # Output files
 
-## Example for read classification mode
 ```
 results
 ├── MT001
