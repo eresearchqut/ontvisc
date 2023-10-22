@@ -121,7 +121,7 @@ process MERGE {
 }
 
 process QCREPORT {
-  publishDir "${params.outdir}/qc_report", mode: 'link'
+  publishDir "${params.outdir}/qc_report", mode: 'copy'
   containerOptions "${bindOptions}"
 
   input:
@@ -225,7 +225,7 @@ stopOnLowCoverage=0
 maxInputCoverage=10000 corOutCoverage=10000 corMhapSensitivity=high corMinCoverage=0 redMemory=32 oeaMemory=32 batMemory=64 useGrid=false minReadLength=200 minOverlapLength=50 maxThreads=4 minInputCoverage=0 stopOnLowCoverage=0
 */
 process CANU {
-  publishDir "${params.outdir}/${sampleid}/assembly", mode: 'link', overwrite: true
+  publishDir "${params.outdir}/${sampleid}/assembly/canu", mode: 'link', overwrite: true
   tag "${sampleid}"
   label 'setting_8'
 
@@ -258,7 +258,7 @@ process CANU {
 }
 
 process FLYE {
-  publishDir "${params.outdir}/${sampleid}/assembly", mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/assembly/flye", mode: 'link'
   tag "${sampleid}"
   label 'setting_9'
 
@@ -293,7 +293,7 @@ flye  --out-dir outdir --threads ${task.cpus} --read-error ${params.flye_read_er
 */
 
 process BLASTN2REF {
-  publishDir "${params.outdir}/${sampleid}/blast_to_ref", mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/blastn/blast_to_ref", mode: 'link'
   tag "${sampleid}"
   label 'setting_1'
   containerOptions "${bindOptions}"
@@ -568,23 +568,55 @@ process BLASTN {
 process EXTRACT_VIRAL_BLAST_HITS {
   tag "${sampleid}"
   label "setting_2"
-  publishDir "$params.outdir/$sampleid/blastn",  mode: 'copy', pattern: '*txt'
+  publishDir "$params.outdir/$sampleid/clustering",  mode: 'copy', pattern: '*/*clustering*txt'
+  publishDir "$params.outdir/$sampleid/assembly",  mode: 'copy', pattern: '*/*assembly*txt'
   containerOptions "${bindOptions}"
 
   input:
   tuple val(sampleid), path(blast_results)
   output:
-  file "${sampleid}_blastn_top_hits.txt"
-  file "${sampleid}_blastn_top_viral_hits.txt"
-  file "${sampleid}_blastn_top_viral_spp_hits.txt"
-  file "${sampleid}_queryid_list_with_viral_match.txt"
-  file "${sampleid}_viral_spp_abundance.txt"
+  file "*/${sampleid}*_blastn_top_hits.txt"
+  file "*/${sampleid}*_blastn_top_viral_hits.txt"
+  file "*/${sampleid}*_blastn_top_viral_spp_hits.txt"
+  file "*/${sampleid}*_queryid_list_with_viral_match.txt"
+  file "*/${sampleid}*_viral_spp_abundance.txt"
 
   script:
-  """  
-  cat ${blast_results} > ${sampleid}_blastn.txt
+  """
+  mkdir blastn
+  cat ${blast_results} > blastn/${sampleid}_blastn.txt
+  cd blastn
+  if [[ ${blast_results} == *clustering_blastn.bls ]] ;
+  then
+    select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method clustering --mode ${params.blast_mode}
+  elif [[ ${blast_results} == *assembly*_blastn.bls ]] ;
+  then
+    select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method assembly --mode ${params.blast_mode}
+  fi
+  """
+}
 
-  select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --mode ${params.blast_mode}
+process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
+  tag "${sampleid}"
+  label "setting_2"
+  publishDir "$params.outdir/$sampleid/read_classification",  mode: 'copy', pattern: 'homology_search/*txt'
+  containerOptions "${bindOptions}"
+
+  input:
+  tuple val(sampleid), path(blast_results)
+  output:
+  file "*/${sampleid}*_blastn_top_hits.txt"
+  file "*/${sampleid}*_blastn_top_viral_hits.txt"
+  file "*/${sampleid}*_blastn_top_viral_spp_hits.txt"
+  file "*/${sampleid}*_queryid_list_with_viral_match.txt"
+  file "*/${sampleid}*_viral_spp_abundance.txt"
+
+  script:
+  """
+  mkdir homology_search
+  cat ${blast_results} > homology_search/${sampleid}_blastn.txt
+  cd homology_search
+  select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method read_classification --mode ${params.blast_mode}
   """
 }
 
@@ -699,7 +731,7 @@ Optional arguments:
   -v            Enable verbose output
 */
 process KAIJU {
-  publishDir "${params.outdir}/${sampleid}/kaiju", mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/read_classification/kaiju", mode: 'link'
   label 'setting_4'
   containerOptions "${bindOptions}"
 
@@ -734,7 +766,7 @@ process KAIJU {
 }
 
 process KRONA {
-  publishDir "${params.outdir}/${sampleid}/krona", mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/read_classification/krona", mode: 'link'
   label 'setting_3'
   containerOptions "${bindOptions}"
 
@@ -799,7 +831,7 @@ Usage: kraken2 [options] <filename(s)>
 process KRAKEN2 {
 	tag "${sampleid}"
 	label 'setting_5'
-	publishDir "$params.outdir/$sampleid/kraken",  mode: 'link'
+	publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'link'
   containerOptions "${bindOptions}"
 
 	input:
@@ -829,7 +861,7 @@ process KRAKEN2 {
 process BRACKEN {
   tag "${sampleid}"
 	label 'setting_2'
-	publishDir "$params.outdir/$sampleid/bracken",  mode: 'link'
+	publishDir "$params.outdir/$sampleid/read_classification/bracken",  mode: 'link'
   containerOptions "${bindOptions}"
 
 	input:
@@ -1096,7 +1128,7 @@ workflow {
         READ_CLASSIFICATION_BLASTN.out.blast_results
           .groupTuple()
           .set { ch_blastresults }
-        EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
+        EXTRACT_VIRAL_BLAST_SPLIT_HITS( ch_blastresults )
       }
       if (params.kaiju) {
         KAIJU ( final_fq )

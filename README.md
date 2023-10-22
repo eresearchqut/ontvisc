@@ -300,6 +300,70 @@ nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
                             --analysis_mode map2ref \
                             --reference /path/to/reference.fasta
 ```
+
+# Output files
+
+## Example for read classification mode
+results
+├── MT001
+│   ├── host_filtering
+│   │   ├── MT001_unaligned.fastq.gz
+│   │   └── MT001_unaligned_reads_count.txt
+│   ├── nanoplot
+│   │   ├── MT001_filtered_LengthvsQualityScatterPlot_dot.html
+│   │   ├── MT001_filtered_NanoPlot-report.html
+│   │   ├── MT001_filtered_NanoStats.txt
+│   │   ├── MT001_filtered_Non_weightedHistogramReadlength.html
+│   │   ├── MT001_filtered_Non_weightedLogTransformed_HistogramReadlength.html
+│   │   ├── MT001_filtered_WeightedHistogramReadlength.html
+│   │   ├── MT001_filtered_WeightedLogTransformed_HistogramReadlength.html
+│   │   ├── MT001_filtered_Yield_By_Length.html
+│   │   ├── MT001_raw_LengthvsQualityScatterPlot_dot.html
+│   │   ├── MT001_raw_NanoPlot-report.html
+│   │   ├── MT001_raw_NanoStats.txt
+│   │   ├── MT001_raw_Non_weightedHistogramReadlength.html
+│   │   ├── MT001_raw_Non_weightedLogTransformed_HistogramReadlength.html
+│   │   ├── MT001_raw_WeightedHistogramReadlength.html
+│   │   ├── MT001_raw_WeightedLogTransformed_HistogramReadlength.html
+│   │   └── MT001_raw_Yield_By_Length.html
+│   ├── preprocessing
+│   │   ├── MT001_preprocessed.fastq.gz
+│   │   ├── MT001_quality_trimmed.fastq.gz
+│   │   └── porechop
+│   │       └── MT001_porechop.log
+│   ├── assembly
+│   │   ├── blastn
+│   │   │   ├── MT001_assembly_blastn_top_hits.txt
+│   │   │   ├── MT001_assembly_blastn_top_viral_hits.txt
+│   │   │   ├── MT001_assembly_blastn_top_viral_spp_hits.txt
+│   │   │   ├── MT001_assembly_queryid_list_with_viral_match.txt
+│   │   │   └── MT001_assembly_viral_spp_abundance.txt
+│   │   ├── canu
+│   │   │   ├── MT001_canu_assembly.fasta
+│   │   │   ├── MT001_canu.fastq
+│   │   │   └── MT001.canu.log
+│   │   ├── MT001_canu_assembly_filtered.fa
+│   │   └── MT001_cutadapt.log
+│   └── read_classification
+│       ├── bracken
+│       │   ├── MT001_bracken_report.txt
+│       │   ├── MT001_bracken_report_viral_filtered.txt
+│       │   └── MT001_bracken_report_viral.txt
+│       ├── homology_search
+│       │   ├── MT001_read_classification_blastn_top_hits.txt
+│       │   ├── MT001_read_classification_blastn_top_viral_hits.txt
+│       │   ├── MT001_read_classification_blastn_top_viral_spp_hits.txt
+│       │   ├── MT001_read_classification_queryid_list_with_viral_match.txt
+│       │   └── MT001_read_classification_viral_spp_abundance.txt
+│       └── kraken
+│           ├── MT001.kraken2
+│           ├── MT001_kraken_report.txt
+│           └── MT001_seq_ids.txt
+└── qc_report
+    └── run_qc_report_20231009-114823.txt
+
+## Example for assembly mode
+
 ### Authors
 Marie-Emilie Gauthier <gauthiem@qut.edu.au>  
 Craig Windell <c.windell@qut.edu.au>  
