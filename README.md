@@ -355,10 +355,18 @@ results
 │       │   ├── MT001_read_classification_blastn_top_viral_spp_hits.txt
 │       │   ├── MT001_read_classification_queryid_list_with_viral_match.txt
 │       │   └── MT001_read_classification_viral_spp_abundance.txt
-│       └── kraken
-│           ├── MT001.kraken2
-│           ├── MT001_kraken_report.txt
-│           └── MT001_seq_ids.txt
+│       ├── kaiju
+│       │   ├── MT001_kaiju.krona
+│       │   ├── MT001_kaiju_name.tsv
+│       │   ├── MT001_kaiju_summary.tsv
+│       │   ├── MT001_kaiju_summary_viral_filtered.tsv
+│       │   └── MT001_kaiju_summary_viral.tsv
+│       ├── kraken
+│       │   ├── MT001.kraken2
+│       │   ├── MT001_kraken_report.txt
+│       │   └── MT001_seq_ids.txt
+│       └── krona
+│           └── MT001_krona.html
 └── qc_report
     └── run_qc_report_20231009-114823.txt
 ```
