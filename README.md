@@ -304,6 +304,7 @@ nextflow run maelyg/ontvisc -resume -profile {singularity, docker} \
 # Output files
 
 ## Example for read classification mode
+```
 results
 ├── MT001
 │   ├── host_filtering
@@ -361,8 +362,7 @@ results
 │           └── MT001_seq_ids.txt
 └── qc_report
     └── run_qc_report_20231009-114823.txt
-
-## Example for assembly mode
+```
 
 ### Authors
 Marie-Emilie Gauthier <gauthiem@qut.edu.au>  
