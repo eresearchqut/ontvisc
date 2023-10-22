@@ -328,7 +328,6 @@ results
 │   │   └── MT001_raw_Yield_By_Length.html
 │   ├── preprocessing
 │   │   ├── MT001_preprocessed.fastq.gz
-│   │   ├── MT001_quality_trimmed.fastq.gz
 │   │   └── porechop
 │   │       └── MT001_porechop.log
 │   ├── assembly
