@@ -37,6 +37,8 @@ The reads can optionally be filtered from a plant host before performing downstr
   - Option 1 Nucleotide taxonomic classification of reads (Kraken2, Braken)
   - Option 2 Protein-based taxonomic classification of reads (Kaiju, Krona)
   - Option 3 Convert fastq to fasta format (seqtk) and perform direct homology search using megablast (blast)
+- Map to reference mode
+  - Align reads to reference fasta file (Minimap2) and derive bam file and alignment statistics (Samtools)
 
 
 ### Authors
