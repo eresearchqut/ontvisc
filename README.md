@@ -34,12 +34,16 @@ The reads can optionally be filtered from a plant host before performing downstr
   - Megablast homology search against ncbi or custom database or reference (blast)
   - Derive top candidate viral hits
 - Read classification mode
-  - Option 1 Nucleotide taxonomic classification of reads (Kraken2, Braken)
+  - Option 1 Nucleotide-based taxonomic classification of reads (Kraken2, Braken)
   - Option 2 Protein-based taxonomic classification of reads (Kaiju, Krona)
   - Option 3 Convert fastq to fasta format (seqtk) and perform direct homology search using megablast (blast)
 - Map to reference mode
   - Align reads to reference fasta file (Minimap2) and derive bam file and alignment statistics (Samtools)
 
+## To do
+- Add a test
+- Derive consensus sequence in blast2ref mode
+- Finalise documentation
 
 ### Authors
 Marie-Emilie Gauthier <gauthiem@qut.edu.au>  
