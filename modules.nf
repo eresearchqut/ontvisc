@@ -112,7 +112,7 @@ process FASTQ2FASTA {
 }
 
 process NANOPLOT {
-  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '{*.html,*.txt}', mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '{*NanoPlot-report.html}', mode: 'link'
 //  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '*.NanoStats.txt', mode: 'link', saveAs: { filename -> "${sampleid}_$filename" }
   tag "${sampleid}"
   label "setting_2"
@@ -120,8 +120,7 @@ process NANOPLOT {
   input:
     tuple val(sampleid), path(sample)
   output:
-    path("*.html")
-    path("*NanoStats.txt")
+    path("*NanoPlot-report.html")
     path("*NanoStats.txt"), emit: read_counts
   
   script:
