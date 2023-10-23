@@ -11,23 +11,24 @@ The reads can optionally be filtered from a plant host before performing downstr
 ![diagram pipeline](docs/images/ONTViSc_pipeline.jpeg)
 
 - Data quality check (QC) and preprocessing
-  - NanoFilt - QC pre data processing
-  - PoreChop ABI (optional)
-  - Chopper (optional)
-  - bbmap - Reformat fastq files so read names are trimmed after the first whitespace
-  - NanoFilt - QC post data processing (if PoreChop and/or Chopper is run)
+  - Merge fastq files
+  - Raw fastq file QC (NanoFilt)
+  - Trim adaptors (PoreChop ABI - optional)
+  - Filter reads based on length and/or quality (Chopper - optional)
+  - Reformat fastq files so read names are trimmed after the first whitespace (bbmap)
+  - Processed fastq file QC (if PoreChop and/or Chopper is run) (NanoFilt)
 - Host read filtering
-  - Minimap2 - align reads to host reference provided
-  - seqtk - extract reads that do not align for downstream analysis
+  - Align reads to host reference provided (Minimap2)
+  - Extract reads that do not align for downstream analysis (seqtk)
 - QC report
-  - custom python script derives read counts recovered pre and post data processing and post host filtering
+  - Derive read counts recovered pre and post data processing and post host filtering
 - Read classification analysis mode
 - Clustering mode
-  - Rattle - clusters reads
-  - seqtk - convert fastq to fasta format
-  - Cap3 - scaffolds clusters
-  - Blastn - perform megablast homology search against ncbi or custom database
-  - custom python script - derive top candidate viral hits
+  - Read clustering (Rattle)
+  - Convert fastq to fasta format (seqtk)
+  - Cluster scaffolding (Cap3)
+  - Megablast homology search against ncbi or custom database (blast))
+  - Derive top candidate viral hits
 - De novo assembly mode
 
 
