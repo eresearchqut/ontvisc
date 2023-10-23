@@ -27,9 +27,16 @@ The reads can optionally be filtered from a plant host before performing downstr
   - Read clustering (Rattle)
   - Convert fastq to fasta format (seqtk)
   - Cluster scaffolding (Cap3)
-  - Megablast homology search against ncbi or custom database (blast))
+  - Megablast homology search against ncbi or custom database (blast)
   - Derive top candidate viral hits
 - De novo assembly mode
+  - De novo assembly (Canu or Flye)
+  - Megablast homology search against ncbi or custom database or reference (blast)
+  - Derive top candidate viral hits
+- Read classification mode
+  - Option 1 Nucleotide taxonomic classification of reads (Kraken2, Braken)
+  - Option 2 Protein-based taxonomic classification of reads (Kaiju, Krona)
+  - Option 3 Convert fastq to fasta format (seqtk) and perform direct homology search using megablast (blast)
 
 
 ### Authors
