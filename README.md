@@ -12,11 +12,11 @@ The reads can optionally be filtered from a plant host before performing downstr
 
 - Data quality check (QC) and preprocessing
   - Merge fastq files
-  - Raw fastq file QC (NanoFilt)
+  - Raw fastq file QC (Nanoplot)
   - Trim adaptors (PoreChop ABI - optional)
   - Filter reads based on length and/or quality (Chopper - optional)
   - Reformat fastq files so read names are trimmed after the first whitespace (bbmap)
-  - Processed fastq file QC (if PoreChop and/or Chopper is run) (NanoFilt)
+  - Processed fastq file QC (if PoreChop and/or Chopper is run) (Nanoplot)
 - Host read filtering
   - Align reads to host reference provided (Minimap2)
   - Extract reads that do not align for downstream analysis (seqtk)
