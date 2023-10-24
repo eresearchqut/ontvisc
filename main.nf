@@ -887,7 +887,7 @@ process BRACKEN {
 }
 
 process RATTLE {
-  publishDir "${params.outdir}/${sampleid}/clustering", mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/clustering/rattle", mode: 'link'
   tag "${sampleid}"
   label 'setting_7'
   containerOptions "${bindOptions}"
