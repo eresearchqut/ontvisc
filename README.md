@@ -44,6 +44,7 @@ The reads can optionally be filtered from a plant host before performing downstr
 - Add a test
 - Derive consensus sequence in blast2ref mode
 - Finalise documentation
+- Remove duplicate read ids from unaligned.fastq.gz
 
 ### Authors
 Marie-Emilie Gauthier <gauthiem@qut.edu.au>  

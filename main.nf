@@ -831,7 +831,7 @@ Usage: kraken2 [options] <filename(s)>
 process KRAKEN2 {
 	tag "${sampleid}"
 	label 'setting_5'
-	publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'link'
+	publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'copy'
   containerOptions "${bindOptions}"
 
 	input:
@@ -840,16 +840,18 @@ process KRAKEN2 {
 	output:
 		file("${sampleid}.kraken2")
     file("${sampleid}_kraken_report.txt")
-    file("${sampleid}_seq_ids.txt")
+    file("${sampleid}_unclassified.fastq")
     tuple val(sampleid), path("${sampleid}_kraken_report.txt"), emit: results
 	script:
 	"""
 	kraken2 --db ${params.krkdb} \
           --use-names \
-          --threads 2 \
+          --threads ${task.cpus} \
           --report ${sampleid}_kraken_report.txt \
           --report-minimizer-data \
           --minimum-hit-groups 3 \
+          --use-mpa-style \
+          --unclassified-out ${sampleid}_unclassified.fastq
           ${fastq} > ${sampleid}.kraken2
 
   #extract the reads IDs
