@@ -11,7 +11,7 @@ The reads can optionally be filtered from a plant host before performing downstr
 ![diagram pipeline](docs/images/ONTViSc_pipeline.jpeg)
 
 - Data quality check (QC) and preprocessing
-  - Merge fastq files
+  - Merge fastq files (optional)
   - Raw fastq file QC (Nanoplot)
   - Trim adaptors (PoreChop ABI - optional)
   - Filter reads based on length and/or quality (Chopper - optional)
@@ -45,7 +45,11 @@ The reads can optionally be filtered from a plant host before performing downstr
 - Derive consensus sequence in blast2ref mode
 - Finalise output section wiki documentation
 - Remove duplicate read ids from unaligned.fastq.gz
-- 
+- Mapping to reference option not working
+- Testing docker mode
+- catching error for mode specification in consistent manner (either in nextflow log or pbs output)
+- blast vs ref option saving directory needs updating
+- issue with Chopper params definition requiring a space
 
 ### Authors
 Marie-Emilie Gauthier <gauthiem@qut.edu.au>  

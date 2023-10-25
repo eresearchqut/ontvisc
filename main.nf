@@ -261,6 +261,7 @@ process FLYE {
   publishDir "${params.outdir}/${sampleid}/assembly/flye", mode: 'link'
   tag "${sampleid}"
   label 'setting_9'
+  errorStrategy 'ignore'
 
   input:
     tuple val(sampleid), path(fastq)
@@ -274,7 +275,7 @@ process FLYE {
   def flye_options = (params.flye_options) ? " ${params.flye_options}" : ''
   
   """
-  flye  --out-dir outdir --threads ${task.cpus} ${flye_options} ${params.flye_ont_mode} ${fastq}
+  flye --out-dir outdir --threads ${task.cpus} ${flye_options}  ${fastq}
   
   if [[ ! -s outdir/assembly.fasta ]]
     then
@@ -852,13 +853,8 @@ process KRAKEN2 {
           --report ${sampleid}_kraken_report.txt \
           --report-minimizer-data \
           --minimum-hit-groups 3 \
-          --use-mpa-style \
-          --unclassified-out ${sampleid}_unclassified.fastq
+          --unclassified-out ${sampleid}_unclassified.fastq \
           ${fastq} > ${sampleid}.kraken2
-
-  #extract the reads IDs
-  echo "seq_id" > ${sampleid}_seq_ids.txt
-  awk -F "\\t" '{print \$2}' ${sampleid}.kraken2 >> ${sampleid}_seq_ids.txt
   """
 }
 
