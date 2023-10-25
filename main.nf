@@ -261,7 +261,6 @@ process FLYE {
   publishDir "${params.outdir}/${sampleid}/assembly/flye", mode: 'link'
   tag "${sampleid}"
   label 'setting_9'
-  errorStrategy 'ignore'
 
   input:
     tuple val(sampleid), path(fastq)
