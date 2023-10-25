@@ -367,7 +367,7 @@ process MINIMAP2_REF {
 }
 
 process SAMTOOLS {
-  publishDir "${params.outdir}/${sampleid}/mapping", mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/mapping", mode: 'copy'
   tag "${sampleid}"
   label 'setting_2'
 
@@ -519,7 +519,7 @@ process CAP3 {
   tag "${sampleid}"
   label "setting_3"
   time "3h"
-  publishDir "$params.outdir/$sampleid/clustering", mode: 'copy', pattern: '*_clustering.fasta'
+  publishDir "$params.outdir/$sampleid/clustering/cap3", mode: 'copy', pattern: '*_clustering.fasta'
 
   input:
   tuple val(sampleid), path(fasta)
@@ -568,29 +568,31 @@ process BLASTN {
 process EXTRACT_VIRAL_BLAST_HITS {
   tag "${sampleid}"
   label "setting_2"
-  publishDir "$params.outdir/$sampleid/clustering",  mode: 'copy', pattern: '*/*clustering*txt'
-  publishDir "$params.outdir/$sampleid/assembly",  mode: 'copy', pattern: '*/*assembly*txt'
+  publishDir "$params.outdir/$sampleid", mode: 'copy', pattern: '*/*/*txt'
   containerOptions "${bindOptions}"
 
   input:
   tuple val(sampleid), path(blast_results)
   output:
-  file "*/${sampleid}*_blastn_top_hits.txt"
-  file "*/${sampleid}*_blastn_top_viral_hits.txt"
-  file "*/${sampleid}*_blastn_top_viral_spp_hits.txt"
-  file "*/${sampleid}*_queryid_list_with_viral_match.txt"
-  file "*/${sampleid}*_viral_spp_abundance.txt"
+  file "*/*/${sampleid}*_blastn_top_hits.txt"
+  file "*/*/${sampleid}*_blastn_top_viral_hits.txt"
+  file "*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"
+  file "*/*/${sampleid}*_queryid_list_with_viral_match.txt"
+  file "*/*/${sampleid}*_viral_spp_abundance.txt"
 
   script:
   """
-  mkdir blastn
-  cat ${blast_results} > blastn/${sampleid}_blastn.txt
-  cd blastn
   if [[ ${blast_results} == *clustering_blastn.bls ]] ;
   then
+    mkdir -p clustering/blastn
+    cat ${blast_results} > clustering/blastn/${sampleid}_blastn.txt
+    cd clustering/blastn
     select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method clustering --mode ${params.blast_mode}
   elif [[ ${blast_results} == *assembly*_blastn.bls ]] ;
   then
+    mkdir -p assembly/blastn
+    cat ${blast_results} > assembly/blastn/${sampleid}_blastn.txt
+    cd assembly/blastn
     select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method assembly --mode ${params.blast_mode}
   fi
   """
@@ -599,7 +601,7 @@ process EXTRACT_VIRAL_BLAST_HITS {
 process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
   tag "${sampleid}"
   label "setting_2"
-  publishDir "$params.outdir/$sampleid/read_classification",  mode: 'copy', pattern: 'homology_search/*txt'
+  publishDir "$params.outdir/$sampleid/read_classification", mode: 'copy', pattern: 'homology_search/*txt'
   containerOptions "${bindOptions}"
 
   input:
@@ -766,7 +768,7 @@ process KAIJU {
 }
 
 process KRONA {
-  publishDir "${params.outdir}/${sampleid}/read_classification/krona", mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/read_classification/kaiju", mode: 'link'
   label 'setting_3'
   containerOptions "${bindOptions}"
 
@@ -863,7 +865,7 @@ process KRAKEN2 {
 process BRACKEN {
   tag "${sampleid}"
 	label 'setting_2'
-	publishDir "$params.outdir/$sampleid/read_classification/bracken",  mode: 'link'
+	publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'link'
   containerOptions "${bindOptions}"
 
 	input:
@@ -981,21 +983,29 @@ workflow {
       .set{ ch_sample }
   } else { exit 1, "Input samplesheet file not specified!" }
 
+  if (params.merge) {
+    MERGE ( ch_sample )
+    QC_PRE_DATA_PROCESSING ( MERGE.out.merged )
+    fq = MERGE.out.merged
+  }
+  else {
+    fq = ch_sample
+    QC_PRE_DATA_PROCESSING ( fq )
+  }
+
   
-  MERGE ( ch_sample )
-  QC_PRE_DATA_PROCESSING ( MERGE.out.merged )
 
   // Data pre-processing
   // Remove adapters uisng either PORECHOP_ABI or CUTADAPT
   
   if (!params.qc_only) {
     if (params.adapter_trimming) {
-      PORECHOP_ABI ( MERGE.out.merged )
+      PORECHOP_ABI ( fq )
       trimmed_fq = PORECHOP_ABI.out.porechopabi_trimmed_fq
     }
     
     else { 
-      trimmed_fq = MERGE.out.merged
+      trimmed_fq = fq
     }
 
     // Qualit filtering of reads using chopper
