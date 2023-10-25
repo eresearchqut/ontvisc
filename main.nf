@@ -1163,6 +1163,6 @@ if (params.infoseq) {
 */
     }
     else {
-      exit 1, "Please specify one analysis mode out of: read_classification, clustering, denovo_assembly, map2ref" }
+      error("Analysis mode (read_classification, clustering, denovo_assembly, map2ref) not specified with e.g. '--analysis_mode clustering' or via a detectable config file.") }
   }
 }

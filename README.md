@@ -47,9 +47,8 @@ The reads can optionally be filtered from a plant host before performing downstr
 - Remove duplicate read ids from unaligned.fastq.gz
 - Mapping to reference option not working
 - Testing docker mode
-- catching error for mode specification in consistent manner (either in nextflow log or pbs output)
 - blast vs ref option saving directory needs updating
-- issue with Chopper params definition requiring a space
+- issue with single Chopper/Flye params definition with double dashes requiring a space
 
 ### Authors
 Marie-Emilie Gauthier <gauthiem@qut.edu.au>  
