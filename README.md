@@ -44,7 +44,6 @@ The reads can optionally be filtered from a plant host before performing downstr
 - Add a test
 - Derive consensus sequence in blast2ref mode
 - Finalise output section wiki documentation
-- Remove duplicate read ids from unaligned.fastq.gz
 - Testing docker mode
 - blast vs ref option saving directory needs updating
 - issue with single Chopper/Flye params definition with double dashes requiring a space

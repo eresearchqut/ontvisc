@@ -45,7 +45,7 @@ process MINIMAP2_ALIGN_RNA {
   script:
   """
   minimap2 -ax splice -uf -k14 -L ${reference} ${fastq} -t ${task.cpus} > ${sampleid}.sam
-  awk '\$6 == "*" { print \$0 }' ${sampleid}.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
+  awk '\$6 == "*" { print \$0 }' ${sampleid}.sam | cut -f1 | sort | uniq >  ${sampleid}_unaligned_ids.txt
   """
 }
 
