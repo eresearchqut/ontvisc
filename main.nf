@@ -271,10 +271,10 @@ process FLYE {
     tuple val(sampleid), path("${sampleid}_flye_assembly.fasta"), emit: assembly2
   
   script:
-  def flye_options = (params.flye_options) ? " ${params.flye_options}" : ''
+  //def flye_options = (params.flye_options) ? " ${params.flye_options}" : ''
   
   """
-  flye --out-dir outdir --threads ${task.cpus} ${flye_options}  ${fastq}
+  flye --out-dir outdir --threads ${task.cpus} ${params.flye_options} ${fastq}
   
   if [[ ! -s outdir/assembly.fasta ]]
     then
@@ -293,7 +293,7 @@ flye  --out-dir outdir --threads ${task.cpus} --read-error ${params.flye_read_er
 */
 
 process BLASTN2REF {
-  publishDir "${params.outdir}/${sampleid}/blastn/blast_to_ref", mode: 'link'
+  publishDir "${params.outdir}/${sampleid}", mode: 'copy', pattern: '*/*/*/*txt'
   tag "${sampleid}"
   label 'setting_1'
   containerOptions "${bindOptions}"
@@ -301,15 +301,33 @@ process BLASTN2REF {
   input:
     tuple val(sampleid), path(assembly)
   output:
-    path "BLASTN_reference_vs_${assembly}.txt"
+    path "*/*/*/blastn_reference_vs_*_assembly.txt"
 
   script:
   """
-  blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out blastn_reference_vs_${assembly}.txt \
-  -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
-
-  echo "qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs" > header
-  cat header blastn_reference_vs_${assembly}.txt > BLASTN_reference_vs_${assembly}.txt
+  if [[ ${assembly} == *_assembly*.fa ]] ;
+  then
+    if [[ ${assembly} == *canu_assembly*.fa ]] ;
+    then
+      mkdir -p assembly/canu/blast_to_ref
+      blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out blastn_reference_vs_canu_assembly_tmp.txt \
+      -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
+    
+      echo "qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs" > header
+    
+      cat header blastn_reference_vs_canu_assembly_tmp.txt >  assembly/canu/blast_to_ref/blastn_reference_vs_canu_assembly.txt
+    elif [[ ${assembly} == *flye_assembly*.fa ]] ;
+    then
+      mkdir -p assembly/flye/blast_to_ref
+    
+      blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out blastn_reference_vs_flye_assembly_tmp.txt \
+      -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
+    
+      echo "qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs" > header
+    
+      cat header blastn_reference_vs_flye_assembly_tmp.txt > assembly/flye/blast_to_ref/blastn_reference_vs_flye_assembly.txt
+    fi
+  fi
 
   """
 }
