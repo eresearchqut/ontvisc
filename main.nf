@@ -305,7 +305,7 @@ process BLASTN2REF {
 
   script:
   """
-  if [[ ${assembly} == *_assembly*.fa ]] ;
+  if [[ ${assembly} == *_assembly*.fa* ]] ;
   then
     if [[ ${assembly} == *canu_assembly*.fa ]] ;
     then
@@ -316,7 +316,7 @@ process BLASTN2REF {
       echo "qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs" > header
     
       cat header blastn_reference_vs_canu_assembly_tmp.txt >  assembly/canu/blast_to_ref/blastn_reference_vs_canu_assembly.txt
-    elif [[ ${assembly} == *flye_assembly*.fa ]] ;
+    elif [[ ${assembly} == *flye_assembly*.fasta ]] ;
     then
       mkdir -p assembly/flye/blast_to_ref
     
