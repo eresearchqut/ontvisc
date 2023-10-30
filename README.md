@@ -45,8 +45,7 @@ The reads can optionally be filtered from a plant host before performing downstr
 - Derive consensus sequence in blast2ref mode
 - Finalise output section wiki documentation
 - Testing docker mode
-- blast vs ref option saving directory needs updating
-- issue with single Chopper/Flye params definition with double dashes requiring a space
+- issue with single Chopper params definition with double dashes requiring a space
 
 ### Authors
 Marie-Emilie Gauthier <gauthiem@qut.edu.au>  
