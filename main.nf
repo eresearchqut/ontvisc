@@ -271,11 +271,11 @@ process FLYE {
     tuple val(sampleid), path("${sampleid}_flye_assembly.fasta"), emit: assembly2
   
   script:
-  //def flye_options = (params.flye_options) ? " ${params.flye_options}" : ''
-  
+  def flye_options = (params.flye_options) ? " ${params.flye_options}" : ''
+
   """
-  flye --out-dir outdir --threads ${task.cpus} ${params.flye_options} ${fastq}
-  
+  flye ${flye_options} --out-dir outdir --threads ${task.cpus} --${params.flye_mode} ${fastq}
+
   if [[ ! -s outdir/assembly.fasta ]]
     then
       touch ${sampleid}_flye_assembly.fasta
@@ -313,7 +313,7 @@ process BLASTN2REF {
       blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out blastn_reference_vs_canu_assembly_tmp.txt \
       -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
     
-      echo "qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs" > header
+      echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
     
       cat header blastn_reference_vs_canu_assembly_tmp.txt >  assembly/canu/blast_to_ref/blastn_reference_vs_canu_assembly.txt
     elif [[ ${assembly} == *flye_assembly*.fasta ]] ;
@@ -323,7 +323,7 @@ process BLASTN2REF {
       blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out blastn_reference_vs_flye_assembly_tmp.txt \
       -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
     
-      echo "qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs" > header
+      echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
     
       cat header blastn_reference_vs_flye_assembly_tmp.txt > assembly/flye/blast_to_ref/blastn_reference_vs_flye_assembly.txt
     fi
