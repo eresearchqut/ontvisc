@@ -134,38 +134,7 @@ process QCREPORT {
   seq_run_qc_report.py --host_filtering ${params.host_filtering} --adapter_trimming ${params.adapter_trimming} --quality_trimming ${params.qual_filt}
   """
 }
-/*
-process CUTADAPT_RACE {
-  //publishDir "${params.outdir}/${sampleid}/canu", pattern: '*_cutadapt_filtered.fastq.gz', mode: 'link'
-  publishDir "${params.outdir}/${sampleid}/cutadapt", pattern: '*_cutadapt.log', mode: 'link'
-  tag "${sampleid}"
-  label 'medium'
 
-  container 'quay.io/biocontainers/cutadapt:4.1--py310h1425a21_1'
-
-  input:
-    tuple val(sampleid), path(sample)
-  output:
-    //path("${sampleid}_cutadapt_filtered.fastq.gz")
-    path("${sampleid}_cutadapt.log")
-    tuple val(sampleid), path("${sampleid}_cutadapt_filtered.fastq.gz"), emit: cutadapt_filtered
-  script:
-  """
-  if [[ ${params.race5} == true ]]; then
-    cutadapt -j ${task.cpus} --times 3 -e 0.2 -g "AAGCAGTGGTATCAACGCAGAGTACGCGGG;min_overlap=14" -o ${sampleid}_filtered1.fastq.gz ${sample} > ${sampleid}_cutadapt.log
-    cutadapt -j ${task.cpus} --times 2 -e 0.2 -a ${params.rev_primer} -o ${sampleid}_filtered2.fastq.gz ${sampleid}_filtered1.fastq.gz  >> ${sampleid}_cutadapt.log
-    cutadapt -j ${task.cpus} --times 3 -e 0.2  -a "CCCGCGTACTCTGCGTTGATACCACTGCTT;min_overlap=14" -o ${sampleid}_filtered3.fastq.gz ${sampleid}_filtered2.fastq.gz  >> ${sampleid}_cutadapt.log
-    cutadapt -j ${task.cpus} --times 2 -e 0.2 -g ${params.rev_primer_rc} -o ${sampleid}_cutadapt_filtered.fastq.gz ${sampleid}_filtered3.fastq.gz  >> ${sampleid}_cutadapt.log
-    rm ${sampleid}_filtered*.fastq.gz
-
-  elif [[ ${params.race3} == true ]]; then
-    cutadapt -j ${task.cpus} --times 2 -e 0.2 -g ${params.fwd_primer} -o ${sampleid}_filtered1.fastq.gz ${sample} > ${sampleid}_cutadapt.log
-    cutadapt -j ${task.cpus} --times 2 -e 0.2 -a ${params.fwd_primer_rc} -o ${sampleid}_cutadapt_filtered.fastq.gz ${sampleid}_filtered1.fastq.gz  >> ${sampleid}_cutadapt.log
-    rm ${sampleid}_filtered*.fastq.gz
-  fi
-  """
-}
-*/
 process CUTADAPT {
   publishDir "${params.outdir}/${sampleid}/assembly", pattern: '*_filtered.fa', mode: 'link'
   publishDir "${params.outdir}/${sampleid}/assembly", pattern: '*_cutadapt.log', mode: 'link'
@@ -205,7 +174,6 @@ process CHOPPER {
   """
 }
 
-//gunzip -c ${sample} | NanoFilt -q ${params.nanofilt_qual_threshold} -l ${params.nanofilt_min_read_length} | gzip > ${sampleid}_filtered.fastq.gz
 /*
 #recommended settings for CANU using metagnomics data
 https://github.com/marbl/canu/issues/2079
@@ -288,8 +256,6 @@ process FLYE {
 }
 /*
 errorStrategy 'ignore'
-flye  --out-dir outdir --threads ${task.cpus} --read-error ${params.flye_read_error} --${params.flye_ont_mode} ${sample}
-
 */
 
 process BLASTN2REF {
@@ -307,7 +273,7 @@ process BLASTN2REF {
   """
   if [[ ${assembly} == *_assembly*.fa* ]] ;
   then
-    if [[ ${assembly} == *canu_assembly*.fa ]] ;
+    if [[ ${assembly} == *canu_assembly*.fa* ]] ;
     then
       mkdir -p assembly/blast_to_ref
       blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out blastn_reference_vs_canu_assembly_tmp.txt \
@@ -341,44 +307,7 @@ process BLASTN2REF {
 
   """
 }
-/*
-process MINIMAP2 {
-  publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
-  tag "${sampleid}"
-  label 'setting_3'
-  containerOptions "${bindOptions}"
 
-  container 'quay.io/biocontainers/minimap2:2.24--h7132678_1'
-
-  input:
-    tuple val(sampleid), path(fastq)
-  output:
-    tuple val(sampleid), path(fastq), path("${sampleid}_minimap.paf"), emit: paf
-  script:
-  """
-  minimap2 -x ava-ont -t ${params.minimap_threads} ${fastq} ${fastq}  > ${sampleid}_minimap.paf
-  """
-}
-
-process MINIASM {
-  publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
-  tag "${sampleid}"
-  label 'setting_3'
-  containerOptions "${bindOptions}"
-
-  container 'quay.io/biocontainers/miniasm:0.3--he4a0461_2'
-
-  input:
-    tuple val(sampleid), path(fastq), path(paf)
-  output:
-    file("${sampleid}_miniasm.fasta")
-  script:
-  """
-  miniasm -f ${fastq} ${paf} > ${sampleid}_miniasm.gfa
-  awk '/^S/{print ">"\$2"\\n"\$3}' ${sampleid}_miniasm.gfa > ${sampleid}_miniasm.fasta
-  """
-}
-*/
 process MINIMAP2_REF {
   tag "${sampleid}"
   label 'setting_2'
@@ -449,57 +378,6 @@ process BAMCOVERAGE {
   """
 }
 
-/*
-process INFOSEQ {
-  publishDir "${params.outdir}/${sampleid}/infoseq", mode: 'link'
-  tag "${sampleid}"
-  containerOptions "${bindOptions}"
-
-  input:
-    tuple val(sampleid), path(sample)
-  output:
-    tuple val(sampleid), path(sample), emit: infoseq_ref
-  script:
-  """
-  infoseq ${reference_dir}/${reference_name} -only -name -length | sed 1d > ${reference_name}_list.txt
-  """
-}
-
-process SAMTOOLS {
-  publishDir "${params.outdir}/${sampleid}/samtools", mode: 'link'
-  tag "${sampleid}"
-  label 'setting_2'
-
-  input:
-    tuple val(sampleid), path(sample)
-  output:
-    path "${sampleid}_aln.sorted.bam"
-    path "${sampleid}_aln.sorted.bam.bai"
-    tuple val(sampleid), path("${sampleid}_aln.sorted.bam"), path("${sampleid}_aln.sorted.bam.bai"), emit: sorted_sample
-  script:
-  """
-  samtools view -bt ${reference_dir}/${reference_name} -o ${sampleid}_aln.bam ${sample}
-  samtools sort -T /tmp/aln.sorted -o ${sampleid}_aln.sorted.bam ${sampleid}_aln.bam
-  samtools index ${sampleid}_aln.sorted.bam
-  """
-}
-
-process NANOQ {
-  publishDir "${params.outdir}/${sampleid}/nano-q", mode: 'link'
-  tag "${sampleid}"
-  label 'setting_2'
-
-  input:
-    tuple val(sampleid), path(sorted_sample)
-  output:
-    //path 'Results/*'
-    path 'Results'
-
-  script:
-  """
-  nano-q.py -b ${sorted_sample} -c ${params.nanoq_code_start} -l ${params.nanoq_read_length} -nr ${params.nanoq_num_ref} -q ${params.nanoq_qual_threshhold} -j ${params.nanoq_jump}
-  """
-}
 */
 process PORECHOP_ABI {
   tag "${sampleid}"
@@ -560,39 +438,7 @@ process CAP3 {
   cat ${fasta}.cap.singlets ${fasta}.cap.contigs > ${sampleid}_clustering.fasta
   """
 }
-/*
-process BLASTN {
-  cpus "${params.blast_threads}"
-  tag "${sampleid}"
-  label "xlarge"
-  time "5h"
-  containerOptions "${bindOptions}"
-  publishDir "$params.outdir/$sampleid/blast",  mode: 'link', overwrite: true, pattern: '*.bls', saveAs: { filename -> "${sampleid}_blastn_vs_NT.bls"}
 
-  container 'quay.io/biocontainers/blast:2.13.0--hf3cf87c_0'
-
-  input:
-  tuple val(sampleid), path(assembly)
-  output:
-  path("*.bls")
-  tuple val(sampleid), path("${sampleid}_${params.blastn_method}_vs_NT.bls"), emit: blast_results
-
-  script:
-  def blast_task_param = (params.blastn_method == "blastn") ? "-task blastn" : ''
-  """
-  cp ${blastn_db_dir}/taxdb.btd .
-  cp ${blastn_db_dir}/taxdb.bti .
-  blastn ${blast_task_param} \
-    -query ${assembly} \
-    -db ${params.blastn_db} \
-    -out ${sampleid}_${params.blastn_method}_vs_NT.bls \
-    -evalue 1e-3 \
-    -num_threads ${params.blast_threads} \
-    -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe sscinames' \
-    -max_target_seqs 5
-"""
-}
-*/
 process EXTRACT_VIRAL_BLAST_HITS {
   tag "${sampleid}"
   label "setting_2"
@@ -671,48 +517,7 @@ process CONCATENATE_FASTA {
   cat  ${sampleid}_canu_assembly_1l.fasta ${sampleid}_cap3_1l.fasta  ${sampleid}.fasta > ${sampleid}_merged.fasta
   """
 }
-/*
-process BLASTN_SPLIT {
-  publishDir "${params.outdir}/${sampleid}/blastn", mode: 'link'
-  tag "${sampleid}"
-  containerOptions "${bindOptions}"
-  label "setting_10"
 
-  input:
-    tuple val(sampleid), path(assembly)
-  output:
-    tuple val(sampleid), path("${sampleid}*_blastn_vs_NT.bls"), emit: blast_results
-
-  script:
-  def blastoutput = assembly.getBaseName() + "_blastn_vs_NT.bls"
-  
-  if (params.blast_mode == "ncbi") {
-    """
-    cp ${blastn_db_dir}/taxdb.btd .
-    cp ${blastn_db_dir}/taxdb.bti .
-    blastn -query ${assembly} \
-      -db ${params.blastn_db} \
-      -out ${blastoutput} \
-      -evalue 1e-3 \
-      -num_threads ${params.blast_threads} \
-      -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe sscinames' \
-      -max_target_seqs 3
-    """
-  }
-  
-  else if (params.blast_mode == "localdb") {
-    """
-    blastn -query ${assembly} \
-      -db ${params.blastn_db} \
-      -out ${blastoutput} \
-      -evalue 1e-3 \
-      -num_threads ${params.blast_threads} \
-      -outfmt '6 qseqid sgi sacc length pident mismatch gapopen qstart qend qlen sstart send slen sstrand evalue bitscore qcovhsp stitle staxids qseq sseq sseqid qcovs qframe sframe' \
-      -max_target_seqs 3
-    """
-  }
-}
-*/
 /*
 KAIJU notes
 The default run mode is Greedy with three allowed mismatches. 
@@ -937,50 +742,8 @@ process RATTLE {
   rattle polish -i consensi.fq -t ${task.cpus} --summary ${params.rattle_polishing_options}
   """
 }
-/*
-process EXTRACT_UNMAPPED {
-  tag "${sampleid}"
-  label "setting_8"
 
-  input:
-  tuple val(sampleid), path(sam)
-  output:
-  file "${sampleid}_unaligned_read_count.txt"
-  tuple val(sampleid), path(fastq), path("${sampleid}_unaligned_ids.txt"), emit: unaligned_fq
-  path("*reads_count.txt"), emit: read_counts
 
-  def minimap_options = (params.minimap_options) ? " ${params.minimap_options}" : ''
-
-  script:
-  """
-  samtools view -Sb ${sam} | samtools sort | samtools fasta -f 4 - > ${sampleid}_unaligned.fastq
-  cat ${sampleid}_unaligned.fastq  | \$((`wc -l`/4)) >> ${sampleid}_unaligned_read_count.txt
-
-  """
-}
-*/
-
-/*
-process CIRCLATOR {
-	label 'medium'
-  publishDir "${params.outdir}/${sampleid}/denovo", mode: 'link'
-  tag "${sampleid}"
-	
-	input:
-		tuple val(sampleid), path(assembly)
-	output:
-		tuple val(sampleid), path ("${sampleid}_fixed.fasta"), emit: fixed
-		path("*log")
-    path ("${sampleid}_fixed.fasta")
-  
-  container =  'quay.io/biocontainers/circlator:1.5.5--py_3'
-
-	script:
-	"""
-	circlator fixstart ${params.fixstart_args} ${assembly} ${sampleid}_fixed.fasta
-	"""
-}
-*/
 include { MINIMAP2_ALIGN_RNA } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP1 } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP2 } from './modules.nf'
@@ -1180,15 +943,6 @@ workflow {
       MINIMAP2_REF ( final_fq )
       SAMTOOLS ( MINIMAP2_REF.out.aligned_sample )
       
-/*    BAMCOVERAGE ( SAMTOOLS.out.sorted_sample )  
-if (params.infoseq) {
-        INFOSEQ ( MINIMAP2_REF.out.aligned_sample )
-        SAMTOOLS ( INFOSEQ.out.infoseq_ref )
-        NANOQ ( SAMTOOLS.out.sorted_sample )
-      }
-      else if ( params.analysis_mode != 'map2ref' & params.analysis_mode != 'read_classification' & params.analysis_mode != 'denovo_assembly' & params.analysis_mode != 'clustering' ) {
-      exit 1, "Please specify one analysis mode out of: read_classification, clustering, denovo_assembly, map2ref" }
-*/
     }
     else {
       error("Analysis mode (read_classification, clustering, denovo_assembly, map2ref) not specified with e.g. '--analysis_mode clustering' or via a detectable config file.") }
