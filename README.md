@@ -41,11 +41,10 @@ The reads can optionally be filtered from a plant host before performing downstr
   - Align reads to reference fasta file (Minimap2) and derive bam file and alignment statistics (Samtools)
 
 ## To do
-- Add a test
 - Derive consensus sequence in blast2ref mode
 - Finalise output section wiki documentation
 - Testing docker mode
-- issue with single Chopper params definition with double dashes requiring a space
+- issue with single Chopper params definition requiring a space
 
 ### Authors
 Marie-Emilie Gauthier <gauthiem@qut.edu.au>  
