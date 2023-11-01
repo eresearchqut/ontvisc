@@ -743,7 +743,6 @@ process RATTLE {
   """
 }
 
-
 include { MINIMAP2_ALIGN_RNA } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP1 } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP2 } from './modules.nf'
@@ -783,7 +782,6 @@ workflow {
 
   // Data pre-processing
   // Remove adapters uisng either PORECHOP_ABI or CUTADAPT
-  
   if (!params.qc_only) {
     if (params.adapter_trimming) {
       PORECHOP_ABI ( fq )
@@ -794,7 +792,7 @@ workflow {
       trimmed_fq = fq
     }
 
-    // Qualit filtering of reads using chopper
+    // Quality filtering of reads using chopper
     if (params.qual_filt) {
       CHOPPER ( trimmed_fq)
       filtered_fq = CHOPPER.out.chopper_filtered_fq
@@ -811,8 +809,6 @@ workflow {
     if (params.host_filtering) {
       MINIMAP2_ALIGN_RNA ( REFORMAT.out.reformatted_fq, params.host_fasta )
       EXTRACT_READS_STEP1 ( MINIMAP2_ALIGN_RNA.out.sequencing_ids )
-      //EXTRACT_UNMAPPED ( FILTER_HOST.out.sam )
-      //final_fq = EXTRACT_UNMAPPED.out.unaligned_fq
       final_fq = EXTRACT_READS_STEP1.out.unaligned_fq
     }
     else {
