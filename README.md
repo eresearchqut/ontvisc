@@ -40,6 +40,9 @@ The reads can optionally be filtered from a plant host before performing downstr
 - Map to reference mode
   - Align reads to reference fasta file (Minimap2) and derive bam file and alignment statistics (Samtools)
 
+Detailed instructions can be found in [wiki](https://github.com/maelyg/ontvisc/wiki).
+
+
 ## To do
 - Derive consensus sequence in blast2ref mode
 - Finalise output section wiki documentation

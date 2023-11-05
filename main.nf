@@ -193,7 +193,7 @@ stopOnLowCoverage=0
 maxInputCoverage=10000 corOutCoverage=10000 corMhapSensitivity=high corMinCoverage=0 redMemory=32 oeaMemory=32 batMemory=64 useGrid=false minReadLength=200 minOverlapLength=50 maxThreads=4 minInputCoverage=0 stopOnLowCoverage=0
 */
 process CANU {
-  publishDir "${params.outdir}/${sampleid}/assembly/canu", mode: 'link', overwrite: true
+  publishDir "${params.outdir}/${sampleid}/assembly/canu", mode: 'copy', pattern:: '{*.fasta,*.log}'
   tag "${sampleid}"
   label 'setting_8'
 
@@ -202,8 +202,8 @@ process CANU {
 
   output:
     path("${sampleid}_canu_assembly.fasta")
-    path("${sampleid}.canu.log")
-    tuple val(sampleid), path("${sampleid}_canu.fastq"), path("${sampleid}_canu_assembly.fasta"), emit: assembly
+    path("${sampleid}_canu.log")
+    tuple val(sampleid), path("${sampleid}_canu.fastq.gz"), path("${sampleid}_canu_assembly.fasta"), emit: assembly
     tuple val(sampleid), path("${sampleid}_canu_assembly.fasta"), emit: assembly2
 
     
@@ -213,7 +213,7 @@ process CANU {
   """
   canu -p ${sampleid} -d ${sampleid} \
     genomeSize=${params.canu_genome_size} \
-    -nanopore ${fastq} ${canu_options} 2> ${sampleid}.canu.log
+    -nanopore ${fastq} ${canu_options} 2> ${sampleid}_canu.log
 
   if [[ ! -s ${sampleid}/${sampleid}.contigs.fasta ]]
     then
@@ -221,7 +221,7 @@ process CANU {
   else 
     cat ${sampleid}/${sampleid}.contigs.fasta ${sampleid}/${sampleid}.unassembled.fasta > ${sampleid}_canu_assembly.fasta
   fi
-  cp ${fastq} ${sampleid}_canu.fastq
+  cp ${fastq} ${sampleid}_canu.fastq.gz
   """
 }
 
