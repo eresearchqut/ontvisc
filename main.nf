@@ -193,7 +193,7 @@ stopOnLowCoverage=0
 maxInputCoverage=10000 corOutCoverage=10000 corMhapSensitivity=high corMinCoverage=0 redMemory=32 oeaMemory=32 batMemory=64 useGrid=false minReadLength=200 minOverlapLength=50 maxThreads=4 minInputCoverage=0 stopOnLowCoverage=0
 */
 process CANU {
-  publishDir "${params.outdir}/${sampleid}/assembly/canu", mode: 'copy', pattern:: '{*.fasta,*.log}'
+  publishDir "${params.outdir}/${sampleid}/assembly/canu", mode: 'copy', pattern: '{*.fasta,*.log}'
   tag "${sampleid}"
   label 'setting_8'
 
