@@ -226,7 +226,7 @@ process CANU {
 }
 
 process FLYE {
-  publishDir "${params.outdir}/${sampleid}/assembly/flye", mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/assembly/flye", mode: 'copy', pattern: '{*.fasta,*.log}'
   tag "${sampleid}"
   label 'setting_9'
 
@@ -235,7 +235,7 @@ process FLYE {
   output:
     path("${sampleid}_flye_assembly.fasta")
     path("${sampleid}_flye.log")
-    tuple val(sampleid), path("${sampleid}_flye.fastq"), path("${sampleid}_flye_assembly.fasta"), emit: assembly
+    tuple val(sampleid), path("${sampleid}_flye.fastq.gz"), path("${sampleid}_flye_assembly.fasta"), emit: assembly
     tuple val(sampleid), path("${sampleid}_flye_assembly.fasta"), emit: assembly2
   
   script:
@@ -251,7 +251,7 @@ process FLYE {
     cp outdir/assembly.fasta ${sampleid}_flye_assembly.fasta
   cp outdir/flye.log ${sampleid}_flye.log
   fi
-  cp ${fastq} ${sampleid}_flye.fastq
+  cp ${fastq} ${sampleid}_flye.fastq.gz
   """
 }
 /*
