@@ -18,6 +18,9 @@ switch (workflow.containerEngine) {
 process MINIMAP2_ALIGN_DNA {
   tag "${sampleid}"
   label "setting_8"
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/minimap2:2.24--h7132678_1" :
+    "quay.io/biocontainers/minimap2:2.24--h7132678_1" }"
 
   input:
   tuple val(sampleid), path(fastq)
@@ -35,6 +38,10 @@ process MINIMAP2_ALIGN_DNA {
 process MINIMAP2_ALIGN_RNA {
   tag "${sampleid}"
   label "setting_8"
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/minimap2:2.24--h7132678_1" :
+    "quay.io/biocontainers/minimap2:2.24--h7132678_1" }"
+
 
   input:
   tuple val(sampleid), path(fastq)
@@ -52,6 +59,9 @@ process MINIMAP2_ALIGN_RNA {
 process EXTRACT_READS {
   tag "${sampleid}"
   label "setting_11"
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/flye:2.9.1--py310h590eda1_0" :
+    "quay.io/biocontainers/flye:2.9.1--py310h590eda1_0" }"
   publishDir "${params.outdir}/${sampleid}/host_filtering", mode: 'copy', pattern: '{*.fastq.gz,*reads_count.txt}'
 
   input:
@@ -99,6 +109,9 @@ process MAP_BACK_TO_ASSEMBLY {
 process FASTQ2FASTA {
   tag "${sampleid}"
   label "setting_2"
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/seqtk:1.3--h7132678_4" :
+    "quay.io/biocontainers/seqtk:1.3--h7132678_4" }"
 
   input:
   tuple val(sampleid), path(fastq)
@@ -116,6 +129,9 @@ process NANOPLOT {
 //  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '*.NanoStats.txt', mode: 'link', saveAs: { filename -> "${sampleid}_$filename" }
   tag "${sampleid}"
   label "setting_2"
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "docker://ghcr.io/eresearchqut/rattle-image:0.0.1" :
+    "ghcr.io/eresearchqut/rattle-image:0.0.1" }"
 
   input:
     tuple val(sampleid), path(sample)
@@ -138,6 +154,9 @@ process BLASTN {
   tag "${sampleid}"
   containerOptions "${bindOptions}"
   label "setting_10"
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/blast:2.14.1--pl5321h6f7f691_0" :
+    "quay.io/biocontainers/blast:2.14.1--pl5321h6f7f691_0" }"
 
   input:
     tuple val(sampleid), path(assembly)

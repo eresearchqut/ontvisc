@@ -122,6 +122,9 @@ process MERGE {
 
 process QCREPORT {
   publishDir "${params.outdir}/qc_report", mode: 'copy'
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "docker://docker.io/infrahelpers/python-light:py310-bullseye" :
+    "infrahelpers/python-light:py310-bullseye" }"
   containerOptions "${bindOptions}"
 
   input:
@@ -138,6 +141,9 @@ process QCREPORT {
 process CUTADAPT {
   publishDir "${params.outdir}/${sampleid}/assembly", pattern: '*_filtered.fa', mode: 'link'
   publishDir "${params.outdir}/${sampleid}/assembly", pattern: '*_cutadapt.log', mode: 'link'
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/cutadapt:4.1--py310h1425a21_1" :
+    "quay.io/biocontainers/cutadapt:4.1--py310h1425a21_1" }"
   tag "${sampleid}"
   label 'medium'
 
@@ -159,6 +165,9 @@ process CHOPPER {
   publishDir "${params.outdir}/${sampleid}/preprocessing/chopper", pattern: '*_chopper.log', mode: 'link'
   tag "${sampleid}"
   label 'setting_3'
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/chopper:0.5.0--hdcf5f25_2" :
+    "quay.io/biocontainers/chopper:0.5.0--hdcf5f25_2" }"
 
   input:
     tuple val(sampleid), path(sample)
@@ -196,6 +205,10 @@ process CANU {
   publishDir "${params.outdir}/${sampleid}/assembly/canu", mode: 'copy', pattern: '{*.fasta,*.log}'
   tag "${sampleid}"
   label 'setting_8'
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/canu:2.2--ha47f30e_0" :
+    "quay.io/biocontainers/canu:2.2--ha47f30e_0" }"
+
 
   input:
     tuple val(sampleid), path(fastq)
@@ -229,6 +242,9 @@ process FLYE {
   publishDir "${params.outdir}/${sampleid}/assembly/flye", mode: 'copy', pattern: '{*.fasta,*.log}'
   tag "${sampleid}"
   label 'setting_9'
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/seqtk:1.3--h5bf99c6_3" :
+    "quay.io/biocontainers/seqtk:1.3--h5bf99c6_3" }"
 
   input:
     tuple val(sampleid), path(fastq)
@@ -263,8 +279,8 @@ process BLASTN2REF {
   tag "${sampleid}"
   label 'setting_1'
   container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-    'https://depot.galaxyproject.org/singularity/blast:2.14.1--pl5321h6f7f691_0' :
-    'quay.io/biocontainers/blast:2.14.1--pl5321h6f7f691_0' }"
+    "https://depot.galaxyproject.org/singularity/blast:2.14.1--pl5321h6f7f691_0" :
+    "quay.io/biocontainers/blast:2.14.1--pl5321h6f7f691_0" }"
   containerOptions "${bindOptions}"
 
   input:
@@ -315,6 +331,9 @@ process MINIMAP2_REF {
   tag "${sampleid}"
   label 'setting_2'
   containerOptions "${bindOptions}"
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/minimap2:2.24--h7132678_1" :
+    "quay.io/biocontainers/minimap2:2.24--h7132678_1" }"
 
   input:
     tuple val(sampleid), path(sample)
@@ -330,6 +349,9 @@ process SAMTOOLS {
   publishDir "${params.outdir}/${sampleid}/mapping", mode: 'copy'
   tag "${sampleid}"
   label 'setting_2'
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "docker://ghcr.io/eresearchqut/samtools:1.16.1--h6899075_1" :
+    "ghcr.io/eresearchqut/samtools:1.16.1--h6899075_1" }"
 
   input:
     tuple val(sampleid), path(sample)
@@ -386,6 +408,9 @@ process PORECHOP_ABI {
   tag "${sampleid}"
   publishDir "$params.outdir/${sampleid}/preprocessing/porechop",  mode: 'link', pattern: '*_porechop.log'
   label "setting_8"
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/porechop_abi:0.5.0--py38he0f268d_2" :
+    "quay.io/biocontainers/porechop_abi:0.5.0--py38he0f268d_2" }"
   containerOptions "${bindOptions}"
 
   input:
@@ -413,8 +438,8 @@ process REFORMAT {
   label "setting_3"
   publishDir "$params.outdir/${sampleid}/preprocessing", mode: 'copy'
   container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-    'https://depot.galaxyproject.org/singularity/bbmap:39.01--h92535d8_1' :
-    'quay.io/biocontainers/bbmap:39.01--h92535d8_1' }"
+    "https://depot.galaxyproject.org/singularity/bbmap:39.01--h92535d8_1" :
+    "quay.io/biocontainers/bbmap:39.01--h92535d8_1" }"
   
   input:
   tuple val(sampleid), path(fastq)
@@ -431,6 +456,9 @@ process CAP3 {
   tag "${sampleid}"
   label "setting_3"
   time "3h"
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/cap3:10.2011--h779adbc_3" :
+    "quay.io/biocontainers/cap3:10.2011--h779adbc_3" }"
   publishDir "$params.outdir/$sampleid/clustering/cap3", mode: 'copy', pattern: '*_clustering.fasta'
 
   input:
@@ -448,6 +476,9 @@ process CAP3 {
 process EXTRACT_VIRAL_BLAST_HITS {
   tag "${sampleid}"
   label "setting_2"
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "docker://docker.io/infrahelpers/python-light:py310-bullseye" :
+    "infrahelpers/python-light:py310-bullseye" }"
   publishDir "$params.outdir/$sampleid", mode: 'copy', pattern: '*/*/*txt'
   containerOptions "${bindOptions}"
 
@@ -481,6 +512,9 @@ process EXTRACT_VIRAL_BLAST_HITS {
 process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
   tag "${sampleid}"
   label "setting_2"
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "docker://docker.io/infrahelpers/python-light:py310-bullseye" :
+    "infrahelpers/python-light:py310-bullseye" }"
   publishDir "$params.outdir/$sampleid/read_classification", mode: 'copy', pattern: 'homology_search/*txt'
   containerOptions "${bindOptions}"
 
@@ -505,6 +539,9 @@ process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
 process CONCATENATE_FASTA {
   tag "${sampleid}"
   label "setting_2"
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/seqtk:1.3--h5bf99c6_3" :
+    "quay.io/biocontainers/seqtk:1.3--h5bf99c6_3" }"
   publishDir "${params.outdir}/${sampleid}", mode: 'link'
 
   input:
@@ -574,6 +611,9 @@ Optional arguments:
 process KAIJU {
   publishDir "${params.outdir}/${sampleid}/read_classification/kaiju", mode: 'link'
   label 'setting_4'
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/kaiju:1.8.2--h5b5514e_1" :
+    "quay.io/biocontainers/kaiju:1.8.2--h5b5514e_1" }"
   containerOptions "${bindOptions}"
 
   input:
@@ -609,6 +649,9 @@ process KAIJU {
 process KRONA {
   publishDir "${params.outdir}/${sampleid}/read_classification/kaiju", mode: 'link'
   label 'setting_3'
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/krona:2.8.1--pl5321hdfd78af_1" :
+    "quay.io/biocontainers/krona:2.8.1--pl5321hdfd78af_1" }"
   containerOptions "${bindOptions}"
 
   input:
@@ -672,6 +715,9 @@ Usage: kraken2 [options] <filename(s)>
 process KRAKEN2 {
 	tag "${sampleid}"
 	label 'setting_5'
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/kraken2:2.1.3--pl5321hdcf5f25_0" :
+    "quay.io/biocontainers/kraken2:2.1.3--pl5321hdcf5f25_0" }"
 	publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'copy'
   containerOptions "${bindOptions}"
 
@@ -700,6 +746,9 @@ process BRACKEN {
   tag "${sampleid}"
 	label 'setting_2'
 	publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'link'
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/bracken:2.8--py310h0dbaff4_1" :
+    "quay.io/biocontainers/bracken:2.8--py310h0dbaff4_1" }"
   containerOptions "${bindOptions}"
 
 	input:
@@ -726,6 +775,9 @@ process RATTLE {
   publishDir "${params.outdir}/${sampleid}/clustering/rattle", mode: 'link'
   tag "${sampleid}"
   label 'setting_7'
+  container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    "https://depot.galaxyproject.org/singularity/nanoplot:1.41.0--pyhdfd78af_0" :
+    "quay.io/biocontainers/nanoplot:1.41.0--pyhdfd78af_0" }"
   containerOptions "${bindOptions}"
 
   input:
@@ -932,7 +984,8 @@ workflow {
       }
       if (params.kaiju) {
         KAIJU ( final_fq )
-        KRONA ( KAIJU.out.results)
+        KRONA ( 
+          .out.results)
       }
       if (params.kraken2) {
         KRAKEN2 ( final_fq )
