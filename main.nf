@@ -768,6 +768,19 @@ workflow {
       .set{ ch_sample }
   } else { exit 1, "Input samplesheet file not specified!" }
 
+  if ( params.analysis_mode == 'clustering' | params.analysis_mode == 'denovo_assembly' | (params.analysis_mode == 'read_classification' & params.megablast)) {
+    if (!params.blast_vs_ref) {
+      if ( params.blastn_db == null) {
+        error("Please provide the path to a blast database using the parameter --blastn_db") 
+      }
+    }
+    else if (params.blast_vs_ref) {
+      if ( params.reference == null) {
+      error("Please provide the path to a reference fasta file with the parameter --reference") 
+      }
+    }
+  }
+
   if (params.merge) {
     MERGE ( ch_sample )
     QC_PRE_DATA_PROCESSING ( MERGE.out.merged )
@@ -778,7 +791,6 @@ workflow {
     QC_PRE_DATA_PROCESSING ( fq )
   }
 
-  
 
   // Data pre-processing
   // Remove adapters uisng either PORECHOP_ABI or CUTADAPT
@@ -868,20 +880,24 @@ workflow {
     */
     
     //perform clustering using Rattle
-    if ( params.analysis_mode == 'clustering' ) {
+      
+
+      if ( params.analysis_mode == 'clustering' ) {
       RATTLE ( final_fq )
       FASTQ2FASTA( RATTLE.out.clusters )
       CAP3( FASTQ2FASTA.out.fasta )
       contigs = CAP3.out.scaffolds
 
       if (params.blast_vs_ref) {
+        if ( params.reference == null) {
+          error("You need to provide the path to a reference fasta file with the parameter --reference when running the clustering mode with the --blast_vs_ref option") 
         BLASTN2REF ( contigs )
+        }
       }
       else { 
         CLUSTERING_BLASTN ( contigs )
         EXTRACT_VIRAL_BLAST_HITS ( CLUSTERING_BLASTN.out.blast_results )
       }
-    
     }
     //perform de novo assembly using either canu or flye
     else if ( params.analysis_mode == 'denovo_assembly' ) {
