@@ -1,2 +1,2 @@
 sampleid,sample_files
-test,${baseDir}/test/test.fastq.gz
+test,https://github.com/maelyg/ontvisc/raw/main/test/test.fastq.gz
