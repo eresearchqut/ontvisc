@@ -1,2 +1,2 @@
 sampleid,sample_files
-test,test/test.fastq.gz
+test,${baseDir}/test/test.fastq.gz
