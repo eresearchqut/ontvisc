@@ -774,11 +774,16 @@ workflow {
         error("Please provide the path to a blast database using the parameter --blastn_db") 
       }
     }
-    else if (params.blast_vs_ref) {
+    else if (params.blast_vs_ref ) {
       if ( params.reference == null) {
       error("Please provide the path to a reference fasta file with the parameter --reference") 
       }
     }
+  }
+  else if ( params.analysis_mode == 'map2ref' ) {
+    if ( params.reference == null) {
+      error("Please provide the path to a reference fasta file with the parameter --reference") 
+      }
   }
 
   if (params.merge) {
