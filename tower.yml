@@ -1,0 +1,9 @@
+reports:
+  "**/qc_report/run_qc_report_*.txt":  
+    display: "QC report"
+  "**/qc/nanoplot/*_raw_NanoPlot-report.html":
+    display: "NanoPlot report for raw reads"
+  "**/qc/nanoplot/*_filtered_NanoPlot-report.html":
+    display: "NanoPlot report for quality filtered reads"
+  "**/preprocessing/*_chopper.log":
+    display: "Chopper log file"
