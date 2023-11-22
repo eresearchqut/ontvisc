@@ -721,7 +721,7 @@ process BRACKEN {
 }
 
 process RATTLE {
-  publishDir "${params.outdir}/${sampleid}/clustering/rattle", mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/clustering/rattle", mode: 'copy', pattern: 'transcriptome.fq'
   tag "${sampleid}"
   label 'setting_7'
   containerOptions "${bindOptions}"
@@ -738,12 +738,12 @@ process RATTLE {
   def rattle_clustering_options = (params.rattle_clustering_options) ? " ${params.rattle_clustering_options}" : ''
   script:
   """
-  rattle cluster -i ${fastq} -t ${task.cpus} ${params.rattle_clustering_options}  -o . --rna
+  rattle cluster -i ${fastq} -t ${task.cpus} ${rattle_clustering_options}  -o . --rna
   rattle cluster_summary -i ${fastq} -c clusters.out > ${sampleid}_cluster_summary.txt
   mkdir clusters
   rattle extract_clusters -i ${fastq} -c clusters.out -l ${sampleid} -o clusters --fastq
   rattle correct -i ${fastq} -c clusters.out -t ${task.cpus} -l ${sampleid}
-  rattle polish -i consensi.fq -t ${task.cpus} --summary ${params.rattle_polishing_options}
+  rattle polish -i consensi.fq -t ${task.cpus} --summary ${rattle_polishing_options}
   """
 }
 
