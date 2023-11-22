@@ -566,7 +566,7 @@ Optional arguments:
   -v            Enable verbose output
 */
 process KAIJU {
-  publishDir "${params.outdir}/${sampleid}/read_classification/kaiju", mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/read_classification/kaiju", mode: 'copy'
   label 'setting_4'
   containerOptions "${bindOptions}"
 
@@ -595,7 +595,7 @@ process KAIJU {
   kaiju2table -e -t ${params.kaiju_nodes} -r species -n ${params.kaiju_names} -o ${sampleid}_kaiju_summary.tsv ${sampleid}_kaiju.tsv
   kaiju2krona -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju.krona
   
-  c1grep "taxon_id\\|virus\\|viroid" ${sampleid}_kaiju_summary.tsv > ${sampleid}_kaiju_summary_viral.tsv
+  c1grep "taxon_id\\|virus\\|viroid\\|viricota\\|viridae\\|viriform\\|virales\\|virinae\\|viricetes\\|virae\\|viral" ${sampleid}_kaiju_summary.tsv > ${sampleid}_kaiju_summary_viral.tsv
   awk -F'\\t' '\$2>=0.05' ${sampleid}_kaiju_summary_viral.tsv > ${sampleid}_kaiju_summary_viral_filtered.tsv
   """
 }
