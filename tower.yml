@@ -65,7 +65,7 @@ reports:
     display: "Coverage histogram of mapped reads against reference"
   "**/mapping/*_coverage.txt":
     display: "Coverage statistics of mapped reads against reference"
-  "**/clustering/cap3/*_clustering.fasta"
+  "**/clustering/cap3/*_clustering.fasta":
     display: "Fasta file of assembled clusters (Rattle and CAP3)"
   "**/clustering/blastn/*_blastn_top_hits.txt":
     display: "Blastn cluster search (all top hits)"
