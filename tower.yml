@@ -37,7 +37,7 @@ reports:
     display: "Blastn read search viral abundance table (read count per viral species)"
   "**/assembly/*cutadapt.log":
     display: "Cutadapt log for final primer check on derived de-novo assembly"
-  "**/assembly/*_filtered.fa:
+  "**/assembly/*_filtered.fa":
     display: "Filtered novo assembly after final primer check"
   "**/assembly/canu/*.canu.log":
     display: "De novo assembly log (Canu)"
