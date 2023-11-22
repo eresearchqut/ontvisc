@@ -267,7 +267,7 @@ process BLASTN2REF {
   input:
     tuple val(sampleid), path(assembly)
   output:
-    path "*/*/blastn_reference_vs_*.txt"
+    path "*/*/${sampleid}_blastn_reference_vs_*.txt"
 
   script:
   """
@@ -276,33 +276,33 @@ process BLASTN2REF {
     if [[ ${assembly} == *canu_assembly*.fa* ]] ;
     then
       mkdir -p assembly/blast_to_ref
-      blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out blastn_reference_vs_canu_assembly_tmp.txt \
+      blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_canu_assembly_tmp.txt \
       -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
     
       echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
     
-      cat header blastn_reference_vs_canu_assembly_tmp.txt >  assembly/blast_to_ref/blastn_reference_vs_canu_assembly.txt
+      cat header ${sampleid}_blastn_reference_vs_canu_assembly_tmp.txt >  assembly/blast_to_ref/${sampleid}_blastn_reference_vs_canu_assembly.txt
     elif [[ ${assembly} == *flye_assembly*.fasta ]] ;
     then
       mkdir -p assembly/blast_to_ref
     
-      blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out blastn_reference_vs_flye_assembly_tmp.txt \
+      blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_flye_assembly_tmp.txt \
       -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
     
       echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
     
-      cat header blastn_reference_vs_flye_assembly_tmp.txt > assembly/blast_to_ref/blastn_reference_vs_flye_assembly.txt
+      cat header ${sampleid}_blastn_reference_vs_flye_assembly_tmp.txt > assembly/blast_to_ref/${sampleid}_blastn_reference_vs_flye_assembly.txt
     fi
   elif [[ ${assembly} == *clustering.fasta ]] ;
   then
     mkdir -p clustering/blast_to_ref
   
-    blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out blastn_reference_vs_clustering_tmp.txt \
+    blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_clustering_tmp.txt \
     -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
   
     echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
   
-    cat header blastn_reference_vs_clustering_tmp.txt > clustering/blast_to_ref/blastn_reference_vs_clustering.txt
+    cat header ${sampleid}_blastn_reference_vs_clustering_tmp.txt > clustering/blast_to_ref/${sampleid}_blastn_reference_vs_clustering_assembly.txt
   fi
 
   """
@@ -426,16 +426,20 @@ process CAP3 {
   label "setting_3"
   time "3h"
   publishDir "$params.outdir/$sampleid/clustering/cap3", mode: 'copy', pattern: '*_clustering.fasta'
+  publishDir "$params.outdir/$sampleid/clustering/rattle", mode: 'copy', pattern: '*_rattle.fasta'
 
   input:
   tuple val(sampleid), path(fasta)
   output:
+  file("${sampleid}_rattle.fasta")
   tuple val(sampleid), path("${sampleid}_clustering.fasta"), emit: scaffolds
+  
 
   script:
   """
   cap3 ${fasta}
   cat ${fasta}.cap.singlets ${fasta}.cap.contigs > ${sampleid}_clustering.fasta
+  cp ${fasta} ${sampleid}_rattle.fasta
   """
 }
 
@@ -771,18 +775,18 @@ workflow {
   if ( params.analysis_mode == 'clustering' | params.analysis_mode == 'denovo_assembly' | (params.analysis_mode == 'read_classification' & params.megablast)) {
     if (!params.blast_vs_ref) {
       if ( params.blastn_db == null) {
-        error("Please provide the path to a blast database using the parameter --blastn_db") 
+        error("Please provide the path to a blast database using the parameter --blastn_db.") 
       }
     }
     else if (params.blast_vs_ref ) {
       if ( params.reference == null) {
-      error("Please provide the path to a reference fasta file with the parameter --reference") 
+      error("Please provide the path to a reference fasta file with the parameter --reference.") 
       }
     }
   }
   else if ( params.analysis_mode == 'map2ref' ) {
     if ( params.reference == null) {
-      error("Please provide the path to a reference fasta file with the parameter --reference") 
+      error("Please provide the path to a reference fasta file with the parameter --reference.") 
       }
   }
 
@@ -824,6 +828,9 @@ workflow {
     }
 
     if (params.host_filtering) {
+      if ( params.host_fasta == null) {
+        error("Please provide the path to a fasta file of host sequences that need to be filtered with the parameter --host_fasta.") 
+      }
       MINIMAP2_ALIGN_RNA ( REFORMAT.out.reformatted_fq, params.host_fasta )
       EXTRACT_READS_STEP1 ( MINIMAP2_ALIGN_RNA.out.sequencing_ids )
       final_fq = EXTRACT_READS_STEP1.out.unaligned_fq
@@ -894,11 +901,8 @@ workflow {
       contigs = CAP3.out.scaffolds
 
       if (params.blast_vs_ref) {
-        if ( params.reference == null) {
-          error("You need to provide the path to a reference fasta file with the parameter --reference when running the clustering mode with the --blast_vs_ref option") 
         BLASTN2REF ( contigs )
         }
-      }
       else { 
         CLUSTERING_BLASTN ( contigs )
         EXTRACT_VIRAL_BLAST_HITS ( CLUSTERING_BLASTN.out.blast_results )

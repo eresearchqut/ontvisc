@@ -1,9 +1,81 @@
 reports:
   "**/qc_report/run_qc_report_*.txt":  
-    display: "QC report"
+    display: "Run QC report"
   "**/qc/nanoplot/*_raw_NanoPlot-report.html":
     display: "NanoPlot report for raw reads"
   "**/qc/nanoplot/*_filtered_NanoPlot-report.html":
     display: "NanoPlot report for quality filtered reads"
-  "**/preprocessing/*_chopper.log":
-    display: "Chopper log file"
+  "**/preprocessing/chopper/*_chopper.log":
+    display: "Chopper quality filtering log"
+  "**/preprocessing/porechop/*_porechop.log":
+    display: "Porechop adapter trimming log"
+  "**/read_classification/kaiju/*_krona.html":
+    display: "Krona output"
+  "**/read_classification/kaiju/*_kaiju_summary.tsv":
+    display: "Kaiju summary"
+  "**/read_classification/kaiju/*_kaiju_summary_viral.tsv":
+    display: "Kaiju viral summary"
+  "**/read_classification/kaiju/*_kaiju_summary_viral_filtered.tsv":
+    display: "Kaiju viral summary filtered"
+  "**/read_classification/kaiju/*_kraken2":
+    display: "Kraken2 summary"
+  "**/read_classification/kaiju/*_bracken_report.txt":
+    display: "Bracken summary"
+  "**/read_classification/kaiju/*_bracken_report_viral.txt":
+    display: "Bracken viral summary"
+  "**/read_classification/kaiju/*_bracken_report_viral_filtered.txt":
+    display: "Bracken viral filtered summary"
+  "**/read_classification/homology_search/*_blastn_top_hits.txt":
+    display: "Blastn read search (all top hits))"
+  "**/read_classification/homology_search/*_blastn_top_viral_hits.txt":
+    display: "Blastn read search (all top viral hits)"
+  "**/read_classification/homology_search/*_blastn_top_viral_spp_hits.txt":
+    display: "Blastn read search (all top viral species hits)"
+  "**/read_classification/homology_search/*_queryid_list_with_viral_match.txt.txt":
+    display: "Blastn read search summary table (read ids by query viral id)"
+  "**/read_classification/homology_search/*_read_classification_viral_spp_abundance.txt":
+    display: "Blastn read search viral abundance table (read count per viral species)"
+  "**/assembly/*cutadapt.log":
+    display: "Cutadapt log for final primer check on derived de-novo assembly"
+  "**/assembly/*_filtered.fa:
+    display: "Filtered novo assembly after final primer check"
+  "**/assembly/canu/*.canu.log":
+    display: "De novo assembly log (Canu)"
+  "**/assembly/flye/*.flye.log":
+    display: "De novo assembly log (Flye)"
+  "**/assembly/flye/*_flye_assembly.fasta":
+    display: "De novo assembly fasta file (Flye)"
+  "**/assembly/canu/*_canu_assembly.fasta":
+    display: "De novo assembly fasta file (Canu)"
+  "**/assembly/blast_to_ref/*canu_assembly.txt":
+    display: "Blastn search of Canu-derived contigs against reference"
+  "**/assembly/blast_to_ref/*flye_assembly.txt":
+    display: "Blastn search of Flye-derived contigs against reference"
+  "**/assembly/blastn/*_blastn_top_hits.txt":
+    display: "Blastn assembly search (all top hits))"
+  "**/assembly/blastn/*_blastn_top_viral_hits.txt":
+    display: "Blastn assembly search (all top viral hits)"
+  "**/assembly/blastn/*_blastn_top_viral_spp_hits.txt":
+    display: "Blastn assembly search (all top viral species hits)"
+  "**/assembly/blastn/*_queryid_list_with_viral_match.txt.txt":
+    display: "Blastn assembly search summary table (cluster ids by query viral id)"
+  "**/assembly/blastn/*_read_classification_viral_spp_abundance.txt":
+    display: "Blastn assembly search viral abundance table (cluster count per viral species)"
+  "**/mapping/*_histogram":
+    display: "Coverage histogram of mapped reads against reference"
+  "**/mapping/*_coverage.txt":
+    display: "Coverage statistics of mapped reads against reference"
+  "**/clustering/cap3/*_clustering.fasta"
+    display: "Fasta file of assembled clusters (Rattle and CAP3)"
+  "**/clustering/blastn/*_blastn_top_hits.txt":
+    display: "Blastn cluster search (all top hits)"
+  "**/clustering/blastn/*_blastn_top_viral_hits.txt":
+    display: "Blastn cluster search (all top viral hits)"
+  "**/clustering/blastn/*_blastn_top_viral_spp_hits.txt":
+    display: "Blastn cluster search (all top viral species hits)"
+  "**/clustering/blastn/*_queryid_list_with_viral_match.txt.txt":
+    display: "Blastn cluster search summary table (cluster ids by query viral id)"
+  "**/clustering/blastn/*_read_classification_viral_spp_abundance.txt":
+    display: "Blastn cluster search viral abundance table (cluster count per viral species)"
+  "**/clustering/blast_to_ref/*clustering_assembly.txt":
+    display: "Blastn search of clusters against reference (Rattle and CAP3)"
