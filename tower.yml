@@ -17,16 +17,16 @@ reports:
     display: "Kaiju viral summary"
   "**/read_classification/kaiju/*_kaiju_summary_viral_filtered.tsv":
     display: "Kaiju viral summary filtered"
-  "**/read_classification/kaiju/*_kraken2":
+  "**/read_classification/kraken/*_kraken2":
     display: "Kraken2 summary"
-  "**/read_classification/kaiju/*_bracken_report.txt":
+  "**/read_classification/kraken/*_bracken_report.txt":
     display: "Bracken summary"
-  "**/read_classification/kaiju/*_bracken_report_viral.txt":
+  "**/read_classification/kraken/*_bracken_report_viral.txt":
     display: "Bracken viral summary"
-  "**/read_classification/kaiju/*_bracken_report_viral_filtered.txt":
+  "**/read_classification/kraken/*_bracken_report_viral_filtered.txt":
     display: "Bracken viral filtered summary"
   "**/read_classification/homology_search/*_blastn_top_hits.txt":
-    display: "Blastn read search (all top hits))"
+    display: "Blastn read search (all top hits)"
   "**/read_classification/homology_search/*_blastn_top_viral_hits.txt":
     display: "Blastn read search (all top viral hits)"
   "**/read_classification/homology_search/*_blastn_top_viral_spp_hits.txt":
