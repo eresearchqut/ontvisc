@@ -46,8 +46,6 @@ Detailed instructions can be found in [wiki](https://github.com/maelyg/ontvisc/w
 ## To do
 - Derive consensus sequence in blast2ref mode
 - Finalise output section wiki documentation
-- Testing docker mode
-- issue with single Chopper params definition requiring a space
 
 ### Authors
 Marie-Emilie Gauthier <gauthiem@qut.edu.au>  
