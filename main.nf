@@ -831,9 +831,10 @@ workflow {
       if ( params.host_fasta == null) {
         error("Please provide the path to a fasta file of host sequences that need to be filtered with the parameter --host_fasta.") 
       }
-      MINIMAP2_ALIGN_RNA ( REFORMAT.out.reformatted_fq, params.host_fasta )
-      EXTRACT_READS_STEP1 ( MINIMAP2_ALIGN_RNA.out.sequencing_ids )
-      final_fq = EXTRACT_READS_STEP1.out.unaligned_fq
+      else:
+        MINIMAP2_ALIGN_RNA ( REFORMAT.out.reformatted_fq, params.host_fasta )
+        EXTRACT_READS_STEP1 ( MINIMAP2_ALIGN_RNA.out.sequencing_ids )
+        final_fq = EXTRACT_READS_STEP1.out.unaligned_fq
     }
     else {
       final_fq = REFORMAT.out.reformatted_fq
