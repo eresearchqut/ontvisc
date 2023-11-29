@@ -839,7 +839,7 @@ workflow {
       final_fq = REFORMAT.out.reformatted_fq
     }
 
-    if ( ( params.qual_filt | params.adapter_trimming ) & params.host_filtering) {
+    if ( params.qual_filt & params.host_filtering | params.adapter_trimming & params.host_filtering ) {
       ch_multiqc_files = Channel.empty()
       ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
       ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS_STEP1.out.read_counts.collect().ifEmpty([]))
@@ -854,7 +854,7 @@ workflow {
       QCREPORT(ch_multiqc_files.collect())
     }
 
-    else if ( ( params.qual_filt | params.adapter_trimming ) & !params.host_filtering) {
+    else if ( params.qual_filt & !params.host_filtering | params.adapter_trimming & !params.host_filtering) {
       ch_multiqc_files = Channel.empty()
       ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
       ch_multiqc_files = ch_multiqc_files.mix(QC_POST_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
