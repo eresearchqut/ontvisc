@@ -76,6 +76,9 @@ if (params.reference != null) {
     reference_name = file(params.reference).name
     reference_dir = file(params.reference).parent
 }
+if (params.host_fasta != null) {
+    host_fasta_dir = file(params.host_fasta).parent
+}
 if (params.kaiju_nodes != null & params.kaiju_dbname != null & params.kaiju_names != null) {
     kaiju_dbs_dir = file(params.kaiju_nodes).parent
 }
@@ -97,6 +100,9 @@ switch (workflow.containerEngine) {
     }
     if (params.krkdb != null) {
       bindbuild = (bindbuild + "-B ${krkdb_dir} ")
+    }
+    if (params.host_fasta != null) {
+      bindbuild = (bindbuild + "-B ${host_fasta_dir} ")
     }
     bindOptions = bindbuild;
     break;
@@ -817,7 +823,7 @@ workflow {
     if (params.qual_filt) {
       CHOPPER ( trimmed_fq)
       filtered_fq = CHOPPER.out.chopper_filtered_fq
-      }
+    }
     else { filtered_fq = trimmed_fq
     }
 

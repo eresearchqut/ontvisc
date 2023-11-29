@@ -2,12 +2,18 @@ if (params.blastn_db != null) {
     blastn_db_name = file(params.blastn_db).name
     blastn_db_dir = file(params.blastn_db).parent
 }
+if (params.host_fasta != null) {
+    host_fasta_dir = file(params.host_fasta).parent
+}
 
 switch (workflow.containerEngine) {
   case "singularity":
     bindbuild = "";
     if (params.blastn_db != null) {
       bindbuild = (bindbuild + "-B ${blastn_db_dir} ")
+    }
+    if (params.host_fasta != null) {
+      bindbuild = (bindbuild + "-B ${host_fasta_dir} ")
     }
     bindOptions = bindbuild;
     break;
@@ -35,6 +41,7 @@ process MINIMAP2_ALIGN_DNA {
 process MINIMAP2_ALIGN_RNA {
   tag "${sampleid}"
   label "setting_8"
+  containerOptions "${bindOptions}"
 
   input:
   tuple val(sampleid), path(fastq)
