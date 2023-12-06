@@ -41,11 +41,7 @@ The reads can optionally be filtered from a plant host before performing downstr
   - Align reads to reference fasta file (Minimap2) and derive bam file and alignment statistics (Samtools)
 
 Detailed instructions can be found in [wiki](https://github.com/eresearchqut/ontvisc/wiki).
-
-
-## To do
-- Derive consensus sequence in blast2ref mode
-- Finalise output section wiki documentation
+A step-by-step guide with instructions on how to set up and execute the ONTvisc pipeline on one of the HPC systems: Lyra (Queensland University of Technology), Setonix (Pawsey) and Gadi (National Computational Infrastructure) can be found [here](https://mantczakaus.github.io/ontvisc_guide/).
 
 ### Authors
 Marie-Emilie Gauthier <gauthiem@qut.edu.au>  
