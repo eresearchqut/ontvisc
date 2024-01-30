@@ -86,6 +86,10 @@ if (params.krkdb != null) {
     krkdb_dir = file(params.krkdb).parent
 }
 
+if (params.porechop_custom_primers == true) {
+    porechop_custom_primers_dir = file(params.porechop_custom_primers_path).parent
+}
+
 switch (workflow.containerEngine) {
   case "singularity":
     bindbuild = "";
@@ -103,6 +107,9 @@ switch (workflow.containerEngine) {
     }
     if (params.host_fasta != null) {
       bindbuild = (bindbuild + "-B ${host_fasta_dir} ")
+    }
+    if (params.porechop_custom_primers) {
+      bindbuild = (bindbuild + "-B ${porechop_custom_primers_dir} ")
     }
     bindOptions = bindbuild;
     break;
@@ -344,7 +351,7 @@ process SAMTOOLS {
     tuple val(sampleid), path("${sampleid}_aln.sorted.bam"), path("${sampleid}_aln.sorted.bam.bai"), emit: sorted_sample
   script:
   """
-  samtools view -Sb ${sample} | samtools sort -o ${sampleid}_aln.sorted.bam
+  samtools view -Sb -F 4 ${sample} | samtools sort -o ${sampleid}_aln.sorted.bam
   samtools index ${sampleid}_aln.sorted.bam
   samtools coverage ${sampleid}_aln.sorted.bam > ${sampleid}_histogram.txt  > ${sampleid}_coverage.txt
   samtools coverage -A -w 50 ${sampleid}_aln.sorted.bam > ${sampleid}_histogram
@@ -403,7 +410,7 @@ process PORECHOP_ABI {
   def porechop_options = (params.porechop_options) ? " ${params.porechop_options}" : ''
   """
   if [[ ${params.porechop_custom_primers} == true ]]; then
-    porechop_abi -i ${sample} -t ${task.cpus} -o ${sampleid}_porechop_trimmed.fastq.gz --custom_adapters ${projectDir}/bin/adapters.txt ${porechop_options}  > ${sampleid}_porechop.log
+    porechop_abi -i ${sample} -t ${task.cpus} -o ${sampleid}_porechop_trimmed.fastq.gz --custom_adapters ${params.porechop_custom_primers_path} ${porechop_options}  > ${sampleid}_porechop.log
   else
     porechop_abi -i ${sample} -t ${task.cpus} -o ${sampleid}_porechop_trimmed.fastq.gz ${porechop_options}  > ${sampleid}_porechop.log
   fi
@@ -459,7 +466,7 @@ process EXTRACT_VIRAL_BLAST_HITS {
   tuple val(sampleid), path(blast_results)
   output:
   file "*/*/${sampleid}*_blastn_top_hits.txt"
-  file "*/*/${sampleid}*_blastn_top_viral_hits.txt"
+  file "*/*/${sampleid}*_blastn_top_viral_hits*.txt"
   file "*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"
   file "*/*/${sampleid}*_queryid_list_with_viral_match.txt"
   file "*/*/${sampleid}*_viral_spp_abundance.txt"
@@ -733,12 +740,12 @@ process RATTLE {
   containerOptions "${bindOptions}"
 
   input:
-  tuple val(sampleid), path(fastq)
+    tuple val(sampleid), path(fastq)
 
   output:
-  file("transcriptome.fq")
-  tuple val(sampleid), path("transcriptome.fq"), emit: clusters
-  tuple val(sampleid), path(fastq), path("transcriptome.fq"), emit: clusters2
+    file("transcriptome.fq")
+    tuple val(sampleid), path("transcriptome.fq"), emit: clusters
+    tuple val(sampleid), path(fastq), path("transcriptome.fq"), emit: clusters2
 
   def rattle_polishing_options = (params.rattle_polishing_options) ? " ${params.rattle_polishing_options}" : ''
   def rattle_clustering_options = (params.rattle_clustering_options) ? " ${params.rattle_clustering_options}" : ''
@@ -752,6 +759,63 @@ process RATTLE {
   rattle polish -i consensi.fq -t ${task.cpus} --summary ${rattle_polishing_options}
   """
 }
+
+process MEDAKA {
+  publishDir "${params.outdir}/${sampleid}/mapping", mode: 'copy'
+  tag "${sampleid}"
+  label 'setting_3'
+  containerOptions "${bindOptions}"
+
+  input:
+   tuple val(sampleid), path(bam), path(bai)
+
+  output:
+    path("${sampleid}_medaka_consensus_probs.hdf")
+    path("${sampleid}_medaka.annotated.unfiltered.vcf")
+    tuple val(sampleid), path("${sampleid}_medaka.annotated.unfiltered.vcf"), emit: unfilt_vcf
+  
+  script:
+  def medaka_consensus_options = (params.medaka_consensus_options) ? " ${params.medaka_consensus_options}" : ''
+  """
+  medaka consensus ${bam} ${sampleid}_medaka_consensus_probs.hdf \
+     ${medaka_consensus_options} --threads ${task.cpus}
+  
+  medaka variant ${reference_dir}/${reference_name} ${sampleid}_medaka_consensus_probs.hdf ${sampleid}_medaka.vcf
+  medaka tools annotate --dpsp ${sampleid}_medaka.vcf ${reference_dir}/${reference_name} ${bam} \
+        ${sampleid}_medaka.annotated.unfiltered.vcf
+  """
+}
+
+
+process FILTER_VCF {
+  publishDir "${params.outdir}/${sampleid}/mapping", mode: 'copy'
+  tag "${sampleid}"
+  label 'setting_3'
+  containerOptions "${bindOptions}"
+
+  input:
+   tuple val(sampleid), path(vcf)
+
+  output:
+    path("${sampleid}_medaka.consensus.fasta")
+    path("${sampleid}_medaka.annotated.vcf.gz")
+
+  script:
+  """
+  bcftools reheader ${vcf} -s <(echo '${sampleid}') \
+  | bcftools filter \
+      -e 'INFO/DP < ${params.bcftools_min_coverage}' \
+      -s LOW_DEPTH \
+      -Oz -o ${sampleid}_medaka.annotated.vcf.gz
+
+  # create consensus
+  bcftools index ${sampleid}_medaka.annotated.vcf.gz
+  bcftools consensus -f ${reference_dir}/${reference_name} ${sampleid}_medaka.annotated.vcf.gz \
+      -i 'FILTER="PASS"' \
+      -o ${sampleid}_medaka.consensus.fasta
+  """
+}
+
 
 include { MINIMAP2_ALIGN_RNA } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP1 } from './modules.nf'
@@ -767,7 +831,6 @@ include { NANOPLOT as QC_POST_DATA_PROCESSING } from './modules.nf'
 include { BLASTN as READ_CLASSIFICATION_BLASTN } from './modules.nf'
 include { BLASTN as ASSEMBLY_BLASTN } from './modules.nf'
 include { BLASTN as CLUSTERING_BLASTN } from './modules.nf'
-
 
 workflow {
   if (params.samplesheet) {
@@ -882,7 +945,7 @@ workflow {
         EXTRACT_READS_STEP3 ( MAP_BACK_TO_CLUSTERS.out.sequencing_ids )
         FASTQ2FASTA_STEP2( EXTRACT_READS_STEP3.out.unaligned_fq )
         CONCATENATE_FASTA(CANU.out.assembly2, CAP3.out.contigs, FASTQ2FASTA_STEP2.out.fasta)
-        BLASTN_SPLIT( CONCATENATE_FASTA.out.assembly).splitFasta(by: 25000, file: true)
+        BLASTN_SPLIT( CONCATENATE_FASTA.out.assembly).splitFasta(by: 5000, file: true)
         BLASTN_SPLIT.out.blast_results
           .groupTuple()
           .set { ch_blastresults }
@@ -894,7 +957,7 @@ workflow {
         EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.sequencing_ids )
         FASTQ2FASTA_STEP1( RATTLE.out.clusters )
         CAP3( FASTQ2FASTA_STEP1.out.fasta )
-        BLASTN_SPLIT( FLYE.out.assembly.mix(CAP3.out.contigs).collect().splitFasta(by: 25000, file: true) )
+        BLASTN_SPLIT( FLYE.out.assembly.mix(CAP3.out.contigs).collect().splitFasta(by: 5000, file: true) )
       }
     }
     */
@@ -951,7 +1014,7 @@ workflow {
     //just perform direct read search
       if (params.megablast) {
         FASTQ2FASTA_STEP1( final_fq )
-        READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 10000, file: true) )
+        READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true) )
         READ_CLASSIFICATION_BLASTN.out.blast_results
           .groupTuple()
           .set { ch_blastresults }
@@ -971,7 +1034,8 @@ workflow {
     else if ( params.analysis_mode == 'map2ref') {
       MINIMAP2_REF ( final_fq )
       SAMTOOLS ( MINIMAP2_REF.out.aligned_sample )
-      
+      MEDAKA ( SAMTOOLS.out.sorted_sample )
+      FILTER_VCF ( MEDAKA.out.unfilt_vcf )
     }
     else {
       error("Analysis mode (read_classification, clustering, denovo_assembly, map2ref) not specified with e.g. '--analysis_mode clustering' or via a detectable config file.") }
