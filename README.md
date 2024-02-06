@@ -425,8 +425,9 @@ Example of report:
 | --- | --- | --- | --- | --- | --- |
 | MT010 | 315868 | 315081 | 200632 | 99.75 | 63.52 |
 
-### Read classification mode
-#### Nucleotide taxonomic classification (Kraken 2 and Braken)
+### Read classification mode  
+
+#### Nucleotide taxonomic classification (Kraken 2 and Braken)  
 After running Kraken2, six files will be saved under the **SampleName/read_classification/kraken** folder. The kraken2 standard output (ie **SampleName.kraken2**) taxonomically classifies each sequence. Check the [manual](https://github.com/DerrickWood/kraken2/blob/master/docs/MANUAL.markdown#output-formats) for details about each table field.
 
 The kraken_report is tab-delimited, with one line per taxon. The fields of the output, from left-to-right, are as follows:  
