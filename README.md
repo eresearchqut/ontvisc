@@ -118,6 +118,7 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
 
 
 ## Running the pipeline  
+
 ### Run test data
 - Run the command:
   ```
@@ -190,12 +191,12 @@ results/
             └── test_raw_NanoPlot-report.html
 ``` 
 
-## QC step
+### QC step
 By default the pipeline will run a quality control check of the raw reads using NanoPlot.
 
 - Run only the quality control step to have a preliminary look at the data before proceeding with downstream analyses by specifying the ```--qc_only``` parameter.
 
-## Preprocessing reads
+### Preprocessing reads
 If multiple fastq files exist for a single sample, they will first need to be merged using the `--merge` option.
 Then the read names of the fastq file created will be trimmed after the first whitespace, for compatiblity purposes with all downstream tools.  
 
@@ -218,7 +219,7 @@ A zipped copy of the resulting preprocessed and/or quality filtered fastq file w
 
 If you trim raw read of adapters and/or quality filter the raw reads, an additional quality control step will be performed and a qc report will be generated summarising the read counts recovered before and after preprocessing for all samples listed in the index.csv file.
 
-## Host read filtering
+### Host read filtering
 - Reads mapping to a host genome reference or sequences can be filtered out by specifying the ``--host_filtering`` parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``.
 
 A qc report will be generated summarising the read counts recovered after host filtering.
