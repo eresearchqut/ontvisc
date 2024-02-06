@@ -21,6 +21,7 @@ d. [Host read filtering](#host-read-filtering)
 e. [Read classification analysis mode](#read-classification-analysis-mode)  
 f. [De novo assembly analysis mode](#de-novo-assembly-analysis-mode)  
 g. [Clustering analysis mode](#clustering-analysis-mode)  
+h. [Mapping to reference](#mapping-to-reference)
 5. [Authors](#authors)
 
 ## Pipeline overview
@@ -373,6 +374,19 @@ nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
                             --rattle_clustering_options '--lower-length 500 --upper-length 2000' \
                             --blast_threads 8 \
                             --blastn_db /path/to/ncbi_blast_db/nt
+```
+
+### Mapping to reference
+In the map2ref analysis mode, the reads are mapped to a reference fata file provided using Minimap2. A bam file is created and summary coverage statistics are derived using samtools coverage. A variant call file and a consensus fasta sequence are also output by Medaka and bcftools.  
+Specify medaka options using the parameter ```--medaka_consensus_options```. Specify the minimum coverage using the parameter ```--bcftools_min_coverage```.  
+
+
+Example:
+```
+nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
+                            --merge \
+                            --analysis_mode map2ref \
+                            --reference /path/to/reference.fasta
 ```
 
 
