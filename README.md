@@ -49,13 +49,13 @@ The reads can optionally be filtered from a plant host before performing downstr
 Detailed instructions can be found in [wiki](https://github.com/eresearchqut/ontvisc/wiki).
 A step-by-step guide with instructions on how to set up and execute the ONTvisc pipeline on one of the HPC systems: Lyra (Queensland University of Technology), Setonix (Pawsey) and Gadi (National Computational Infrastructure) can be found [here](https://mantczakaus.github.io/ontvisc_guide/).
 
-##Installation
-## Requirements  
+## Installation
+### Requirements  
 1. Install Nextflow [`Nextflow`](https://www.nextflow.io/docs/latest/getstarted.html#installation)
 
 2. Install [`Docker`](https://docs.docker.com/get-docker/) or [`Singularity`](https://docs.sylabs.io/guides/3.0/user-guide/quick_start.html#quick-installation-steps) to suit your environment.
 
-## Installing the required indexes and references
+### Installing the required indexes and references
 Depending on the mode you are intersted to run, you will need to install some databases and references.
 
 | Mode | Index | Description |
