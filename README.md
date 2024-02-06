@@ -12,6 +12,7 @@ The reads can optionally be filtered from a plant host before performing downstr
 1. [Pipeline overview](#pipeline-overview)
 2. [Installation](#installation)
 3. [Running the pipeline](#running-the-pipeline)
+> [QC step](#qc-step)
 
 ## Pipeline overview
 ![diagram pipeline](docs/images/ONTViSc_pipeline.jpeg)
@@ -182,7 +183,10 @@ results/
             └── test_raw_NanoPlot-report.html
 ``` 
 
+## QC step
+By default the pipeline will run a quality control check of the raw reads using NanoPlot.
 
+- Run only the quality control step to have a preliminary look at the data before proceeding with downstream analyses by specifying the ```--qc_only``` parameter.
 
 
 
