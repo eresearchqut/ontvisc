@@ -25,7 +25,8 @@ h. [Mapping to reference](#mapping-to-reference)
 4. [Output files](#output-files)  
 a. [Preprocessing and host read filtering outputs](#Preprocessing-and-host-read-filtering-outputs)  
 b. [Read classification mode](#read-classification-mode)  
-    - [Nucleotide taxonomic classification (Kraken 2 and Braken)](#nucleotide-taxonomic-classification-(kraken-2-and-braken))
+   - [Nucleotide taxonomic classification (Kraken 2 and Braken)](#nucleotide-taxonomic-classification-(kraken-2-and-braken))  
+
 
 
 5. [Authors](#authors)
