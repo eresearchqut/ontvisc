@@ -7,6 +7,10 @@ The pipeline can either: 1) perform a direct search on the sequenced reads, 2) g
 
 The reads can optionally be filtered from a plant host before performing downstream analysis.
 
+**Sections:**
+
+1. [Estimated cost](#pipeline-overview)
+
 ## Pipeline overview
 ![diagram pipeline](docs/images/ONTViSc_pipeline.jpeg)
 
