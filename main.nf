@@ -751,7 +751,7 @@ process RATTLE {
   def rattle_clustering_options = (params.rattle_clustering_options) ? " ${params.rattle_clustering_options}" : ''
   script:
   """
-  rattle cluster -i ${fastq} -t ${task.cpus} ${rattle_clustering_options}  -o . --rna
+  rattle cluster -i ${fastq} -t ${task.cpus} ${rattle_clustering_options}  -o .
   rattle cluster_summary -i ${fastq} -c clusters.out > ${sampleid}_cluster_summary.txt
   mkdir clusters
   rattle extract_clusters -i ${fastq} -c clusters.out -l ${sampleid} -o clusters --fastq
