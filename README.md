@@ -95,7 +95,6 @@ Depending on the mode you are interested to run, you will need to install some d
 
 - The homology searches is set by default against the public NCBI NT database in the nextflow.config file (`--blast_mode ncbi`)
 
-<<<<<<< HEAD
 - If you want to run homology searches against a viral database instead, you will need to download it [`here`](https://zenodo.org/records/10183620) by using the following steps:  
 ```
 wget https://zenodo.org/records/10183620/files/VirDB_20230913.tar.gz?download=1
