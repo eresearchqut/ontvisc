@@ -101,7 +101,7 @@ The test requires 2 cpus at least 16Gb of memory to run and can be executed loca
 
 
 The command should take one minute to run and nextflow should output the following log:
-<p align="left"><img src="images/nextflow_log.png"></p>
+<p align="left"><img src="docs/images/nextflow_log.png"></p>
 
 If the installation is successful, it will generate a results/test folder with the folloiwng structure:
 ```
