@@ -24,8 +24,11 @@ g. [Clustering analysis mode](#clustering-analysis-mode)
 h. [Mapping to reference](#mapping-to-reference)
 4. [Output files](#output-files)  
 a. [Preprocessing and host read filtering outputs](#Preprocessing-and-host-read-filtering-outputs)  
-b. [Read classification mode](#read-classification-mode)  
-   - [Nucleotide taxonomic classification](#nucleotide-taxonomic-classification)  
+b. [Read classification mode outputs](#read-classification-mode)  
+c. [De novo assembly mode outputs](#de-novo-assembly-mode-outputs)  
+d. [Clustering mode outputs](#clustering-mode-outputs)  
+e. [Map to reference mode outputs](#map-to-reference-mode-outputs)  
+f. [Results folder structure](#results-folder-structure)
 
 
 
@@ -425,7 +428,7 @@ Example of report:
 | --- | --- | --- | --- | --- | --- |
 | MT010 | 315868 | 315081 | 200632 | 99.75 | 63.52 |
 
-### Read classification mode  
+### Read classification mode outputs
 
 #### Nucleotide taxonomic classification (Kraken 2 and Braken)  
 After running Kraken2, six files will be saved under the **SampleName/read_classification/kraken** folder. The kraken2 standard output (ie **SampleName.kraken2**) taxonomically classifies each sequence. Check the [manual](https://github.com/DerrickWood/kraken2/blob/master/docs/MANUAL.markdown#output-formats) for details about each table field.
@@ -530,7 +533,7 @@ Tomato spotted wilt orthotospovirus	OM112200	2	['415df728-dbe8-47a8-afba-e15870a
 Tomato spotted wilt orthotospovirus	OM112202	3	['ee4ccc30-b9fd-4c9b-8b0c-5a37059b539b', '20f389f9-a547-4c43-b0b7-5b0f902b408d', 'ead56ab2-328b-4785-a29a-9ae386ad418b']
 ```
 
-### De novo assembly mode
+### De novo assembly mode outputs
 In this mode, the assembly created by Canu will be saved under the **SampleName/assembly/canu** folder.
 In the contig headers, the length of each contig and the number of reads that contributed to it are specified.
 
@@ -619,10 +622,10 @@ Tomato spotted wilt orthotospovirus	OM112200	1	contig_3
 Tomato spotted wilt orthotospovirus	OM112202	1	contig_4
 ```
 
-### Clustering mode
+### Clustering mode outputs
 In this mode, the output from Rattle will be saved under **clustering/rattle/SampleName_transcriptome.fq**. The number of reads contributing to each clusters is listed in the header. The amplicon of interest is usually amongst the most abundant clusters (i.e. the ones represented by the most reads). A fasta file of the clusters created by Rattle will be saved under the **SampleName/clustering/rattle/SampleName_rattle.fasta** file. This will only retain the  names of the clusters. The final cap3-collapsed clusters can be found in the **SampleName/clustering/cap3/SampleName_clustering.fasta** file. If cap3 collapsed clusters, they will be referred as **Contig_number** in the fasta file. Uncollapsed clusters names will remain unaltered (i.e. **cluster_number**).
 
-### Map to reference mode
+### Map to reference mode outputs
 In this mode, the reads are alighned directly to a reference file to generate an indexed bam file which will be saved under **SampleName/mapping/SampleName_aln.sorted.bam**. A **SampleName/coverage.txt** file is also included which provides a table of coverage as a tabulated text file. Please refer to [Samtools coverage](http://www.htslib.org/doc/samtools-coverage.html) for detailed description. 
 
 The tabulated form uses the following headings:
