@@ -11,10 +11,13 @@ The reads can optionally be filtered from a plant host before performing downstr
 
 1. [Pipeline overview](#pipeline-overview)  
 2. [Installation](#installation)  
+a. [Requirements](#requirements)
+b. [Installing the required indexes and references](#installing-the-required-indexes-and-references)
 3. [Running the pipeline](#running-the-pipeline)  
-a. [QC step](#qc-step)  
-b. [Preprocessing reads](#preprocessing-reads)  
-c. [Host read filtering](#host-read-filtering)  
+a. [Run test data](#run-test-data)
+b. [QC step](#qc-step)  
+c. [Preprocessing reads](#preprocessing-reads)  
+d. [Host read filtering](#host-read-filtering)  
 5. [Authors](#authors)
 
 ## Pipeline overview
@@ -115,6 +118,7 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
 
 
 ## Running the pipeline
+### Run test data
 - Run the command:
   ```
   nextflow run eresearchqut/ontvisc -profile {singularity, docker} --samplesheet index.csv
