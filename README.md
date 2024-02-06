@@ -9,10 +9,10 @@ The reads can optionally be filtered from a plant host before performing downstr
 
 **Sections:**
 
-1. [Pipeline overview](#pipeline-overview)
-2. [Installation](#installation)
-3. [Running the pipeline](#running-the-pipeline)
-a. [QC step](#qc-step)
+1. [Pipeline overview](#pipeline-overview)  
+2. [Installation](#installation)  
+3. [Running the pipeline](#running-the-pipeline)  
+a. [QC step](#qc-step)  
 
 ## Pipeline overview
 ![diagram pipeline](docs/images/ONTViSc_pipeline.jpeg)
