@@ -386,17 +386,24 @@ nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
 ```
 
 ### Mapping to reference
-In the map2ref analysis mode, the reads are mapped to a reference fata file provided using Minimap2. A bam file is created and summary coverage statistics are derived using samtools coverage. A variant call file and a consensus fasta sequence are also output by Medaka and bcftools.  
-Specify medaka options using the parameter ```--medaka_consensus_options```. Specify the minimum coverage using the parameter ```--bcftools_min_coverage```.  
+In the map2ref analysis mode, the reads are mapped to a reference fata file provided using Minimap2. A bam file is created and summary coverage statistics are derived using samtools coverage. A variant call file and a consensus fasta sequence are also generated using [Medaka]`https://github.com/nanoporetech/medaka` and bcftools.  
+For best results when running ```medaka consensus```, it is important to specify the correct basecaller model version. Allowed values can be found by running ```medaka tools list\_models```. If no model is provided, the command ```medaka consensus``` will attempt to automatically determine a correct model by inspecting its BAM input file . Recent basecaller versions annotate their output (e.f. fastq files) with their model version; in such cases, medaka is able to select an appropriate model for itself.
+
+You can specify the medaka model, by using the option ```--medaka_consensus_options  '--model [model number]:variant'```.  
 
 
-Example:
+Specify the minimum coverage for a variant not be flagged 'LOW_DEPTH' using the parameter ```--bcftools_min_coverage [number]`` 
+
+
+Example of command which does not specify basecaller model version:
 ```
 nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
                             --merge \
                             --analysis_mode map2ref \
                             --reference /path/to/reference.fasta
 ```
+
+
 
 ## Output files
 
