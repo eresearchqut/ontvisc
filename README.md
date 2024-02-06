@@ -14,7 +14,7 @@ The reads can optionally be filtered from a plant host before performing downstr
 a. [Requirements](#requirements)  
 b. [Installing the required indexes and references](#installing-the-required-indexes-and-references)  
 3. [Running the pipeline](#running-the-pipeline)  
-a. [Run test data](#run-test-data)
+a. [Run test data](#run-test-data)  
 b. [QC step](#qc-step)  
 c. [Preprocessing reads](#preprocessing-reads)  
 d. [Host read filtering](#host-read-filtering)  
