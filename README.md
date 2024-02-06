@@ -19,8 +19,8 @@ b. [QC step](#qc-step)
 c. [Preprocessing reads](#preprocessing-reads)  
 d. [Host read filtering](#host-read-filtering)  
 e. [Read classification analysis mode](#read-classification-analysis-mode)  
-f. [De novo assembly analysis mode](de-novo-assembly-analysis-mode)  
-g. [Clustering analysis mode](clustering-analysis-mode)  
+f. [De novo assembly analysis mode](#de-novo-assembly-analysis-mode)  
+g. [Clustering analysis mode](#clustering-analysis-mode)  
 5. [Authors](#authors)
 
 ## Pipeline overview
