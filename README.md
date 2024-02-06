@@ -18,6 +18,8 @@ a. [Run test data](#run-test-data)
 b. [QC step](#qc-step)  
 c. [Preprocessing reads](#preprocessing-reads)  
 d. [Host read filtering](#host-read-filtering)  
+e. [Read classification analysis mode](#read-classification-analysis-mode)  
+f. [De novo assembly analysis mode](de-novo-assembly-analysis-mode)  
 5. [Authors](#authors)
 
 ## Pipeline overview
@@ -223,6 +225,127 @@ If you trim raw read of adapters and/or quality filter the raw reads, an additio
 - Reads mapping to a host genome reference or sequences can be filtered out by specifying the ``--host_filtering`` parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``.
 
 A qc report will be generated summarising the read counts recovered after host filtering.
+
+### Read classification analysis mode
+- Perform a direct blast homology search using megablast (``--megablast``).
+
+  Example 1 using a viral database:
+  ```
+  # Check for presence of adapters.
+  # Perform a direct read homology search using megablast against a viral database.
+
+  nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
+                              --adapter_trimming \
+                              --analysis_mode read_classification \
+                              --megablast \
+                              --blast_threads 8 \
+                              --blast_mode localdb \
+                              --blastn_db /path/to/local_blast_db
+  ```
+
+  Example 2 using NCBI nt:
+  ```
+  # Check for presence of adapters .
+  # Perform a direct read homology search using megablast and the NCBI NT database. 
+  # You will need to download a local copy of the NCBI NT database. 
+  # The blast search will be split into several jobs, containing 10,000 reads each, that will run in parallel. 
+  # The pipeline will use 8 cpus when running the blast process.
+
+  nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
+                              --adapter_trimming \
+                              --analysis_mode read_classification \
+                              --megablast \
+                              --blast_threads 8 \
+                              --blast_mode ncbi \ #default
+                              --blastn_db /path/to/ncbi_blast_db/nt
+  ```
+
+- Perform a direct taxonomic classification of reads using Kraken2 and/or Kaiju.  
+  Example:
+  ```
+  # Check for presence of adapters
+  # Perform a direct taxonomic read classification using Kraken2 and Kaiju. 
+  # You will need to download Kraken2 index (e.g. PlusPFP) and Kaiju indexes (e.g. kaiju_db_rvdb).
+
+  nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
+                              --adapter_trimming \
+                              --analysis_mode read_classification \
+                              --kraken2 \
+                              --krkdb /path/to/kraken2_db \
+                              --kaiju \
+                              --kaiju_dbname /path/to/kaiju/kaiju.fmi \
+                              --kaiju_nodes /path/to/kaiju/nodes.dmp \
+                              --kaiju_names /path/to/kaiju/names.dmp
+  ```
+
+- Perform direct read homology search using megablast and the NCBI NT database and direct taxonomic read classification using Kraken2 and Kaiju.  
+  Example:
+  ```
+  # Check for presence of adapters
+  # Filter reads against reference host
+  # Perform a direct read homology search using megablast and the NCBI NT database.
+  # Perform a direct taxonomic read classification using Kraken2 and Kaiju.
+  nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
+                              --adapter_trimming \
+                              --host_filtering \
+                              --host_fasta /path/to/host/fasta/file \
+                              --analysis_mode read_classification \
+                              --kraken2 \
+                              --krkdb /path/to/kraken2_db \
+                              --kaiju \
+                              --kaiju_dbname /path/to/kaiju/kaiju.fmi \
+                              --kaiju_nodes /path/to/kaiju/nodes.dmp \
+                              --kaiju_names /path/to/kaiju/names.dmp \
+                              --megablast --blast_mode ncbi \
+                              --blast_threads 8 \
+                              --blastn_db /path/to/ncbi_blast_db/nt
+    ```
+
+## De novo assembly analysis mode  
+
+You can run a de novo assembly using either Flye or Canu. 
+
+If the data analysed was derived using RACE reactions, a final primer check can be performed after the de novo assembly step using the ```--final_primer_check``` option. The pipeline will check for the presence of any residual universal RACE primers at the end of the assembled contigs.
+
+- [`Canu`](https://canu.readthedocs.io/en/latest/index.html) (--canu):
+
+  Canu options can be specified using the `--canu_options` parameter.
+  If you do not know the size of your targetted genome, you can ommit the `--canu_genome_size [genome size of target virus]`. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/)), which would correspond to `--canu_genome_size 0.01m`.
+
+  By default the pipeline will perform an homology search against the contigs generated using NCBI nt. Alternatively, you can perform an homology search against a viral genome reference (using `--blast_vs_ref`) or a viral database `--blast_mode localdb`.
+
+  Example:
+  ```
+  # Check for the presence of adapters
+  # Perform de novo assembly with Canu
+  # Blast the resulting contigs to a reference.
+  nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
+                              --adapter_trimming \
+                              --analysis_mode denovo_assembly --canu \
+                              --canu_options 'useGrid=false' \
+                              --canu_genome_size 0.01m \
+                              --blast_vs_ref  \
+                              --reference /path/to/reference/reference.fasta
+  ```
+
+- [`Flye`](https://github.com/fenderglass/Flye) (--flye):
+  
+  The running mode for Flye can be specified using ``--flye_mode '[mode]'``. Since Flye was primarily developed to run on uncorrected reads, the mode is set by default to ``--flye_mode 'nano-raw'`` in the nextflow.config file, for regular ONT reads, pre-Guppy5 (ie <20% error). Alternatively, you can specify the ``nano-corr`` mode for ONT reads that were corrected with other methods (ie <3% error) and the ``nano-hq`` mode for ONT high-quality reads: Guppy5+ SUP or Q20 (ie <5% error).  
+  
+  If additional flye parameters are required, list them under the ``--flye_options`` parameter. Please refer to the [`Flye manual`](https://github.com/fenderglass/Flye/blob/flye/docs/USAGE.md) for available options.  
+  For instance, use ``--genome-size [genome size of target virus]`` to specify the estimated genome size (e.g. 0.01m), ``--meta`` for metagenome samples with uneven coverage, ``--min-overlap`` to specify a minimum overlap between reads (automatically derived by default).  
+
+  Example:
+  ```
+  # Perform de novo assembly with Flye
+  # Blast the resulting contigs to a reference.
+  nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
+                              --analysis_mode denovo_assembly --flye \
+                              --flye_options '--genome-size 0.01m --meta' \
+                              --flye_mode 'nano-raw' \
+                              --blast_threads 8 \
+                              --blastn_db /path/to/ncbi_blast_db/nt
+  ```
 
 ## Authors
 Marie-Emilie Gauthier <gauthiem@qut.edu.au>  
