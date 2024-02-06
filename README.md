@@ -404,11 +404,11 @@ nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
 ### Preprocessing and host read filtering outputs
 Quality check will be performed on the raw fastq file using [NanoPlot](https://github.com/wdecoster/NanoPlot) which it a tool that can be used to produce general quality metrics e.g. quality score distribution, read lengths and other general stats. A NanoPlot-report.html file will be saved under the **SampleName/qc/nanoplot** folder with the prefix **raw**. This report displays 6 plots as well as a table of summary statistics.  
 
-<p align="center"><img src="images/Example_Statistics.png" width="1000"></p>
+<p align="center"><img src="docs/images/Example_Statistics.png" width="1000"></p>
 
 Example of output plots:
-<p align="center"><img src="images/Example_raw_WeightedHistogramReadlength.png" width="750"></p>
-<p align="center"><img src="images/Example_LengthvsQualityScatterPlot.png" width="750"></p>
+<p align="center"><img src="docs/images/Example_raw_WeightedHistogramReadlength.png" width="750"></p>
+<p align="center"><img src="docs/images/Example_LengthvsQualityScatterPlot.png" width="750"></p>
 
 A preprocessed fastq file will be saved in the **SampleName/preprocessing** output directory which will minimally have its read names trimmed after the first whitespace, for compatiblity purposes with all downstream tools. This fastq file might be additionally trimmed of adapters and/or filtered based on quality and length (if PoreChopABI and/or Chopper were run).  
 
