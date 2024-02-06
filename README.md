@@ -22,6 +22,9 @@ e. [Read classification analysis mode](#read-classification-analysis-mode)
 f. [De novo assembly analysis mode](#de-novo-assembly-analysis-mode)  
 g. [Clustering analysis mode](#clustering-analysis-mode)  
 h. [Mapping to reference](#mapping-to-reference)
+4. [Output files](#output-files)  
+a. [Preprocessing and host read filtering outputs](#Preprocessing-and-host-read-filtering-outputs  
+
 5. [Authors](#authors)
 
 ## Pipeline overview
@@ -387,6 +390,324 @@ nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
                             --merge \
                             --analysis_mode map2ref \
                             --reference /path/to/reference.fasta
+```
+
+## Output files
+
+### Preprocessing and host read filtering outputs
+Quality check will be performed on the raw fastq file using [NanoPlot](https://github.com/wdecoster/NanoPlot) which it a tool that can be used to produce general quality metrics e.g. quality score distribution, read lengths and other general stats. A NanoPlot-report.html file will be saved under the **SampleName/qc/nanoplot** folder with the prefix **raw**. This report displays 6 plots as well as a table of summary statistics.  
+
+<p align="center"><img src="images/Example_Statistics.png" width="1000"></p>
+
+Example of output plots:
+<p align="center"><img src="images/Example_raw_WeightedHistogramReadlength.png" width="750"></p>
+<p align="center"><img src="images/Example_LengthvsQualityScatterPlot.png" width="750"></p>
+
+A preprocessed fastq file will be saved in the **SampleName/preprocessing** output directory which will minimally have its read names trimmed after the first whitespace, for compatiblity purposes with all downstream tools. This fastq file might be additionally trimmed of adapters and/or filtered based on quality and length (if PoreChopABI and/or Chopper were run).  
+
+After quality/length trimming, a PoreChopABI log will be saved under the **SampleName/preprocessing/porechop** folder.  
+
+After adapter trimming, a Chopper log file will be saved under the **SampleName/preprocessing/chopper** folder.  
+
+If adapter trimming and/or quality/length trimming is performed, a second quality check will be performed on the processsed fastq file and a NanoPlot-report.html file will be saved under the **SampleName/qc/nanoplot** folder with the prefix **filtered**.
+
+If host filtering of reads is performed, an unaligned.fastq.gz file and an unaligned_reads_count.txt file listing the remainder read count will be saved under the **SampleName/preprocessing/host_filtering** folder.
+
+If the adapter trimming, the quality filtering and/or the host filtering options have been run, a QC report called **run_qc_report_YYYYMMDD-HHMMSS.txt** will be saved under the **qc_report** folder 
+
+Example of report:
+
+| Sample| raw_reads | quality_filtered_reads | host_filtered_reads | percent_quality_filtered | percent_host_filtered | 
+| --- | --- | --- | --- | --- | --- |
+| MT010 | 315868 | 315081 | 200632 | 99.75 | 63.52 |
+
+### Read classification mode
+#### Nucleotide taxonomic classification (Kraken 2 and Braken)
+After running Kraken2, six files will be saved under the **SampleName/read_classification/kraken** folder. The kraken2 standard output (ie **SampleName.kraken2**) taxonomically classifies each sequence. Check the [manual](https://github.com/DerrickWood/kraken2/blob/master/docs/MANUAL.markdown#output-formats) for details about each table field.
+
+The kraken_report is tab-delimited, with one line per taxon. The fields of the output, from left-to-right, are as follows:  
+- Percentage of reads covered by the clade rooted at this taxon  
+- Number of reads covered by the clade rooted at this taxon  
+- Number of reads assigned directly to this taxon  
+- Number of minimizers in read data associated with this taxon  
+- An estimate of the number of distinct minimizers in read data associated with this taxon  
+- A rank code, indicating (U)nclassified, (D)omain, (K)ingdom, (P)hylum, (C)lass, (O)rder, (F)amily, (G)enus, or (S)pecies.  Taxa that are not at any of these 10 ranks have a rank code that is formed by using the rank code of the closest ancestor rank with a number indicating the distance from that rank. E.g., "G2" is a rank code indicating a taxon is between genus and species and the grandparent taxon is at the genus rank. All other ranks are simply '-'.  
+- NCBI taxonomy ID number  
+- Indented scientific name  
+The scientific names are indented using space, according to the tree structure specified by the taxonomy.  
+
+Unclassified reads are saved in a **SampleName_unclassified.fastq** file.  
+
+The Bracken output file (**SampleName_bracken_report.txt**) is tab delimited and the fields of the output, from left-to-right, are as follows:
+- Species name
+- Taxonomy ID
+- Taxonomy level (S=Species, G=Genus, O=Order, F=Family, P=Phylum, K=Kingdom)
+- Number of Kraken Assigned Reads
+- Number of Added Reads with Abundance Reestimation
+- Total number of Reads after Abundance Reestimation
+- Fraction of Total Reads
+
+The **SampleName_bracken_report_viral.txt** will only retain the virus and viroid species from the Bracken output.  
+Finally, a filtered output **SampleName_bracken_report_viral_filtered.txt** in which the viral reads for a given detection represent a fraction of at least 0.0001 of the total reads will be retained.  
+
+#### Protein taxonomic classification (Kaiju and Krona)
+After running kaiju, six files will be saved under the **SampleName/read_classification/kaiju** folder.  
+ The kaiju standard output (ie **SampleName_kaiju_name.tsv**) taxonomically classifies each sequence. The output is tab delimited and the fields of the output, from left-to-right, are as follows:
+- either C or U, indicating whether the read is classified or unclassified.
+- name of the read
+- NCBI taxon identifier of the assigned taxon
+- the length or score of the best match used for classification
+- the taxon identifiers of all database sequences with the best match
+- the accession numbers of all database sequences with the best match
+- matching fragment sequence(s)
+- Taxon id name
+
+NB: Since the nr database aggregates multiple genes of identical sequences, only the first accession number for each sequence in the nr source file is kept in Kaiju's database and therefore also in the output file.
+
+The number of taxon identifiers (column 5) and accession numbers (column 5) is limited to 20 entries each in order to reduce large outputs produced by highly abundant protein sequences in nr, e.g. from HIV.
+
+A krona output (**SampleName_kaiju.krona**) is also generated.  
+
+The program kaiju2table converts Kaiju's output file(s) into a summary table at the species level. It consists of 4 columns: 
+- Sample file name
+- percent reads matching this taxon id
+- taxon_id
+- taxon_name
+
+The **SampleName_kaiju_summary_viral.tsv** only retains viral detections (which are retrieved using a search for the following terms: virus, viroid, viricota, viridae, viriform, virales, virinae, viricetes, virae and viral)
+Finally in the filtered output **SampleName_kaiju_summary_viral.tsv**, only detections whose predicted abundance represent a fraction of at least **0.05** of the total reads will be retained.  
+
+#### Nucleotide homology search
+If a direct blast homology search of the reads was performed against a database, the results will be saved under the **SampleName/read_classification/homology_search** folder.
+All the top hits derived for each contig are listed under the file **SampleName_read_classification_blastn_top_hits.txt**. This file contains the following 26 columns:
+```
+- qseqid
+- sgi
+- sacc
+- length
+- pident
+- mismatch
+- gapopen
+- qstart
+- qend
+- qlen
+- sstart
+- send
+- slen
+- sstrand
+- evalue
+- bitscore
+- qcovhsp
+- stitle
+- staxids
+- qseq
+- sseq
+- sseqid
+- qcovs
+- qframe
+- sframe
+- species
+```
+
+For a blast search against NCBI NT, if a read matches at least 90% of its length to a virus or viroid as the top blast hit, they will be listed under the **SampleName_read_classification_blastn_top_viral_hits.txt** file. If the search is against a local viral database, the match has to cover 95% of its length. Coverage is derived using **qcovs**).  
+If multiple reads are recovered for the same viral species, only the best hit will be listed under **SampleName_assembly_blastn_top_viral_spp_hits.txt**. Selection of the best hit is based on e-value followed by length.
+The **SampleName_assembly_viral_spp_abundance.txt** here will list the number of reads recovered for each viral species.  
+In the example below, 200 reads were recovered matching to the Tomato spotted wilt orthotospovirus:  
+```
+species	Count
+Tomato spotted wilt orthotospovirus	200
+```
+Finally the **SampleName_assembly_queryid_list_with_viral_match.txt** will list each unique accession IDs detected in the sample, the viral species they correspond to, and the number of reads matching to it, and their IDs.  
+We can see from the example above, that the reads matching to tomato spotted wilt orthotospovirus correspond to 2 different accession numbers matching to 2 separate segments (L and E) of the virus. there are 2 reads matching to OM112200 and 3 reads matching to OM112202.
+```
+species	sacc	count	qseqid
+Tomato spotted wilt orthotospovirus	OM112200	2	['415df728-dbe8-47a8-afba-e15870adfa5e', 'c443fc2e-6bbe-433d-bfdf-6fa7411ab14f']
+Tomato spotted wilt orthotospovirus	OM112202	3	['ee4ccc30-b9fd-4c9b-8b0c-5a37059b539b', '20f389f9-a547-4c43-b0b7-5b0f902b408d', 'ead56ab2-328b-4785-a29a-9ae386ad418b']
+```
+
+### De novo assembly mode
+In this mode, the assembly created by Canu will be saved under the **SampleName/assembly/canu** folder.
+In the contig headers, the length of each contig and the number of reads that contributed to it are specified.
+
+The canu log is also saved under the same folder.
+
+A log example of a successful Canu assembly is included below:
+```
+-- Finished on Wed Oct 25 22:37:27 2023 (furiously fast) with 50236.869 GB free disk space
+----------------------------------------
+-- Finished stage 'generateOutputs', reset canuIteration.
+--
+-- Assembly 'MT483' finished in 'MT483'.
+--
+-- Summary saved in 'MT483.report'.
+--
+-- Sequences saved:
+--   Contigs       -> 'MT483.contigs.fasta'
+--   Unassembled   -> 'MT483.unassembled.fasta'
+--
+-- Read layouts saved:
+--   Contigs       -> 'MT483.contigs.layout'.
+--
+-- Bye.
+```
+
+Similarly, a fasta file containing the flye assembly and a log of the assembly process will be saved under **SampleName/assembly/flye**
+If the Flye assembly ran succesfully it will output some assembly statistics at the end of its log, as per the example below:
+```
+[2023-10-30 11:56:06] root: INFO: Assembly statistics:
+
+	Total length:	105982
+	Fragments:	38
+	Fragments N50:	2768
+	Largest frg:	4361
+	Scaffolds:	3
+	Mean coverage:	89
+```
+
+If a final primer check was performed, then a **SampleName_assembly_filtered.fa** will be saved under the **SampleName/assembly** folder along with the log of the cutadapt filtering step.
+
+
+If a blast homology search of the contigs was performed against a database, the results will be saved under the **SampleName/assembly/blastn** folder.
+All the top hits derived for each contig are listed under the file **SampleName_assembly_blastn_top_hits.txt**. This file contains the following 26 columns:
+```
+- qseqid
+- sgi
+- sacc
+- length
+- pident
+- mismatch
+- gapopen
+- qstart
+- qend
+- qlen
+- sstart
+- send
+- slen
+- sstrand
+- evalue
+- bitscore
+- qcovhsp
+- stitle
+- staxids
+- qseq
+- sseq
+- sseqid
+- qcovs
+- qframe
+- sframe
+- species
+```
+
+For a blast search against NCBI NT, if a contig sequence matches at least 90% of its length to a virus or viroid as the top blast hit, they will be listed under the **SampleName_assembly_blastn_top_viral_hits.txt** file. If the search is against a local viral database, the match has to cover 95% of its length. Coverage is derived using **qcovs**).  
+If multiple contigs are recovered for the same viral species, only the best hit will be listed under **SampleName_assembly_blastn_top_viral_spp_hits.txt**. Selection of the best hit is based on e-value followed by length.
+The **SampleName_assembly_viral_spp_abundance.txt** here will list the number of contigs recovered for each viral species.  
+In the example below, 2 contigs were recovered matching to the Tomato spotted wilt orthotospovirus:  
+```
+species	Count
+Tomato spotted wilt orthotospovirus	2
+```
+Finally the **SampleName_assembly_queryid_list_with_viral_match.txt** will list each unique accession IDs detected in the sample, the viral species they correspond to, and the number of contigs matching to it, and their IDs.  
+We can see from the example above, that the 2 contigs matching to tomato spotted wilt orthotospovirus correspond to 2 different accession numbers matching to 2 separate segments (L and E) of the virus.  
+```
+species	sacc	count	qseqid
+Tomato spotted wilt orthotospovirus	OM112200	1	contig_3
+Tomato spotted wilt orthotospovirus	OM112202	1	contig_4
+```
+
+### Clustering mode
+In this mode, the output from Rattle will be saved under **clustering/rattle/SampleName_transcriptome.fq**. The number of reads contributing to each clusters is listed in the header. The amplicon of interest is usually amongst the most abundant clusters (i.e. the ones represented by the most reads). A fasta file of the clusters created by Rattle will be saved under the **SampleName/clustering/rattle/SampleName_rattle.fasta** file. This will only retain the  names of the clusters. The final cap3-collapsed clusters can be found in the **SampleName/clustering/cap3/SampleName_clustering.fasta** file. If cap3 collapsed clusters, they will be referred as **Contig_number** in the fasta file. Uncollapsed clusters names will remain unaltered (i.e. **cluster_number**).
+
+### Map to reference mode
+In this mode, the reads are alighned directly to a reference file to generate an indexed bam file which will be saved under **SampleName/mapping/SampleName_aln.sorted.bam**. A **SampleName/coverage.txt** file is also included which provides a table of coverage as a tabulated text file. Please refer to [Samtools coverage](http://www.htslib.org/doc/samtools-coverage.html) for detailed description. 
+
+The tabulated form uses the following headings:
+| headings | description |
+| --- | --- |
+| rname | Reference name / chromosome matching the headers provided in the fasta file |
+| startpos | Start position |
+| endpos | End position (or sequence length) |
+| numreads | Number reads aligned to the region (after filtering) |
+| covbases | Number of covered bases with depth >= 1 |
+| coverage | Percentage of covered bases [0..100] |
+| meandepth | Mean depth of coverage |
+| meanbaseq | Mean baseQ in covered region |
+| meanmapq | Mean mapQ of selected reads |
+
+An example of table is included below:
+
+| #rname | startpos | endpos | numreads | covbases | coverage | meandepth | meanbaseq | meanmapq |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| AobVX  | 1 | 6803 | 18893 | 6803 | 100 | 4232.75 | 22.3 | 59.1 |
+
+
+An ASCII-art histogram called **SampleName_histogram** is also available to visualise coverage along the genome. The same statistics reported in the coverage.txt file are found on the right hand side of the histogram.  
+An example is provided below:
+
+```
+AobVX (6.8Kbp)
+>  90.00% |::::::::::::::::::::::::::::::::::::::::::::::::::| Number of reads: 18893
+>  80.00% |::::::::::::::::::::::::::::::::::::::::::::::::::|     (7 filtered)
+>  70.00% |::::::::::::::::::::::::::::::::::::::::::::::::::| Covered bases:   6.8Kbp
+>  60.00% |::::::::::::::::::::::::::::::::::::::::::::::::::| Percent covered: 100%
+>  50.00% |::::::::::::::::::::::::::::::::::::::::::::::::::| Mean coverage:   4.23e+03x
+>  40.00% |::::::::::::::::::::::::::::::::::::::::::::::::::| Mean baseQ:      22.3
+>  30.00% |::::::::::::::::::::::::::::::::::::::::::::::::::| Mean mapQ:       59.1
+>  20.00% |::::::::::::::::::::::::::::::::::::::::::::::::::|
+>  10.00% |::::::::::::::::::::::::::::::::::::::::::::::::::| Histo bin width: 136bp
+>   0.00% |::::::::::::::::::::::::::::::::::::::::::::::::::| Histo max bin:   100%
+          1        1.4K      2.7K      4.1K      5.4K       6.8K  
+```
+
+### Results folder structure
+```
+results
+├── MT001
+│   ├── host_filtering
+│   │   ├── MT001_unaligned.fastq.gz
+│   │   └── MT001_unaligned_reads_count.txt
+│   ├── preprocessing
+│   │   ├── MT001_preprocessed.fastq.gz
+│   │   └── porechop
+│   │       └── MT001_porechop.log
+│   ├── qc 
+│   │   └── nanoplot
+│   │       ├── MT001_filtered_NanoPlot-report.html
+│   │       └── MT001_raw_NanoPlot-report.html
+│   ├── assembly
+│   │   ├── blastn
+│   │   │   ├── MT001_assembly_blastn_top_hits.txt
+│   │   │   ├── MT001_assembly_blastn_top_viral_hits.txt
+│   │   │   ├── MT001_assembly_blastn_top_viral_spp_hits.txt
+│   │   │   ├── MT001_assembly_queryid_list_with_viral_match.txt
+│   │   │   └── MT001_assembly_viral_spp_abundance.txt
+│   │   ├── canu
+│   │   │   ├── MT001_canu_assembly.fasta
+│   │   │   └── MT001.canu.log
+│   │   ├── MT001_canu_assembly_filtered.fa
+│   │   └── MT001_cutadapt.log
+│   └── read_classification
+│       ├── bracken
+│       │   ├── MT001_bracken_report.txt
+│       │   ├── MT001_bracken_report_viral_filtered.txt
+│       │   ├── MT001_bracken_report_viral.txt
+│       │   ├── MT001.kraken2
+│       │   ├── MT001_kraken_report.txt
+│       │   └── MT001_unclassified.fastq
+│       ├── homology_search
+│       │   ├── MT001_read_classification_blastn_top_hits.txt
+│       │   ├── MT001_read_classification_blastn_top_viral_hits.txt
+│       │   ├── MT001_read_classification_blastn_top_viral_spp_hits.txt
+│       │   ├── MT001_read_classification_queryid_list_with_viral_match.txt
+│       │   └── MT001_read_classification_viral_spp_abundance.txt
+│       └── kaiju
+│           ├── MT001_kaiju.krona
+│           ├── MT001_kaiju_name.tsv
+│           ├── MT001_kaiju_summary.tsv
+│           ├── MT001_kaiju_summary_viral_filtered.tsv
+│           ├── MT001_kaiju_summary_viral.tsv
+│           └── MT001_krona.html
+└── qc_report
+    └── run_qc_report_20231009-114823.txt
 ```
 
 
