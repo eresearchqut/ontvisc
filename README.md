@@ -13,8 +13,8 @@ The reads can optionally be filtered from a plant host before performing downstr
 2. [Installation](#installation)  
 3. [Running the pipeline](#running-the-pipeline)  
 a. [QC step](#qc-step)  
-b. [Preprocessing reads](#preprocessing-reads)
-c. [Host read filtering](#host-read-filtering)
+b. [Preprocessing reads](#preprocessing-reads)  
+c. [Host read filtering](#host-read-filtering)  
 5. [Authors](#authors)
 
 ## Pipeline overview
