@@ -20,6 +20,7 @@ c. [Preprocessing reads](#preprocessing-reads)
 d. [Host read filtering](#host-read-filtering)  
 e. [Read classification analysis mode](#read-classification-analysis-mode)  
 f. [De novo assembly analysis mode](de-novo-assembly-analysis-mode)  
+g. [Clustering analysis mode](clustering-analysis-mode)  
 5. [Authors](#authors)
 
 ## Pipeline overview
@@ -346,6 +347,34 @@ If the data analysed was derived using RACE reactions, a final primer check can 
                               --blast_threads 8 \
                               --blastn_db /path/to/ncbi_blast_db/nt
   ```
+
+### Clustering analysis mode
+In the clustering mode, the tool [`RATTLE`](https://github.com/comprna/RATTLE#Description-of-clustering-parameters) will be run and the clusters obtained will be further collapsed using CAP3. 
+For RATTLE, use the parameter ```--rattle_clustering_options '--raw'``` to use all the reads without any length filtering during the RATTLE clustering step if your amplicon is known to be shorter than 150 bp.
+
+When the amplicon is of known size, we recommend setting up the parameters ```--lower-length [number]``` (by default: 150) and ```--upper-length [number]``` (by default: 100,000) to filter out reads shorter and longer than the expected size.
+
+Set the parameter ```--rattle_clustering_options '--rna'``` and ```--rattle_polishing_options '--rna'``` if the data is direct RNA (disables checking both strands).
+
+Example in which all reads will be retained during the clustering step:
+```
+nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
+                            --analysis_mode clustering \
+                            --rattle_clustering_options '--raw' \
+                            --blast_threads 8 \
+                            --blastn_db /path/to/ncbi_blast_db/nt
+```
+
+Example in which reads are first quality filtered using the tool chopper (only reads with a Phread average quality score above 10 are retained). Then for the clustering step, only reads ranging between 500 and 2000 bp will be retained:
+```
+nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
+                            --qual_filt --qual_filt_method chopper --chopper_options '-q 10' \
+                            --analysis_mode clustering \
+                            --rattle_clustering_options '--lower-length 500 --upper-length 2000' \
+                            --blast_threads 8 \
+                            --blastn_db /path/to/ncbi_blast_db/nt
+```
+
 
 ## Authors
 Marie-Emilie Gauthier <gauthiem@qut.edu.au>  
