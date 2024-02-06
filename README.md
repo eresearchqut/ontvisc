@@ -301,7 +301,7 @@ A qc report will be generated summarising the read counts recovered after host f
                               --blastn_db /path/to/ncbi_blast_db/nt
     ```
 
-## De novo assembly analysis mode  
+### De novo assembly analysis mode  
 
 You can run a de novo assembly using either Flye or Canu. 
 
