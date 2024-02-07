@@ -387,22 +387,29 @@ nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
 
 ### Mapping to reference
 In the map2ref analysis mode, the reads are mapped to a reference fata file provided using Minimap2. A bam file is created and summary coverage statistics are derived using samtools coverage. A variant call file and a consensus fasta sequence are also generated using [Medaka]`https://github.com/nanoporetech/medaka` and bcftools.  
-For best results when running ```medaka consensus```, it is important to specify the correct basecaller model version. Allowed values can be found by running ```medaka tools list\_models```. If no model is provided, the command ```medaka consensus``` will attempt to automatically determine a correct model by inspecting its BAM input file . Recent basecaller versions annotate their output (e.f. fastq files) with their model version; in such cases, medaka is able to select an appropriate model for itself.
+The ```medaka consensus``` command requires the basecaller model version to run properly. Medaka models are named to indicate i) the pore type, ii) the sequencing device (MinION or PromethION), iii) the basecaller variant, and iv) the basecaller version, with the format: ```{pore}_{device}_{caller variant}_{caller version}```. Allowed values can be found by running ```medaka tools list\_models```. Check medaka's github page for more details.  
 
-You can specify the medaka model, by using the option ```--medaka_consensus_options  '--model [model number]:variant'```.  
+Recent basecaller versions annotate their output (e.g. fastq files) with their model version; in such cases, medaka is able to select an appropriate model for itself and no model needs to be specified:
 
-
-Specify the minimum coverage for a variant not be flagged 'LOW_DEPTH' using the parameter ```--bcftools_min_coverage [number]`` 
-
-
-Example of command which does not specify basecaller model version:
 ```
 nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
                             --merge \
                             --analysis_mode map2ref \
-                            --reference /path/to/reference.fasta
+                     --reference /path/to/reference.fasta
 ```
 
+If no model is provided, the command ```medaka consensus``` will attempt to automatically determine a correct model by inspecting the BAM input file. For older basecallers or if the name of the basecaller model used is known, but has been lost from the input files, the basecaller model can been provided to medaka directly. It must however be appended with either :consensus or :variant according to whether the user wishing to use the consensus or variant calling medaka model. You can specify the medaka model, by using the option ```--medaka_consensus_options  '--model [model number]:[variant/consensus]'```.  
+
+Example of command which specifies a basecaller model version:
+```
+nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
+                            --merge \
+                            --analysis_mode map2ref \
+                            --reference /path/to/reference.fasta \
+                            --medaka_consensus_options '--model dna_r10.4.1_e8.2_400bps_hac@v4.1.0:variant'
+```
+
+The minimum coverage for a variant not be flagged 'LOW_DEPTH' in the final VCF by bcl2fastq is specified using the parameter ```--bcftools_min_coverage [number]``. It is set to 20 by default.
 
 
 ## Output files
