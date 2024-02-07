@@ -395,10 +395,10 @@ Recent basecaller versions annotate their output (e.g. fastq files) with their m
 nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
                             --merge \
                             --analysis_mode map2ref \
-                     --reference /path/to/reference.fasta
+                            --reference /path/to/reference.fasta
 ```
 
-If no model is provided, the command ```medaka consensus``` will attempt to automatically determine a correct model by inspecting the BAM input file. For older basecallers or if the name of the basecaller model used is known, but has been lost from the input files, the basecaller model can been provided to medaka directly. It must however be appended with either :consensus or :variant according to whether the user wishing to use the consensus or variant calling medaka model. You can specify the medaka model, by using the option ```--medaka_consensus_options  '--model [model number]:[variant/consensus]'```.  
+If no model is provided, the command ```medaka consensus``` will attempt to automatically determine a correct model by inspecting the BAM input file. For older basecallers or if the name of the basecaller model used is known, but has been lost from the input files, the basecaller model can been provided to medaka directly. It must however be appended with either ```:consensus``` or ```:variant``` according to whether the user wish to use the consensus or variant calling medaka model. You can specify the medaka model, by using the option ```--medaka_consensus_options  '--model [model number]:[variant/consensus]'```.  
 
 Example of command which specifies a basecaller model version:
 ```
