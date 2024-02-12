@@ -31,7 +31,7 @@ reports:
     display: "Blastn read search (all top viral hits)"
   "**/read_classification/homology_search/*_blastn_top_viral_spp_hits.txt":
     display: "Blastn read search (all top viral species hits)"
-  "**/read_classification/homology_search/*_queryid_list_with_viral_match.txt.txt":
+  "**/read_classification/homology_search/*_queryid_list_with_viral_match.txt":
     display: "Blastn read search summary table (read ids by query viral id)"
   "**/read_classification/homology_search/*_read_classification_viral_spp_abundance.txt":
     display: "Blastn read search viral abundance table (read count per viral species)"
@@ -57,7 +57,7 @@ reports:
     display: "Blastn assembly search (all top viral hits)"
   "**/assembly/blastn/*_blastn_top_viral_spp_hits.txt":
     display: "Blastn assembly search (all top viral species hits)"
-  "**/assembly/blastn/*_queryid_list_with_viral_match.txt.txt":
+  "**/assembly/blastn/*_queryid_list_with_viral_match.txt":
     display: "Blastn assembly search summary table (cluster ids by query viral id)"
   "**/assembly/blastn/*_read_classification_viral_spp_abundance.txt":
     display: "Blastn assembly search viral abundance table (cluster count per viral species)"
@@ -73,9 +73,12 @@ reports:
     display: "Blastn cluster search (all top viral hits)"
   "**/clustering/blastn/*_blastn_top_viral_spp_hits.txt":
     display: "Blastn cluster search (all top viral species hits)"
-  "**/clustering/blastn/*_queryid_list_with_viral_match.txt.txt":
+  "**/clustering/blastn/*_queryid_list_with_viral_match.txt":
     display: "Blastn cluster search summary table (cluster ids by query viral id)"
-  "**/clustering/blastn/*_read_classification_viral_spp_abundance.txt":
+  "**/clustering/blastn/*_viral_spp_abundance.txt":
     display: "Blastn cluster search viral abundance table (cluster count per viral species)"
-  "**/clustering/blast_to_ref/*clustering_assembly.txt":
-    display: "Blastn search of clusters against reference (Rattle and CAP3)"
+  "**/clustering/rattle/*_rattle.fasta":
+    display: "Fasta file with the clusters created by Rattle"
+  "**/clustering/rattle/transcriptome.fq":
+    display: "FASTQ file with the clusters created by Rattle"
+
