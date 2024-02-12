@@ -65,6 +65,10 @@ reports:
     display: "Coverage histogram of mapped reads against reference"
   "**/mapping/*_coverage.txt":
     display: "Coverage statistics of mapped reads against reference"
+  "**/mapping/*_medaka.annotated.vcf.gz"
+    display: "Filtered VCF derived by medaka and corrected using bcftools"
+  "**/mapping/*_medaka.consensus.fasta"
+    display: "Final consensus derived by bcftools"
   "**/clustering/cap3/*_clustering.fasta":
     display: "Fasta file of assembled clusters (Rattle and CAP3)"
   "**/clustering/blastn/*_blastn_top_hits.txt":
