@@ -17,7 +17,7 @@ reports:
     display: "Kaiju viral summary"
   "**/read_classification/kaiju/*_kaiju_summary_viral_filtered.tsv":
     display: "Kaiju viral summary filtered"
-  "**/read_classification/kraken/*_kraken2":
+  "**/read_classification/kraken/*kraken2":
     display: "Kraken2 summary"
   "**/read_classification/kraken/*_bracken_report.txt":
     display: "Bracken summary"
