@@ -74,7 +74,7 @@ A step-by-step guide with instructions on how to set up and execute the ONTvisc 
 ### Requirements  
 1. Install Nextflow [`Nextflow`](https://www.nextflow.io/docs/latest/getstarted.html#installation)
 
-2. Install [`Docker`](https://docs.docker.com/get-docker/) or [`Singularity`](https://docs.sylabs.io/guides/3.0/user-guide/quick_start.html#quick-installation-steps) to suit your environment.
+2. Install [`Docker`](https://docs.docker.com/get-docker/) or [`Singularity`](https://docs.sylabs.io/guides/3.0/user-guide/quick_start.html#quick-installation-steps) to suit your environment. The pipeline has been validated using singularity version 3.10.2-1 but has not yet been tested with version 4.
 
 ### Installing the required indexes and references
 Depending on the mode you are interested to run, you will need to install some databases and references.
