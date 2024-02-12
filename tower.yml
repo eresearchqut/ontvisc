@@ -52,14 +52,14 @@ reports:
   "**/assembly/blast_to_ref/*flye_assembly.txt":
     display: "Blastn search of Flye-derived contigs against reference"
   "**/assembly/blastn/*_blastn_top_hits.txt":
-    display: "Blastn assembly search (all top hits))"
+    display: "Blastn assembly search (all top hits)"
   "**/assembly/blastn/*_blastn_top_viral_hits.txt":
     display: "Blastn assembly search (all top viral hits)"
   "**/assembly/blastn/*_blastn_top_viral_spp_hits.txt":
     display: "Blastn assembly search (all top viral species hits)"
   "**/assembly/blastn/*_queryid_list_with_viral_match.txt":
     display: "Blastn assembly search summary table (cluster ids by query viral id)"
-  "**/assembly/blastn/*_read_classification_viral_spp_abundance.txt":
+  "**/assembly/blastn/*_viral_spp_abundance.txt":
     display: "Blastn assembly search viral abundance table (cluster count per viral species)"
   "**/mapping/*_histogram":
     display: "Coverage histogram of mapped reads against reference"
