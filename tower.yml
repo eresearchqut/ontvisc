@@ -39,9 +39,9 @@ reports:
     display: "Cutadapt log for final primer check on derived de-novo assembly"
   "**/assembly/*_filtered.fa":
     display: "Filtered novo assembly after final primer check"
-  "**/assembly/canu/*.canu.log":
+  "**/assembly/canu/*_canu.log":
     display: "De novo assembly log (Canu)"
-  "**/assembly/flye/*.flye.log":
+  "**/assembly/flye/*_flye.log":
     display: "De novo assembly log (Flye)"
   "**/assembly/flye/*_flye_assembly.fasta":
     display: "De novo assembly fasta file (Flye)"
