@@ -1014,7 +1014,7 @@ workflow {
     //just perform direct read search
       if (params.megablast) {
         FASTQ2FASTA_STEP1( final_fq )
-        READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true) )
+        READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 7500, file: true) )
         READ_CLASSIFICATION_BLASTN.out.blast_results
           .groupTuple()
           .set { ch_blastresults }
