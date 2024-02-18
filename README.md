@@ -679,6 +679,33 @@ AobVX (6.8Kbp)
           1        1.4K      2.7K      4.1K      5.4K       6.8K  
 ```
 
+A consensus fasta file named ```sample_medaka.consensus.fasta``` will be output incorporating the SNPs obersved in the reads mapping to the reference.  
+All short variants will be summarised in a gzipped VCF called ```Sample_medaka.annotated.vcf.gz```. Please refer to the following documentations (http://samtools.github.io/hts-specs/; https://gatk.broadinstitute.org/hc/en-us/articles/360035531692-VCF-Variant-Call-Format) to interpret the VCF format (e.g. structure and the header information). By default variants with a read depth <20 will be flagged as LOW_DEPTH.
+
+
+Here is an example of a VCF file for a sample called MT483
+```
+##fileformat=VCFv4.1
+##FILTER=<ID=PASS,Description="All filters passed">
+##medaka_version=1.11.3
+##contig=<ID=AobVX>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Medaka genotype.">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Medaka genotype quality score">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Depth of reads at position, calculated from read pileup, capped to ~8000.">
+##INFO=<ID=DPS,Number=2,Type=Integer,Description="Depth of reads at position by strand (fwd, rev), calculated from read pileup, capped to ~8000 total.">
+##INFO=<ID=DPSP,Number=1,Type=Integer,Description="Depth of reads spanning pos +-25. This is not capped as in the case of DP and DPS.">
+##INFO=<ID=SR,Number=.,Type=Integer,Description="Depth of spanning reads by strand which best align to each allele (ref fwd, ref rev, alt1 fwd, alt1 rev, etc.). This is not capped as in the case of DP and DPS.">
+##INFO=<ID=AR,Number=2,Type=Integer,Description="Depth of ambiguous spanning reads by strand which align equally well to all alleles (fwd, rev). This is not capped as in the case of DP and DPS.">
+##INFO=<ID=SC,Number=.,Type=Integer,Description="Total alignment score to each allele of spanning reads by strand (ref fwd, ref rev, alt1 fwd, alt1 rev, etc.) aligned with parasail: match 5, mismatch -4, open 5, extend 3">
+##FILTER=<ID=LOW_DEPTH,Description="Set if true: INFO/DP < 20">
+##bcftools_filterVersion=1.19+htslib-1.19
+##bcftools_filterCommand=filter -e 'INFO/DP < 20' -s LOW_DEPTH -Oz -o MT483_medaka.annotated.vcf.gz; Date=Tue Jan 30 13:48:18 2024
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	MT483
+AobVX	544	.	A	G	9.665	PASS	AR=21,8;DP=1423;DPS=878,545;DPSP=1410;SC=201414,126484,205437,129253;SR=201,112,649,419	GT:GQ	1:10
+AobVX	991	.	C	T	9.212	PASS	AR=36,25;DP=1496;DPS=897,599;DPSP=1478;SC=209634,139079,213683,142081;SR=201,117,650,449	GT:GQ	1:9
+AobVX	1060	.	C	T	11.703	PASS	AR=5,5;DP=1510;DPS=904,606;DPSP=1492;SC=208276,137743,212647,140567;SR=201,138,689,454	GT:GQ	1:12
+```
+
 ### Results folder structure
 ```
 results
