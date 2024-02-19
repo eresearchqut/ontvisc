@@ -770,8 +770,6 @@ process MEDAKA {
    tuple val(sampleid), path(bam), path(bai)
 
   output:
-    path("${sampleid}_medaka_consensus_probs.hdf")
-    path("${sampleid}_medaka.annotated.unfiltered.vcf")
     tuple val(sampleid), path("${sampleid}_medaka.annotated.unfiltered.vcf"), emit: unfilt_vcf
   
   script:
@@ -1014,7 +1012,7 @@ workflow {
     //just perform direct read search
       if (params.megablast) {
         FASTQ2FASTA_STEP1( final_fq )
-        READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 7500, file: true) )
+        READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 10000, file: true) )
         READ_CLASSIFICATION_BLASTN.out.blast_results
           .groupTuple()
           .set { ch_blastresults }

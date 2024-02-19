@@ -679,8 +679,8 @@ AobVX (6.8Kbp)
           1        1.4K      2.7K      4.1K      5.4K       6.8K  
 ```
 
-A consensus fasta file named ```sample_medaka.consensus.fasta``` will be output incorporating the SNPs obersved in the reads mapping to the reference.  
-All short variants will be summarised in a gzipped VCF called ```Sample_medaka.annotated.vcf.gz```. Please refer to the following documentations (http://samtools.github.io/hts-specs/; https://gatk.broadinstitute.org/hc/en-us/articles/360035531692-VCF-Variant-Call-Format) to interpret the VCF format (e.g. structure and the header information). By default variants with a read depth <20 will be flagged as LOW_DEPTH.
+A consensus fasta file named ```sample_medaka.consensus.fasta``` will be output incorporating the SNPs observed in the reads that map to the reference.  
+All short variants will be summarised in a gzipped VCF called ```sample_medaka.annotated.vcf.gz```. Please refer to the following documentations (http://samtools.github.io/hts-specs/; https://gatk.broadinstitute.org/hc/en-us/articles/360035531692-VCF-Variant-Call-Format) to interpret the VCF format (e.g. structure and the header information). By default variants with a read depth <20 will be flagged as LOW_DEPTH.
 
 
 Here is an example of a VCF file for a sample called MT483
@@ -733,6 +733,13 @@ results
 │   │   │   └── MT001.canu.log
 │   │   ├── MT001_canu_assembly_filtered.fa
 │   │   └── MT001_cutadapt.log
+|   ├── mapping
+│   │   ├── MT001_aln.sorted.bam
+│   │   ├── MT001_aln.sorted.bam.bai
+│   │   ├── MT001_coverage.txt
+│   │   ├── MT001_histogram
+│   │   ├── MT001_medaka.annotated.vcf.gz
+│   │   └── MT001_medaka.consensus.fasta
 │   └── read_classification
 │       ├── bracken
 │       │   ├── MT001_bracken_report.txt
