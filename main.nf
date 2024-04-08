@@ -474,6 +474,8 @@ process EXTRACT_VIRAL_BLAST_HITS {
   file "*/*/${sampleid}*_viral_spp_abundance.txt"
   file "*/*/*report*html"
 
+  tuple val(sampleid), path("*/${sampleid}*_blastn_top_viral_spp_hits.txt"), path("*/${sampleid}*_queryid_list_with_viral_match.txt"), path("*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
+
   script:
   """
   if [[ ${blast_results} == *clustering_blastn.bls ]] ;
@@ -727,6 +729,9 @@ process BRACKEN {
 
 	output:
 		file("${sampleid}_bracken_report*.txt")
+
+    tuple val(sampleid), path("${sampleid}_bracken_report_viral.txt"), emit: bracken_results
+
 	script:
 	"""
   c1grep() { grep "\$@" || test \$? = 1; }
@@ -738,7 +743,27 @@ process BRACKEN {
 
 
   c1grep  "taxonomy_id\\|virus\\|viroid" ${sampleid}_bracken_report.txt > ${sampleid}_bracken_report_viral.txt
-  awk -F'\\t'  '\$7>=0.0001'  ${sampleid}_bracken_report_viral.txt > ${sampleid}_bracken_report_viral_filtered.txt 
+  awk -F'\\t'  '\$7>=0.0001'  ${sampleid}_bracken_report_viral.txt > ${sampleid}_bracken_report_viral_filtered.txt
+  """
+}
+
+process BRACKEN_HTML {
+  tag "${sampleid}"
+	label "local"
+	publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'link'
+  containerOptions "${bindOptions}"
+
+	input:
+		tuple val(sampleid), path(braken_report)
+
+	output:
+		
+    file("*_bracken_report.html")
+
+
+	script:
+	"""
+  kraken_html_report.py  --sample ${sampleid} --bracken_results ${sampleid}_bracken_report_viral.txt
   """
 }
 
@@ -850,9 +875,23 @@ process FASTCAT {
     """
 }
 
-//process FINAL_INDIVIDUAL_REPORT {
-//  
-//}
+process DETECTION_REPORT_NT {
+    publishDir "${params.outdir}/summary", mode: 'copy', overwrite: true
+    containerOptions "${bindOptions}"
+    tag "${sampleid}"
+    label "local"
+
+    input:
+      path('*')
+
+    output:
+      file "blastn_detection_summary*.txt"
+  
+    script:
+    """
+    detection_blastn_report.py --threshold ${params.contamination_flag}
+    """
+}
 
 include { MINIMAP2_ALIGN_RNA } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP1 } from './modules.nf'
@@ -970,40 +1009,9 @@ workflow {
       QCREPORT(ch_multiqc_files.collect())
     }
 
-    /*
-    if (params.hybrid) {
-      if (params.canu) {
-        CANU( filtered_fq )
-        MAP_BACK_TO_ASSEMBLY ( CANU.out.assembly )
-        EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.sequencing_ids )
-        RATTLE ( EXTRACT_READS_STEP2.out.unaligned_fq )
-        FASTQ2FASTA_STEP1( RATTLE.out.clusters )
-        CAP3( FASTQ2FASTA_STEP1.out.fasta )
-        MAP_BACK_TO_CLUSTERS ( RATTLE.out.clusters2 )
-        EXTRACT_READS_STEP3 ( MAP_BACK_TO_CLUSTERS.out.sequencing_ids )
-        FASTQ2FASTA_STEP2( EXTRACT_READS_STEP3.out.unaligned_fq )
-        CONCATENATE_FASTA(CANU.out.assembly2, CAP3.out.contigs, FASTQ2FASTA_STEP2.out.fasta)
-        BLASTN_SPLIT( CONCATENATE_FASTA.out.assembly).splitFasta(by: 5000, file: true)
-        BLASTN_SPLIT.out.blast_results
-          .groupTuple()
-          .set { ch_blastresults }
-        EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
-      }
-      else if (params.flye) {
-        FLYE( filtered_fq )
-        MAP_BACK_TO_ASSEMBLY ( FLYE.out.assembly )
-        EXTRACT_READS_STEP2( MAP_BACK_TO_ASSEMBLY.out.sequencing_ids )
-        FASTQ2FASTA_STEP1( RATTLE.out.clusters )
-        CAP3( FASTQ2FASTA_STEP1.out.fasta )
-        BLASTN_SPLIT( FLYE.out.assembly.mix(CAP3.out.contigs).collect().splitFasta(by: 5000, file: true) )
-      }
-    }
-    */
     
     //perform clustering using Rattle
-      
-
-      if ( params.analysis_mode == 'clustering' ) {
+    if ( params.analysis_mode == 'clustering' ) {
       RATTLE ( final_fq )
       FASTQ2FASTA( RATTLE.out.clusters )
       CAP3( FASTQ2FASTA.out.fasta )
@@ -1016,7 +1024,9 @@ workflow {
         CLUSTERING_BLASTN ( contigs )
         EXTRACT_VIRAL_BLAST_HITS ( CLUSTERING_BLASTN.out.blast_results )
       }
+      DETECTION_REPORT_NT(EXTRACT_VIRAL_BLAST_HITS.out.blast_results.collect().ifEmpty([]))
     }
+    
     //perform de novo assembly using either canu or flye
     else if ( params.analysis_mode == 'denovo_assembly' ) {
       if (params.canu) {
@@ -1031,7 +1041,6 @@ workflow {
         CUTADAPT ( contigs )
         contigs = CUTADAPT.out.trimmed
       }
-    
     //limit blast homology search to a reference
       if (params.blast_vs_ref) {
         BLASTN2REF ( contigs )
@@ -1046,6 +1055,7 @@ workflow {
         ASSEMBLY_BLASTN ( contigs )
         EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
       }
+//      DETECTION_REPORT_NT(EXTRACT_VIRAL_BLAST_HITS.out.blast_results.collect().ifEmpty([]))
     }
 
     else if ( params.analysis_mode == 'read_classification') {
@@ -1065,7 +1075,9 @@ workflow {
       if (params.kraken2) {
         KRAKEN2 ( final_fq )
         BRACKEN ( KRAKEN2.out.results )
+        BRACKEN_HTML ( BRACKEN.out.bracken_results )
       }
+//      DETECTION_REPORT_NT(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results.collect().ifEmpty([]))
     }
 
       //just perform direct alignment 
@@ -1081,4 +1093,7 @@ workflow {
   //results_files = Channel.empty()
   //results_files = results_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
   //FINAL_INDIVIDUAL_REPORT(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results)
+  
+//  
+//}
 }

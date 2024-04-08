@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 import pandas as pd
 import argparse
-import numpy as np
-import IPython
-
-from IPython.display import HTML
 
 
 def main():
@@ -50,10 +46,10 @@ def main():
     if mode == "ncbi":
         #blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 90].index, inplace = True)
         blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 90].index)
-        blastn_viral_top_hit_low_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] > 90].index)
+        blastn_viral_top_hit_low_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] > 89].index)
     elif mode == "localdb":
         blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 95].index)
-        blastn_viral_top_hit_low_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] > 95].index)
+        blastn_viral_top_hit_low_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] > 94].index)
     #blastn_viral_top_hit['count'] = blastn_viral_top_hit.groupby('species')['species'].transform('count')
     #derive read/contig count per viral spp
     summary_per_spp = blastn_viral_top_hit_high_conf['species'].value_counts().to_frame()
@@ -98,7 +94,7 @@ def main():
 
     blastn_viral_top_hit_spp = blastn_viral_top_hit_spp.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
     spp = spp.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
-    summary_per_spp = summary_per_spp.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
+    summary_per_spp = summary_per_spp.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
     
     
     html_string = '''
