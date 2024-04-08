@@ -7,6 +7,9 @@ import glob
 import re
 import os
 import time
+import IPython
+
+from IPython.display import HTML
 
 def main():
     parser = argparse.ArgumentParser(description="Derive a qc report")
@@ -75,6 +78,8 @@ def main():
             summary_dict[sample].append(hf_reads)
             print(summary_dict)
 
+    run_data_df = pd.DataFrame()
+ 
     if (adapter_trimming == "true" or quality_trimming == "true") and host_filtering == "true":
         run_data_df = pd.DataFrame([([k] + v) for k, v in summary_dict.items()], columns=['Sample','raw_reads','quality_filtered_reads', 'host_filtered_reads'])
         run_data_df['percent_quality_filtered'] = run_data_df['quality_filtered_reads'] / run_data_df['raw_reads'] * 100
@@ -96,6 +101,26 @@ def main():
             run_data_df['percent_host_filtered'] = run_data_df['percent_host_filtered'].apply(lambda x: float("{:.2f}".format(x)))
             run_data_df = run_data_df.sort_values("Sample")
             run_data_df.to_csv("run_qc_report_" + timestr + ".txt", index = None, sep="\t")
+
+
+    summary_table = run_data_df.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
+    html_string = '''
+    <html>
+        <head>
+            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+            <style>body{ margin:0 100; background:whitesmoke; }</style>
+        </head>
+        <body>
+            <h1>Trial</h1>
+            <!-- *** Section 1 *** --->
+            ''' + summary_table + '''
+        </body>
+    </html>'''
+    print("you are here")
+
+    report = open("run_qc_report_" + timestr + ".html", "w")
+    report.write(html_string)
+    report.close()
 
 if __name__ == '__main__':
     main()

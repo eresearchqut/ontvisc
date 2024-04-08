@@ -141,6 +141,7 @@ process QCREPORT {
     path multiqc_files
   output:
      path("run_qc_report_*txt")
+     path("run_qc_report_*html")
 
   script:
   """
@@ -460,6 +461,7 @@ process EXTRACT_VIRAL_BLAST_HITS {
   tag "${sampleid}"
   label "setting_2"
   publishDir "$params.outdir/$sampleid", mode: 'copy', pattern: '*/*/*txt'
+  publishDir "$params.outdir/$sampleid", mode: 'copy', pattern: '*/*/*html'
   containerOptions "${bindOptions}"
 
   input:
@@ -470,6 +472,7 @@ process EXTRACT_VIRAL_BLAST_HITS {
   file "*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"
   file "*/*/${sampleid}*_queryid_list_with_viral_match.txt"
   file "*/*/${sampleid}*_viral_spp_abundance.txt"
+  file "*/*/*report*html"
 
   script:
   """
@@ -493,6 +496,8 @@ process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
   tag "${sampleid}"
   label "setting_2"
   publishDir "$params.outdir/$sampleid/read_classification", mode: 'copy', pattern: 'homology_search/*txt'
+  publishDir "$params.outdir/$sampleid/read_classification", mode: 'copy', pattern: 'homology_search/*html'
+
   containerOptions "${bindOptions}"
 
   input:
@@ -503,6 +508,10 @@ process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
   file "*/${sampleid}*_blastn_top_viral_spp_hits.txt"
   file "*/${sampleid}*_queryid_list_with_viral_match.txt"
   file "*/${sampleid}*_viral_spp_abundance.txt"
+  file "*/*report*html"
+
+  tuple val(sampleid), path("*/${sampleid}*_blastn_top_viral_spp_hits.txt"), path("*/${sampleid}*_queryid_list_with_viral_match.txt"), path("*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
+
 
   script:
   """
@@ -815,6 +824,36 @@ process FILTER_VCF {
 }
 
 
+process FASTCAT {
+    publishDir "${params.outdir}/${sampleid}/qc/fastcat", mode: 'copy'
+    tag "${sampleid}"
+    label "setting_2"
+
+    input:
+      tuple val(sampleid), path(fastq)
+
+    output:
+      path("${sampleid}_stats.tsv")
+      path("histograms/*")
+      tuple val(sampleid), path("${sampleid}.fastq.gz"), emit: merged
+  
+    script:
+    """
+    fastcat \
+        -s ${sampleid} \
+        -f ${sampleid}_stats.tsv \
+        --histograms histograms \
+        ${fastq} \
+        | bgzip > ${sampleid}.fastq.gz
+
+  
+    """
+}
+
+//process FINAL_INDIVIDUAL_REPORT {
+//  
+//}
+
 include { MINIMAP2_ALIGN_RNA } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP1 } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP2 } from './modules.nf'
@@ -858,9 +897,9 @@ workflow {
   }
 
   if (params.merge) {
-    MERGE ( ch_sample )
-    QC_PRE_DATA_PROCESSING ( MERGE.out.merged )
-    fq = MERGE.out.merged
+    FASTCAT ( ch_sample )
+    QC_PRE_DATA_PROCESSING ( FASTCAT.out.merged )
+    fq = FASTCAT.out.merged
   }
   else {
     fq = ch_sample
@@ -914,6 +953,7 @@ workflow {
       ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS_STEP1.out.read_counts.collect().ifEmpty([]))
       ch_multiqc_files = ch_multiqc_files.mix(QC_POST_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
       QCREPORT(ch_multiqc_files.collect())
+
     }
 
     else if ( params.host_filtering & !params.adapter_trimming & !params.qual_filt ) {
@@ -1038,4 +1078,7 @@ workflow {
     else {
       error("Analysis mode (read_classification, clustering, denovo_assembly, map2ref) not specified with e.g. '--analysis_mode clustering' or via a detectable config file.") }
   }
+  //results_files = Channel.empty()
+  //results_files = results_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
+  //FINAL_INDIVIDUAL_REPORT(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results)
 }

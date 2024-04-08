@@ -120,7 +120,8 @@ process FASTQ2FASTA {
 
 process NANOPLOT {
   publishDir "${params.outdir}/${sampleid}/qc/nanoplot",  pattern: '{*NanoPlot-report.html}', mode: 'link'
-//  publishDir "${params.outdir}/${sampleid}/nanoplot",  pattern: '*.NanoStats.txt', mode: 'link', saveAs: { filename -> "${sampleid}_$filename" }
+  publishDir "${params.outdir}/${sampleid}/qc/nanoplot",  pattern: '{*NanoStats.txt}', mode: 'link'
+  publishDir "${params.outdir}/${sampleid}/qc/nanoplot",  pattern: '{*LengthvsQualityScatterPlot_dot.html}', mode: 'link'
   tag "${sampleid}"
   label "setting_2"
 
@@ -128,15 +129,17 @@ process NANOPLOT {
     tuple val(sampleid), path(sample)
   output:
     path("*NanoPlot-report.html")
+    path("*NanoStats.txt")
+    path("*LengthvsQualityScatterPlot_dot.html")
     path("*NanoStats.txt"), emit: read_counts
   
   script:
   """
   if [[ ${sample} == *trimmed.fastq.gz ]] || [[ ${sample} == *filtered.fastq.gz ]] ;
   then
-    NanoPlot -t 2 --fastq ${sample} --prefix ${sampleid}_filtered_ --plots dot --N50 --tsv_stats
+    NanoPlot -t 2 --fastq ${sample} --prefix ${sampleid}_filtered_ --plots dot kde --N50 --tsv_stats
   else
-    NanoPlot -t 2 --fastq ${sample} --prefix ${sampleid}_raw_ --plots dot --N50 --tsv_stats
+    NanoPlot -t 2 --fastq ${sample} --prefix ${sampleid}_raw_ --plots dot kde --N50 --tsv_stats
   fi
   """
 }
