@@ -134,14 +134,14 @@ process MERGE {
 }
 
 process QCREPORT {
-  publishDir "${params.outdir}/qc_report", mode: 'copy'
+  publishDir "${params.outdir}/qc_report", mode: 'copy', overwrite: true
   containerOptions "${bindOptions}"
 
   input:
     path multiqc_files
   output:
-     path("run_qc_report_*txt")
-     path("run_qc_report_*html")
+    path("run_qc_report_*txt")
+    path("run_qc_report_*html")
 
   script:
   """
@@ -512,7 +512,8 @@ process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
   file "*/${sampleid}*_viral_spp_abundance.txt"
   file "*/*report*html"
 
-  tuple val(sampleid), path("*/${sampleid}*_blastn_top_viral_spp_hits.txt"), path("*/${sampleid}*_queryid_list_with_viral_match.txt"), path("*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
+  tuple val(sampleid), path("*/${sampleid}*_blastn_top_viral_hits.txt"), emit: blast_results
+  
 
 
   script:
@@ -593,19 +594,22 @@ Optional arguments:
   -p            Input sequences are protein sequences
   -v            Enable verbose output
 */
+
 process KAIJU {
   publishDir "${params.outdir}/${sampleid}/read_classification/kaiju", mode: 'copy'
   label 'setting_4'
   containerOptions "${bindOptions}"
+  tag "${sampleid}"
 
   input:
   tuple val(sampleid), path(fastq)
 
   output:
-  tuple val(sampleid), path('*kaiju.krona'), emit: results
   file "${sampleid}_kaiju_name.tsv"
   file "${sampleid}_kaiju_summary*.tsv"
   file "${sampleid}_kaiju.krona"
+  tuple val(sampleid), path("${sampleid}_kaiju_summary_viral.tsv"), emit: kaiju_results
+  tuple val(sampleid), path("*kaiju.krona"), emit: krona_results
 
   script:
   """
@@ -627,11 +631,49 @@ process KAIJU {
   awk -F'\\t' '\$2>=0.05' ${sampleid}_kaiju_summary_viral.tsv > ${sampleid}_kaiju_summary_viral_filtered.tsv
   """
 }
+/*
+process KAIJU_HTML {
+  tag "${sampleid}"
+  label "local"
+  publishDir "$params.outdir/$sampleid/read_classification/kaiju",  mode: 'link'
+  containerOptions "${bindOptions}"
+
+  input:
+    tuple val(sampleid), path(kaiju_report)
+
+  output:
+    file("*_kaiju_report.html")
+
+
+  script:
+  """
+  kraken_html_report.py  --sample ${sampleid}
+  """
+}
+*/
+process READ_CLASSIFICATION_HTML {
+  publishDir "${params.outdir}/${sampleid}/read_classification/Summary", mode: 'copy', overwrite: true
+  label 'local'
+  containerOptions "${bindOptions}"
+  tag "${sampleid}"
+
+  input:
+  tuple val(sampleid), path(results)
+
+  output:
+  file "*_read_classification_report.html"
+
+  script:
+  """
+  summary_read_classification.py --sample ${sampleid} --mode ${params.blast_mode}
+  """
+}
 
 process KRONA {
   publishDir "${params.outdir}/${sampleid}/read_classification/kaiju", mode: 'link'
   label 'setting_3'
   containerOptions "${bindOptions}"
+  tag "${sampleid}"
 
   input:
   tuple val(sampleid), path(krona_input)
@@ -721,7 +763,7 @@ process KRAKEN2 {
 process BRACKEN {
   tag "${sampleid}"
 	label 'setting_2'
-	publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'link'
+	publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'copy'
   containerOptions "${bindOptions}"
 
 	input:
@@ -763,7 +805,7 @@ process BRACKEN_HTML {
 
 	script:
 	"""
-  kraken_html_report.py  --sample ${sampleid} --bracken_results ${sampleid}_bracken_report_viral.txt
+  kraken_html_report.py --sample ${sampleid}
   """
 }
 
@@ -992,7 +1034,6 @@ workflow {
       ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS_STEP1.out.read_counts.collect().ifEmpty([]))
       ch_multiqc_files = ch_multiqc_files.mix(QC_POST_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
       QCREPORT(ch_multiqc_files.collect())
-
     }
 
     else if ( params.host_filtering & !params.adapter_trimming & !params.qual_filt ) {
@@ -1055,11 +1096,11 @@ workflow {
         ASSEMBLY_BLASTN ( contigs )
         EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
       }
-//      DETECTION_REPORT_NT(EXTRACT_VIRAL_BLAST_HITS.out.blast_results.collect().ifEmpty([]))
     }
 
     else if ( params.analysis_mode == 'read_classification') {
     //just perform direct read search
+      
       if (params.megablast) {
         FASTQ2FASTA_STEP1( final_fq )
         READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true) )
@@ -1067,17 +1108,47 @@ workflow {
           .groupTuple()
           .set { ch_blastresults }
         EXTRACT_VIRAL_BLAST_SPLIT_HITS( ch_blastresults )
+        
       }
       if (params.kaiju) {
         KAIJU ( final_fq )
-        KRONA ( KAIJU.out.results)
+        KRONA ( KAIJU.out.krona_results)
+        
       }
       if (params.kraken2) {
         KRAKEN2 ( final_fq )
         BRACKEN ( KRAKEN2.out.results )
-        BRACKEN_HTML ( BRACKEN.out.bracken_results )
       }
-//      DETECTION_REPORT_NT(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results.collect().ifEmpty([]))
+      
+      
+      foo_in_ch = Channel.empty()
+      if ( params.megablast & !params.kaiju & !params.kraken2 ) {
+       READ_CLASSIFICATION_HTML( EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results )
+      }
+      else if (params.kaiju & !params.megablast & !params.kraken2) {
+        READ_CLASSIFICATION_HTML( KAIJU.out.kaiju_results )
+      }
+      else if (params.kraken2 & !params.megablast & !params.kaiju) {
+        READ_CLASSIFICATION_HTML(BRACKEN.out.bracken_results )
+      }
+      else if (params.megablast & !params.kaiju & params.kraken2) {
+        foo_in_ch = EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results.concat(BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
+        READ_CLASSIFICATION_HTML( foo_in_ch )
+      }
+      else if (params.megablast & params.kaiju & !params.kraken2) {
+        foo_in_ch = EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results.concat(KAIJU.out.kaiju_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
+        READ_CLASSIFICATION_HTML( foo_in_ch )
+      }
+      else if (!params.megablast & params.kaiju & params.kraken2) {
+        foo_in_ch = KAIJU.out.kaiju_results.concat(BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
+        READ_CLASSIFICATION_HTML( foo_in_ch )
+      }
+      else if (params.megablast & params.kaiju & params.kraken2) {
+        foo_in_ch = KAIJU.out.kaiju_results.concat(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results, BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
+        READ_CLASSIFICATION_HTML( foo_in_ch )
+      }
+
+
     }
 
       //just perform direct alignment 
@@ -1088,12 +1159,8 @@ workflow {
       FILTER_VCF ( MEDAKA.out.unfilt_vcf )
     }
     else {
-      error("Analysis mode (read_classification, clustering, denovo_assembly, map2ref) not specified with e.g. '--analysis_mode clustering' or via a detectable config file.") }
+      error("Analysis mode (read_classification, clustering, denovo_assembly, map2ref) not specified with e.g. '--analysis_mode clustering' or via a detectable config file.") 
+      }
   }
-  //results_files = Channel.empty()
-  //results_files = results_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
-  //FINAL_INDIVIDUAL_REPORT(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results)
-  
-//  
-//}
+
 }
