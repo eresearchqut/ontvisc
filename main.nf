@@ -917,24 +917,6 @@ process FASTCAT {
     """
 }
 
-process DETECTION_REPORT_NT {
-    publishDir "${params.outdir}/summary", mode: 'copy', overwrite: true
-    containerOptions "${bindOptions}"
-    tag "${sampleid}"
-    label "local"
-
-    input:
-      path('*')
-
-    output:
-      file "blastn_detection_summary*.txt"
-  
-    script:
-    """
-    detection_blastn_report.py --threshold ${params.contamination_flag}
-    """
-}
-
 include { MINIMAP2_ALIGN_RNA } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP1 } from './modules.nf'
 include { EXTRACT_READS as EXTRACT_READS_STEP2 } from './modules.nf'
@@ -1065,7 +1047,6 @@ workflow {
         CLUSTERING_BLASTN ( contigs )
         EXTRACT_VIRAL_BLAST_HITS ( CLUSTERING_BLASTN.out.blast_results )
       }
-      DETECTION_REPORT_NT(EXTRACT_VIRAL_BLAST_HITS.out.blast_results.collect().ifEmpty([]))
     }
     
     //perform de novo assembly using either canu or flye
