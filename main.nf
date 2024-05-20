@@ -1032,116 +1032,114 @@ workflow {
       QCREPORT(ch_multiqc_files.collect())
     }
 
-    
-    //perform clustering using Rattle
-    if ( params.analysis_mode == 'clustering' ) {
-      RATTLE ( final_fq )
-      FASTQ2FASTA( RATTLE.out.clusters )
-      CAP3( FASTQ2FASTA.out.fasta )
-      contigs = CAP3.out.scaffolds
+    if (!params.preprocessing_only) {
+      //perform clustering using Rattle
+      if ( params.analysis_mode == 'clustering' ) {
+        RATTLE ( final_fq )
+        FASTQ2FASTA( RATTLE.out.clusters )
+        CAP3( FASTQ2FASTA.out.fasta )
+        contigs = CAP3.out.scaffolds
 
-      if (params.blast_vs_ref) {
-        BLASTN2REF ( contigs )
+        if (params.blast_vs_ref) {
+          BLASTN2REF ( contigs )
+          }
+        else { 
+          CLUSTERING_BLASTN ( contigs )
+          EXTRACT_VIRAL_BLAST_HITS ( CLUSTERING_BLASTN.out.blast_results )
         }
-      else { 
-        CLUSTERING_BLASTN ( contigs )
-        EXTRACT_VIRAL_BLAST_HITS ( CLUSTERING_BLASTN.out.blast_results )
       }
-    }
-    
-    //perform de novo assembly using either canu or flye
-    else if ( params.analysis_mode == 'denovo_assembly' ) {
-      if (params.canu) {
-        CANU ( final_fq )
-        contigs = CANU.out.assembly2
-      }
-      else if (params.flye) {
-        FLYE ( final_fq )
-        contigs = FLYE.out.assembly2
-      }
-      if (params.final_primer_check) {
-        CUTADAPT ( contigs )
-        contigs = CUTADAPT.out.trimmed
-      }
-    //limit blast homology search to a reference
-      if (params.blast_vs_ref) {
-        BLASTN2REF ( contigs )
-      }
-    //blast against a database
-    //else {
-    //  BLASTN( contigs.splitFasta(by: 5000, file: true) )
-    //  BLASTN.out.blast_results
-    //    .groupTuple()
-    //    .set { ch_blastresults }
-      else { 
-        ASSEMBLY_BLASTN ( contigs )
-        EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
-      }
-    }
-
-    else if ( params.analysis_mode == 'read_classification') {
-    //just perform direct read search
       
-      if (params.megablast) {
-        FASTQ2FASTA_STEP1( final_fq )
-        READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true) )
-        READ_CLASSIFICATION_BLASTN.out.blast_results
-          .groupTuple()
-          .set { ch_blastresults }
-        EXTRACT_VIRAL_BLAST_SPLIT_HITS( ch_blastresults )
+      //perform de novo assembly using either canu or flye
+      else if ( params.analysis_mode == 'denovo_assembly' ) {
+        if (params.canu) {
+          CANU ( final_fq )
+          contigs = CANU.out.assembly2
+        }
+        else if (params.flye) {
+          FLYE ( final_fq )
+          contigs = FLYE.out.assembly2
+        }
+        if (params.final_primer_check) {
+          CUTADAPT ( contigs )
+          contigs = CUTADAPT.out.trimmed
+        }
+      //limit blast homology search to a reference
+        if (params.blast_vs_ref) {
+          BLASTN2REF ( contigs )
+        }
+      //blast against a database
+      //else {
+      //  BLASTN( contigs.splitFasta(by: 5000, file: true) )
+      //  BLASTN.out.blast_results
+      //    .groupTuple()
+      //    .set { ch_blastresults }
+        else { 
+          ASSEMBLY_BLASTN ( contigs )
+          EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
+        }
+      }
+
+      else if ( params.analysis_mode == 'read_classification') {
+      //just perform direct read search
         
-      }
-      if (params.kaiju) {
-        KAIJU ( final_fq )
-        KRONA ( KAIJU.out.krona_results)
+        if (params.megablast) {
+          FASTQ2FASTA_STEP1( final_fq )
+          READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true) )
+          READ_CLASSIFICATION_BLASTN.out.blast_results
+            .groupTuple()
+            .set { ch_blastresults }
+          EXTRACT_VIRAL_BLAST_SPLIT_HITS( ch_blastresults )
+          
+        }
+        if (params.kaiju) {
+          KAIJU ( final_fq )
+          KRONA ( KAIJU.out.krona_results)
+          
+        }
+        if (params.kraken2) {
+          KRAKEN2 ( final_fq )
+          BRACKEN ( KRAKEN2.out.results )
+        }
         
+        
+        foo_in_ch = Channel.empty()
+        if ( params.megablast & !params.kaiju & !params.kraken2 ) {
+        READ_CLASSIFICATION_HTML( EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results )
+        }
+        else if (params.kaiju & !params.megablast & !params.kraken2) {
+          READ_CLASSIFICATION_HTML( KAIJU.out.kaiju_results )
+        }
+        else if (params.kraken2 & !params.megablast & !params.kaiju) {
+          READ_CLASSIFICATION_HTML(BRACKEN.out.bracken_results )
+        }
+        else if (params.megablast & !params.kaiju & params.kraken2) {
+          foo_in_ch = EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results.concat(BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
+          READ_CLASSIFICATION_HTML( foo_in_ch )
+        }
+        else if (params.megablast & params.kaiju & !params.kraken2) {
+          foo_in_ch = EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results.concat(KAIJU.out.kaiju_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
+          READ_CLASSIFICATION_HTML( foo_in_ch )
+        }
+        else if (!params.megablast & params.kaiju & params.kraken2) {
+          foo_in_ch = KAIJU.out.kaiju_results.concat(BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
+          READ_CLASSIFICATION_HTML( foo_in_ch )
+        }
+        else if (params.megablast & params.kaiju & params.kraken2) {
+          foo_in_ch = KAIJU.out.kaiju_results.concat(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results, BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
+          READ_CLASSIFICATION_HTML( foo_in_ch )
+        }
       }
-      if (params.kraken2) {
-        KRAKEN2 ( final_fq )
-        BRACKEN ( KRAKEN2.out.results )
-      }
-      
-      
-      foo_in_ch = Channel.empty()
-      if ( params.megablast & !params.kaiju & !params.kraken2 ) {
-       READ_CLASSIFICATION_HTML( EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results )
-      }
-      else if (params.kaiju & !params.megablast & !params.kraken2) {
-        READ_CLASSIFICATION_HTML( KAIJU.out.kaiju_results )
-      }
-      else if (params.kraken2 & !params.megablast & !params.kaiju) {
-        READ_CLASSIFICATION_HTML(BRACKEN.out.bracken_results )
-      }
-      else if (params.megablast & !params.kaiju & params.kraken2) {
-        foo_in_ch = EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results.concat(BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
-        READ_CLASSIFICATION_HTML( foo_in_ch )
-      }
-      else if (params.megablast & params.kaiju & !params.kraken2) {
-        foo_in_ch = EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results.concat(KAIJU.out.kaiju_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
-        READ_CLASSIFICATION_HTML( foo_in_ch )
-      }
-      else if (!params.megablast & params.kaiju & params.kraken2) {
-        foo_in_ch = KAIJU.out.kaiju_results.concat(BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
-        READ_CLASSIFICATION_HTML( foo_in_ch )
-      }
-      else if (params.megablast & params.kaiju & params.kraken2) {
-        foo_in_ch = KAIJU.out.kaiju_results.concat(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results, BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
-        READ_CLASSIFICATION_HTML( foo_in_ch )
-      }
-
-
-    }
 
       //just perform direct alignment 
-    else if ( params.analysis_mode == 'map2ref') {
-      MINIMAP2_REF ( final_fq )
-      SAMTOOLS ( MINIMAP2_REF.out.aligned_sample )
-      MEDAKA ( SAMTOOLS.out.sorted_sample )
-      FILTER_VCF ( MEDAKA.out.unfilt_vcf )
-    }
-    else {
-      error("Analysis mode (read_classification, clustering, denovo_assembly, map2ref) not specified with e.g. '--analysis_mode clustering' or via a detectable config file.") 
+      else if ( params.analysis_mode == 'map2ref') {
+        MINIMAP2_REF ( final_fq )
+        SAMTOOLS ( MINIMAP2_REF.out.aligned_sample )
+        MEDAKA ( SAMTOOLS.out.sorted_sample )
+        FILTER_VCF ( MEDAKA.out.unfilt_vcf )
       }
+      else {
+        error("Analysis mode (read_classification, clustering, denovo_assembly, map2ref) not specified with e.g. '--analysis_mode clustering' or via a detectable config file.") 
+      }
+    }
   }
-
 }
