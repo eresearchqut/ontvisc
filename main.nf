@@ -396,7 +396,7 @@ process BAMCOVERAGE {
 process PORECHOP_ABI {
   tag "${sampleid}"
   publishDir "$params.outdir/${sampleid}/preprocessing/porechop",  mode: 'link', pattern: '*_porechop.log'
-  label "setting_8"
+  label "setting_9"
   containerOptions "${bindOptions}"
 
   input:
