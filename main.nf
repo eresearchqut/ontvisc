@@ -460,8 +460,8 @@ process CAP3 {
 process EXTRACT_VIRAL_BLAST_HITS {
   tag "${sampleid}"
   label "setting_2"
-  publishDir "$params.outdir/$sampleid", mode: 'copy', pattern: '*/*/*txt'
-  publishDir "$params.outdir/$sampleid", mode: 'copy', pattern: '*/*/*html'
+  publishDir "$params.outdir/$sampleid", mode: 'copy', pattern: '*/*/*txt', overwrite: true
+  publishDir "$params.outdir/$sampleid", mode: 'copy', pattern: '*/*/*html', overwrite: true
   containerOptions "${bindOptions}"
 
   input:
@@ -497,8 +497,8 @@ process EXTRACT_VIRAL_BLAST_HITS {
 process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
   tag "${sampleid}"
   label "setting_2"
-  publishDir "$params.outdir/$sampleid/read_classification", mode: 'copy', pattern: 'homology_search/*txt'
-  publishDir "$params.outdir/$sampleid/read_classification", mode: 'copy', pattern: 'homology_search/*html'
+  publishDir "$params.outdir/$sampleid/read_classification", mode: 'copy', pattern: 'homology_search/*txt', overwrite: true
+  publishDir "$params.outdir/$sampleid/read_classification", mode: 'copy', pattern: 'homology_search/*html', overwrite: true
 
   containerOptions "${bindOptions}"
 
@@ -513,8 +513,6 @@ process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
   file "*/*report*html"
 
   tuple val(sampleid), path("*/${sampleid}*_blastn_top_viral_hits.txt"), emit: blast_results
-  
-
 
   script:
   """

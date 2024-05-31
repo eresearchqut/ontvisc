@@ -35,40 +35,38 @@ def main():
         blastn_results['species'] = blastn_results['species'].str.replace("Species:","")
         blastn_results = blastn_results[["qseqid", "sgi", "sacc", "length", "pident", "mismatch", "gapopen", "qstart", "qend", "qlen", "sstart", "send", "slen", "sstrand", "evalue", "bitscore", "qcovhsp", "stitle", "staxids", "qseq", "sseq", "sseqid", "qcovs", "qframe", "sframe", "species"]]
 
-    blastn_top_hit = blastn_results.drop_duplicates(subset=["qseqid"], keep="first")    
+    blastn_top_hit = blastn_results.drop_duplicates(subset=["qseqid"], keep="first")
     blastn_top_hit.to_csv(sample_name + "_" + analysis_method + "_blastn_top_hits.txt", index=False, sep="\t",float_format="%.2f")
     #extract all sequences showing top blast homology to virus or viroid hits.
-    blastn_viral_top_hit = blastn_top_hit[blastn_top_hit["species"].str.contains('virus|viroid', na=False)]
+    #it is important to include copy() here as otherwise it will complain further down with the error
+    #A value is trying to be set on a copy of a slice from a DataFrame.
+
+    blastn_viral_top_hit = blastn_top_hit[blastn_top_hit["species"].str.contains('virus|viroid', na=False)].copy()
     #only retain blast hits with qcovs < 90
     if mode == "ncbi":
-        blastn_viral_top_hit['FLAG'] = np.where((blastn_viral_top_hit['qcovs'] < 90 ), "low_coverage","")
-        blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 90].index).sort_values(by=['evalue'], ascending=True)
-        blastn_viral_top_hit_low_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] > 89].index).sort_values(by=['evalue'], ascending=True)
+        #blastn_viral_top_hit['FLAG'] = blastn_viral_top_hit['qcovs'].apply(lambda x: 'low_confidence' if x < 90 else '')
+        blastn_viral_top_hit['FLAG'] = np.where((blastn_viral_top_hit['qcovs'] < 90) ^ (blastn_viral_top_hit['pident'] < 85) , "FLAG", "")
+        blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] > 90].index).sort_values(by=['evalue'], ascending=True)
     elif mode == "localdb":
-        blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 95].index)
-        blastn_viral_top_hit_low_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] > 94].index)
-        blastn_viral_top_hit['FLAG'] = np.where((blastn_viral_top_hit['qcovs'] < 95 ), "low_coverage","")
+        blastn_viral_top_hit['FLAG'] = blastn_viral_top_hit['qcovs'].apply(lambda x: 'low_confidence' if x < 95 else '')
+        blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] > 95].index).sort_values(by=['evalue'], ascending=True)
 
     #derive read/contig count per viral spp
-    summary_per_spp_high_conf = blastn_viral_top_hit_high_conf['species'].value_counts().to_frame()
-    summary_per_spp_low_conf = blastn_viral_top_hit_low_conf['species'].value_counts().to_frame()
-    summary_per_spp_high_conf.index.name = 'species'
-    summary_per_spp_low_conf.index.name = 'species'
-    summary_per_spp_low_conf.to_csv(sample_name + "_" + analysis_method + "_viral_spp_abundance.txt", index=True, sep="\t", header=["Count"])
+    summary_per_spp = blastn_viral_top_hit['species'].value_counts().rename_axis('species').reset_index(name='counts')
+    summary_per_spp_high_conf = blastn_viral_top_hit_high_conf['species'].value_counts().rename_axis('species').reset_index(name='counts')
+    #summary_per_spp.index.name = 'species'
+    #summary_per_spp_high_conf.index.name = 'species'
+    summary_per_spp.to_csv(sample_name + "_" + analysis_method + "_viral_spp_abundance.txt", index=False, sep="\t")
 
-    spp = blastn_viral_top_hit_low_conf[['sacc','species','qseqid']].copy()
-    
+    spp = blastn_viral_top_hit[['sacc','species','qseqid']].copy()
     spp['count'] = spp.groupby(['species', 'sacc'])['qseqid'].transform('size')
-    #A value is trying to be set on a copy of a slice from a DataFrame.
-    #Try using .loc[row_indexer,col_indexer] = value instead
     #collapse all contigs to given accession number and species
     f = lambda x: x.tolist() if len(x) > 1 else x
     spp = spp.groupby(['species','sacc', 'count'])['qseqid'].agg(f).reset_index().reindex(spp.columns, axis=1)
     
     #reorder columns before saving
     spp = spp[["species", "sacc", "count", "qseqid"]].sort_values(["count"], ascending=[False])
-    
-    print(spp)
+
     spp.to_csv(sample_name + "_" + analysis_method + "_queryid_list_with_viral_match.txt", index=False, sep="\t",float_format="%.2f")
     #replace space with underscore
     #blastn_blastn_top_evalue.replace('Elephantopus_scaber_closterovirus', 'Citrus_tristeza_virus',regex=True,inplace=True)
@@ -76,18 +74,14 @@ def main():
     
     blastn_viral_top_hit.to_csv(sample_name + "_" + analysis_method + "_blastn_top_viral_hits.txt", index=False, sep="\t",float_format="%.2f")
     #just retain longest contig for each virus/viroid species
-    blastn_viral_top_hit_spp= blastn_viral_top_hit.sort_values(["evalue", "length"], ascending=[True, False]).groupby("species").first().reset_index()
+    blastn_viral_top_hit_spp= blastn_viral_top_hit.sort_values(["evalue", "pident"], ascending=[True, True]).groupby("species").first().copy()
     blastn_viral_top_hit_spp.to_csv(sample_name + "_" + analysis_method +  "_blastn_top_viral_spp_hits.txt", index=False, sep="\t",float_format="%.2f")
 
-    blastn_viral_top_hit_low_conf.to_csv(sample_name + "_" + analysis_method +  "_blastn_top_viral_spp_hits_low_confidence.txt", index=False, sep="\t",float_format="%.2f")
 
-    blastn_viral_top_hit_high_conf = blastn_viral_top_hit.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
-    blastn_viral_top_hit_low_conf = blastn_viral_top_hit_low_conf.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
-
-    blastn_viral_top_hit_spp = blastn_viral_top_hit_spp.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
-    spp = spp.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
-    summary_per_spp_high_conf = summary_per_spp_high_conf.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
-    summary_per_spp_low_conf = summary_per_spp_low_conf.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
+    summary_per_spp_high_conf = summary_per_spp_high_conf.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
+    summary_per_spp = summary_per_spp.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
+    blastn_viral_top_hit_spp = blastn_viral_top_hit_spp.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
+    spp = spp.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
     
     html_string = '''
     <html>
@@ -99,32 +93,21 @@ def main():
             <h1>Homology blast results</h1>
 
             <!-- *** Section 1 *** --->
-            <h2>Section 1A: Number of reads/contigs/clusters matching viral species filtered </h2>
-            <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
-            ''' + summary_per_spp_high_conf + '''
-
-            <h2>Section 1B: Number of reads/contigs/clusters matching viral species </h2>
+            <h2>Section 1A: Number of reads/contigs/clusters matching viral species </h2>
             <p>All blast viral matches were considered here.</p>
-            ''' + summary_per_spp_low_conf + '''
+            ''' + summary_per_spp + '''
+
+            <h2>Section 1B: Number of reads/contigs/clusters matching viral species (filtered)</h2>
+            <p>Only blast viral matches which show >95% identity and either >90% query coverage for NCBI or >95% query coverage for a local viral database were considered here.</p>
+             ''' + summary_per_spp_high_conf + '''
 
             <!-- *** Section 2 *** --->
-            <h2>Section 2: Best candidate viral hit at species level </h2>
-            <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
+            <h2>Section 2: Best candidate viral hits at species level </h2>
             ''' + blastn_viral_top_hit_spp + '''
             
             <!-- *** Section 3 *** --->
             <h2>Section 3: Count and list of read/contig/cluster matching a specific viral accession number </h2>
-            <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
             ''' + spp + '''
-
-            <!-- *** Section 4 *** --->
-            <h2>Section 4A: blast summary for each read/contig/cluster returning a viral hit (high confidence) </h2>
-            ''' + blastn_viral_top_hit_high_conf + '''
-
-            <h2>Section 4B: blast summary for each read/contig/cluster returning a viral hit (low confidence) </h2>
-            ''' + blastn_viral_top_hit_low_conf + '''
-
-
         </body>
     </html>'''
 
@@ -132,9 +115,5 @@ def main():
     report.write(html_string)
     report.close()
 
-
-
-
-
 if __name__ == "__main__":
-    main()   
+    main()
