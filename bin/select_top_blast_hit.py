@@ -99,11 +99,11 @@ def main():
             <h1>Homology blast results</h1>
 
             <!-- *** Section 1 *** --->
-            <h2>Section 1a: Number of reads/contigs/clusters matching viral species filtered </h2>
+            <h2>Section 1A: Number of reads/contigs/clusters matching viral species filtered </h2>
             <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
             ''' + summary_per_spp_high_conf + '''
 
-            <h2>Section 1b: Number of reads/contigs/clusters matching viral species </h2>
+            <h2>Section 1B: Number of reads/contigs/clusters matching viral species </h2>
             <p>All blast viral matches were considered here.</p>
             ''' + summary_per_spp_low_conf + '''
 

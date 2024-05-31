@@ -155,7 +155,7 @@ def main():
                                 target.classList.add('active');
                             })
                         })
-                    </script>                    
+                    </script>
                 </body>
             </html>'''
 

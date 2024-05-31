@@ -21,9 +21,6 @@ def main():
     adapter_trimming = args.adapter_trimming
     quality_trimming = args.quality_trimming
 
-    
-
-
     timestr = time.strftime("%Y%m%d-%H%M%S")
 
     summary_dict = {}
@@ -42,13 +39,10 @@ def main():
                     raw_reads = int(elements[1].strip())
                     print(raw_reads)
 
-            #first_line = next(f)
-            #raw_reads = int(first_line[0].strip())
         summary_dict[sample] = [raw_reads]
         print(summary_dict)
         f.close()
 
-    
     for qt_read_out in glob.glob("*filtered_NanoStats.txt"):
         qt_reads = ()
         line_number = 0 
@@ -103,7 +97,7 @@ def main():
             run_data_df.to_csv("run_qc_report_" + timestr + ".txt", index = None, sep="\t")
 
 
-    summary_table = run_data_df.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
+    summary_table = run_data_df.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
     html_string = '''
     <html>
         <head>
@@ -111,12 +105,19 @@ def main():
             <style>body{ margin:0 100; background:whitesmoke; }</style>
         </head>
         <body>
-            <h1>Trial</h1>
+            <h1>Quality check report</h1>
+            <blockquote>
+            <p><b> Definitions:</b></p>
+            <p><b> raw_reads </b>= total raw reads sequenced </p>
+            <p><b> quality_filtered_reads </b>= total reads left-over after adapter trimming and/or quality filtering </p>
+            <p><b> host_filtered_reads </b>= total quality-filtered reads left-over after filtering for host </p>
+            <p><b> percent_quality_filtered </b>= (quality_filtered_reads/raw_reads x 100)</p>
+            <p><b> percent_host_filtered </b>= (host_filtered_reads/raw_reads x 100)</p>
+            </blockquote>
             <!-- *** Section 1 *** --->
             ''' + summary_table + '''
         </body>
     </html>'''
-    print("you are here")
 
     report = open("run_qc_report_" + timestr + ".html", "w")
     report.write(html_string)
