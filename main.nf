@@ -116,7 +116,7 @@ switch (workflow.containerEngine) {
   default:
     bindOptions = "";
 }
-
+/*
 process MERGE {
   //publishDir "${params.outdir}/${sampleid}/merge", pattern: '*.fastq.gz', mode: 'link'
   tag "${sampleid}"
@@ -132,7 +132,7 @@ process MERGE {
   
   """
 }
-
+*/
 process QCREPORT {
   publishDir "${params.outdir}/qc_report", mode: 'copy', overwrite: true
   containerOptions "${bindOptions}"
@@ -474,7 +474,7 @@ process EXTRACT_VIRAL_BLAST_HITS {
   file "*/*/${sampleid}*_viral_spp_abundance.txt"
   file "*/*/*report*html"
 
-  tuple val(sampleid), path("*/${sampleid}*_blastn_top_viral_spp_hits.txt"), path("*/${sampleid}*_queryid_list_with_viral_match.txt"), path("*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
+  tuple val(sampleid), path("*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"), path("*/*/${sampleid}*_queryid_list_with_viral_match.txt"), path("*/*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
 
   script:
   """
@@ -686,7 +686,6 @@ process KRONA {
 }
 
 /*
-
 KRAKEN2
 https://github.com/DerrickWood/kraken2/blob/master/docs/MANUAL.markdown
 If you get the Loading database information...classify: Error reading in hash table error allocate more memory to the job. Keep incrementing the memory request until you see a status message in the job log like
@@ -966,7 +965,6 @@ workflow {
     fq = ch_sample
     QC_PRE_DATA_PROCESSING ( fq )
   }
-
 
   // Data pre-processing
   // Remove adapters uisng either PORECHOP_ABI or CUTADAPT
