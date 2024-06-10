@@ -25,7 +25,7 @@ def main():
         
         #remove synthetic construct hits
         blastn_results = blastn_results[~blastn_results["species"].str.contains("synthetic construct", na=False)]
-
+    
     elif mode == "localdb":
         #retrieve spp name and accession from local db fasta header
         #rearrange column so it matches the one for NCBI
@@ -34,9 +34,9 @@ def main():
         blastn_results['species'] = blastn_results['seq_desc'].str.split('|').str[1]
         blastn_results['species'] = blastn_results['species'].str.replace("Species:","")
         blastn_results = blastn_results[["qseqid", "sgi", "sacc", "length", "pident", "mismatch", "gapopen", "qstart", "qend", "qlen", "sstart", "send", "slen", "sstrand", "evalue", "bitscore", "qcovhsp", "stitle", "staxids", "qseq", "sseq", "sseqid", "qcovs", "qframe", "sframe", "species"]]
-
-    blastn_top_hit = blastn_results.drop_duplicates(subset=["qseqid"], keep="first")
-    blastn_top_hit.to_csv(sample_name + "_" + analysis_method + "_blastn_top_hits.txt", index=False, sep="\t",float_format="%.2f")
+    #print(blastn_results.dtypes)
+    blastn_top_hit = blastn_results.drop_duplicates(subset=["qseqid"], keep="first").copy()
+    blastn_top_hit.to_csv(sample_name + "_" + analysis_method + "_blastn_top_hits.txt", index=False, sep="\t")
     #extract all sequences showing top blast homology to virus or viroid hits.
     #it is important to include copy() here as otherwise it will complain further down with the error
     #A value is trying to be set on a copy of a slice from a DataFrame.
@@ -45,15 +45,17 @@ def main():
     #only retain blast hits with qcovs < 90
     if mode == "ncbi":
         #blastn_viral_top_hit['FLAG'] = blastn_viral_top_hit['qcovs'].apply(lambda x: 'low_confidence' if x < 90 else '')
-        blastn_viral_top_hit['FLAG'] = np.where((blastn_viral_top_hit['qcovs'] < 90) ^ (blastn_viral_top_hit['pident'] < 85) , "FLAG", "")
-        blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] > 90].index).sort_values(by=['evalue'], ascending=True)
+        #blastn_viral_top_hit['FLAG'] = np.where((blastn_viral_top_hit['qcovs'] < 90) ^ (blastn_viral_top_hit['pident'] < 85) , "FLAG", "")
+        blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 90].index)
+        #blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] > 90].index).sort_values(by=['evalue'], ascending=True)
     elif mode == "localdb":
-        blastn_viral_top_hit['FLAG'] = blastn_viral_top_hit['qcovs'].apply(lambda x: 'low_confidence' if x < 95 else '')
-        blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] > 95].index).sort_values(by=['evalue'], ascending=True)
-
+        #blastn_viral_top_hit['FLAG'] = np.where((blastn_viral_top_hit['qcovs'] < 95) ^ (blastn_viral_top_hit['pident'] < 85) , "FLAG", "")
+        #blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] > 95].index).sort_values(by=['evalue'], ascending=True)
+        blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 95].index)
     #derive read/contig count per viral spp
-    summary_per_spp = blastn_viral_top_hit['species'].value_counts().rename_axis('species').reset_index(name='counts')
-    summary_per_spp_high_conf = blastn_viral_top_hit_high_conf['species'].value_counts().rename_axis('species').reset_index(name='counts')
+    summary_per_spp = blastn_viral_top_hit['species'].value_counts().rename_axis('species').reset_index(name='count')
+    summary_per_spp_high_conf = blastn_viral_top_hit_high_conf['species'].value_counts().rename_axis('species').reset_index(name='count')
+    #summary_per_spp_high_conf = blastn_viral_top_hit_high_conf['species'].value_counts().rename_axis('species').reset_index(name='counts')
     #summary_per_spp.index.name = 'species'
     #summary_per_spp_high_conf.index.name = 'species'
     summary_per_spp.to_csv(sample_name + "_" + analysis_method + "_viral_spp_abundance.txt", index=False, sep="\t")
@@ -74,40 +76,109 @@ def main():
     
     blastn_viral_top_hit.to_csv(sample_name + "_" + analysis_method + "_blastn_top_viral_hits.txt", index=False, sep="\t",float_format="%.2f")
     #just retain longest contig for each virus/viroid species
-    blastn_viral_top_hit_spp= blastn_viral_top_hit.sort_values(["evalue", "pident"], ascending=[True, True]).groupby("species").first().copy()
+    blastn_viral_top_hit_spp= blastn_viral_top_hit.sort_values(["qlen"], ascending=[True]).groupby("species").first().copy()
+
     blastn_viral_top_hit_spp.to_csv(sample_name + "_" + analysis_method +  "_blastn_top_viral_spp_hits.txt", index=False, sep="\t",float_format="%.2f")
 
+    blastn_viral_top_hit_f = blastn_viral_top_hit[["qseqid", "qlen", "species", "sacc", "stitle", "slen", "pident", "sstrand", "evalue", "bitscore"]]
+    blastn_viral_top_hit_spp_evalue_based = blastn_viral_top_hit_f.sort_values(["evalue"], ascending=[True]).groupby("species", as_index=False).first().copy()
+    blastn_viral_top_hit_spp_pident_based = blastn_viral_top_hit_f.sort_values(["pident"], ascending=[False]).groupby("species", as_index=False).first().copy()
+    blastn_viral_top_hit_spp_length_based = blastn_viral_top_hit_f.sort_values(["qlen"], ascending=[False]).groupby("species", as_index=False).first().copy()
+    blastn_viral_top_hit_spp_bitscore_based = blastn_viral_top_hit_f.sort_values(["bitscore"], ascending=[False]).groupby("species", as_index=False).first().copy()
 
-    summary_per_spp_high_conf = summary_per_spp_high_conf.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
     summary_per_spp = summary_per_spp.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
+    summary_per_spp_high_conf = summary_per_spp_high_conf.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
     blastn_viral_top_hit_spp = blastn_viral_top_hit_spp.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
+    blastn_viral_top_hit_spp_evalue_based = blastn_viral_top_hit_spp_evalue_based.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
+    blastn_viral_top_hit_spp_pident_based = blastn_viral_top_hit_spp_pident_based.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
+    blastn_viral_top_hit_spp_length_based = blastn_viral_top_hit_spp_length_based.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
+    blastn_viral_top_hit_spp_bitscore_based = blastn_viral_top_hit_spp_bitscore_based.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
     spp = spp.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
     
     html_string = '''
     <html>
         <head>
             <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-            <style>body{ margin:0 100; background:whitesmoke; }</style>
+            <style>body{ margin:0 100; background:whitesmoke; }
+            .collapsible {
+            background-color: #777;
+            color: white;
+            cursor: pointer;
+            padding: 18px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 15px;
+            }
+            .active, .collapsible:hover {
+            background-color: #555;
+            }
+            .content {
+            padding: 0 18px;
+            display: none;
+            overflow: hidden;
+            background-color: #f1f1f1;
+            }
+            </style>
         </head>
+
         <body>
             <h1>Homology blast results</h1>
 
-            <!-- *** Section 1 *** --->
-            <h2>Section 1A: Number of reads/contigs/clusters matching viral species </h2>
-            <p>All blast viral matches were considered here.</p>
-            ''' + summary_per_spp + '''
+            <button type="button" class="collapsible"> Total number of match(es) to viral species</button>
+            <div class="content">
+                ''' + summary_per_spp + '''
+            </div>
 
-            <h2>Section 1B: Number of reads/contigs/clusters matching viral species (filtered)</h2>
-            <p>Only blast viral matches which show >95% identity and either >90% query coverage for NCBI or >95% query coverage for a local viral database were considered here.</p>
-             ''' + summary_per_spp_high_conf + '''
+            <button type="button" class="collapsible"> Total number of match(es) to viral species (filtered) </button>
+            <div class="content">
+                <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
+                ''' + summary_per_spp_high_conf + '''
+            </div>
 
-            <!-- *** Section 2 *** --->
-            <h2>Section 2: Best candidate viral hits at species level </h2>
-            ''' + blastn_viral_top_hit_spp + '''
-            
-            <!-- *** Section 3 *** --->
-            <h2>Section 3: Count and list of read/contig/cluster matching a specific viral accession number </h2>
-            ''' + spp + '''
+            <button type="button" class="collapsible"> Total number of match(es) to specific viral accession number </h2></button>
+            <div class="content">
+                ''' + spp + '''
+            </div>
+
+            <button type="button" class="collapsible"> Top viral species match(es) based on evalue </h2></button>
+            <div class="content">
+                ''' + blastn_viral_top_hit_spp_evalue_based + '''
+            </div>
+
+            <button type="button" class="collapsible"> Top viral species match(es) based on % identity (pident) </h2></button>
+            <div class="content">
+                ''' + blastn_viral_top_hit_spp_pident_based + '''
+            </div>
+
+            <button type="button" class="collapsible"> Top viral species match(es) based on query length (qlen) </h2></button>
+            <div class="content">
+                ''' + blastn_viral_top_hit_spp_length_based + '''
+            </div>
+
+            <button type="button" class="collapsible"> Top viral species match(es) based on bitscore </h2></button>
+            <div class="content">
+                ''' + blastn_viral_top_hit_spp_bitscore_based + '''
+            </div>
+
+        <script>
+        var coll = document.getElementsByClassName("collapsible");
+        var i;
+
+        for (i = 0; i < coll.length; i++) {
+        coll[i].addEventListener("click", function() {
+            this.classList.toggle("active");
+            var content = this.nextElementSibling;
+            if (content.style.display === "block") {
+            content.style.display = "none";
+            } else {
+            content.style.display = "block";
+            }
+        });
+        }
+        </script>
+
         </body>
     </html>'''
 

@@ -530,8 +530,8 @@ All the top hits derived for each contig are listed under the file **SampleName_
 - species
 ```
 
-For a blast search against NCBI NT, if a read matches at least 90% of its length to a virus or viroid as the top blast hit, they will be listed under the **SampleName_read_classification_blastn_top_viral_hits.txt** file. If the search is against a local viral database, the match has to cover 95% of its length. Coverage is derived using **qcovs**).  
-If multiple reads are recovered for the same viral species, only the best hit will be listed under **SampleName_assembly_blastn_top_viral_spp_hits.txt**. Selection of the best hit is based on e-value followed by length.
+Read matches to a virus or viroid as the top blast hit will be listed under the **SampleName_read_classification_blastn_top_viral_hits.txt** file.
+If multiple reads are recovered for the same viral species, only the best hit will be listed under **SampleName_assembly_blastn_top_viral_spp_hits.txt**. Selection of the best hit is based on length.
 The **SampleName_assembly_viral_spp_abundance.txt** here will list the number of reads recovered for each viral species.  
 In the example below, 200 reads were recovered matching to the Tomato spotted wilt orthotospovirus:  
 ```
