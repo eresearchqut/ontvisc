@@ -76,11 +76,11 @@ def main():
     
     blastn_viral_top_hit.to_csv(sample_name + "_" + analysis_method + "_blastn_top_viral_hits.txt", index=False, sep="\t",float_format="%.2f")
     #just retain longest contig for each virus/viroid species
-    blastn_viral_top_hit_spp= blastn_viral_top_hit.sort_values(["qlen"], ascending=[True]).groupby("species").first().copy()
+    blastn_viral_top_hit_spp= blastn_viral_top_hit.sort_values(["qlen"], ascending=[True]).groupby("species", as_index=False).first().copy()
 
     blastn_viral_top_hit_spp.to_csv(sample_name + "_" + analysis_method +  "_blastn_top_viral_spp_hits.txt", index=False, sep="\t",float_format="%.2f")
 
-    blastn_viral_top_hit_f = blastn_viral_top_hit[["qseqid", "qlen", "species", "sacc", "stitle", "slen", "pident", "sstrand", "evalue", "bitscore"]]
+    blastn_viral_top_hit_f = blastn_viral_top_hit[["qseqid", "qlen", "species", "sacc", "stitle", "slen", "pident", "sstrand", "evalue", "bitscore", "qcovs"]]
     blastn_viral_top_hit_spp_evalue_based = blastn_viral_top_hit_f.sort_values(["evalue"], ascending=[True]).groupby("species", as_index=False).first().copy()
     blastn_viral_top_hit_spp_pident_based = blastn_viral_top_hit_f.sort_values(["pident"], ascending=[False]).groupby("species", as_index=False).first().copy()
     blastn_viral_top_hit_spp_length_based = blastn_viral_top_hit_f.sort_values(["qlen"], ascending=[False]).groupby("species", as_index=False).first().copy()
