@@ -360,6 +360,25 @@ process SAMTOOLS {
   """
 }
 
+process COVSTATS {
+  tag "$sampleid"
+    label "setting_7"
+    publishDir "${params.outdir}/${sampleid}/statistics", mode: 'copy'
+    //publishDir "${params.outdir}/01_VirReport/${sampleid}/alignments/NT", mode: 'link', overwrite: true, pattern: "*{.fa*,.fasta,metrics.txt,scores.txt,targets.txt,stats.txt,log.txt,.bcf*,.vcf.gz*,.bam*}"
+    containerOptions "${bindOptions}"
+
+    input:
+    tuple val(sampleid), path(results)
+
+    output:
+    path("*")
+
+    script:
+    """
+    derive_reference_cov.py --sample ${sampleid} --fastq ${sampleid}_preprocessed.fastq.gz --results ${sampleid}*_blastn_top_viral_spp_hits.txt --blastdbpath ${params.blastn_db}
+    """
+}
+
 /*
 process BAMCOVERAGE {
   publishDir "${params.outdir}/${sampleid}/mapping", mode: 'link'
@@ -428,6 +447,7 @@ process REFORMAT {
   tuple val(sampleid), path(fastq)
   output:
   tuple val(sampleid), path("${sampleid}_preprocessed.fastq.gz"), emit: reformatted_fq
+  tuple val(sampleid), path("${sampleid}_preprocessed.fastq.gz"), emit: cov_derivation_ch
 
   script:
   """
@@ -474,7 +494,7 @@ process EXTRACT_VIRAL_BLAST_HITS {
   file "*/*/${sampleid}*_viral_spp_abundance.txt"
   file "*/*/*report*html"
 
-  tuple val(sampleid), path("*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"), path("*/*/${sampleid}*_queryid_list_with_viral_match.txt"), path("*/*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
+  tuple val(sampleid), path("*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"), emit: blast_results
 
   script:
   """
@@ -1072,6 +1092,9 @@ workflow {
         else { 
           ASSEMBLY_BLASTN ( contigs )
           EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
+          covstats_ch = Channel.empty()
+          covstats_ch = EXTRACT_VIRAL_BLAST_HITS.out.blast_results.concat(REFORMAT.out.cov_derivation_ch).groupTuple().map { [it[0], it[1].flatten()] }.view()
+          COVSTATS ( covstats_ch )
         }
       }
 
