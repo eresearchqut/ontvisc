@@ -499,7 +499,6 @@ process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
   label "setting_2"
   publishDir "$params.outdir/$sampleid/read_classification", mode: 'copy', pattern: 'homology_search/*txt', overwrite: true
   publishDir "$params.outdir/$sampleid/read_classification", mode: 'copy', pattern: 'homology_search/*html', overwrite: true
-
   containerOptions "${bindOptions}"
 
   input:
@@ -509,11 +508,11 @@ process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
   file "*/${sampleid}*_blastn_top_viral_hits.txt"
   file "*/${sampleid}*_blastn_top_viral_spp_hits.txt"
   file "*/${sampleid}*_queryid_list_with_viral_match.txt"
-  file "*/${sampleid}*_viral_spp_abundance.txt"
+  file "*/${sampleid}*_viral_spp_abundance*.txt"
   file "*/*report*html"
 
-  tuple val(sampleid), path("*/${sampleid}*_blastn_top_viral_hits.txt"), emit: blast_results
-
+  tuple val(sampleid), path("*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
+  tuple val(sampleid), path("*/${sampleid}*_viral_spp_abundance_filtered.txt"), emit: blast_results_filt
   script:
   """
   mkdir homology_search
@@ -522,6 +521,9 @@ process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
   select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method read_classification --mode ${params.blast_mode}
   """
 }
+
+//tuple val(sampleid), path("*/${sampleid}*_blastn_top_viral_hits.txt"), emit: blast_results
+
 
 process CONCATENATE_FASTA {
   tag "${sampleid}"
@@ -1100,7 +1102,7 @@ workflow {
         
         foo_in_ch = Channel.empty()
         if ( params.megablast & !params.kaiju & !params.kraken2 ) {
-        READ_CLASSIFICATION_HTML( EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results )
+        READ_CLASSIFICATION_HTML( EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results ).concat(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results_filt).groupTuple().map { [it[0], it[1].flatten()] }.view()
         }
         else if (params.kaiju & !params.megablast & !params.kraken2) {
           READ_CLASSIFICATION_HTML( KAIJU.out.kaiju_results )
@@ -1113,15 +1115,15 @@ workflow {
           READ_CLASSIFICATION_HTML( foo_in_ch )
         }
         else if (params.megablast & params.kaiju & !params.kraken2) {
-          foo_in_ch = EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results.concat(KAIJU.out.kaiju_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
+          foo_in_ch = EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results.concat(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results_filt, KAIJU.out.kaiju_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
           READ_CLASSIFICATION_HTML( foo_in_ch )
         }
         else if (!params.megablast & params.kaiju & params.kraken2) {
-          foo_in_ch = KAIJU.out.kaiju_results.concat(BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
+          foo_in_ch = KAIJU.out.kaiju_results.concat(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results_filt, BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
           READ_CLASSIFICATION_HTML( foo_in_ch )
         }
         else if (params.megablast & params.kaiju & params.kraken2) {
-          foo_in_ch = KAIJU.out.kaiju_results.concat(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results, BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
+          foo_in_ch = KAIJU.out.kaiju_results.concat(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results, EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results_filt, BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
           READ_CLASSIFICATION_HTML( foo_in_ch )
         }
       }

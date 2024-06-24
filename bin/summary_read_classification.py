@@ -29,20 +29,28 @@ def main():
         kaiju_df_html = kaiju_df.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
         kaiju_df_filtered_html = kaiju_df_filtered.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling 
 
-    for blastn_file in glob.glob('*_blastn_top_viral_hits.txt'):
+    #for blastn_file in glob.glob('*_blastn_top_viral_hits.txt'):
         #file	percent	reads	taxon_id	taxon_name
-        blastn_df = pd.read_csv(blastn_file, sep="\t", index_col=False)
-        if mode == "ncbi":
-            blastn_viral_top_hit_high_conf = blastn_df.drop(blastn_df[blastn_df["qcovs"] < 90].index).sort_values(by=['evalue'], ascending=True)
-        elif mode == "localdb":
-            blastn_viral_top_hit_high_conf = blastn_df.drop(blastn_df[blastn_df["qcovs"] < 95].index)
+        #blastn_df = pd.read_csv(blastn_file, sep="\t", index_col=False)
+        #if mode == "ncbi":
+        #    blastn_viral_top_hit_high_conf = blastn_df.drop(blastn_df[blastn_df["qcovs"] < 90].index).sort_values(by=['evalue'], ascending=True)
+        #elif mode == "localdb":
+        #    blastn_viral_top_hit_high_conf = blastn_df.drop(blastn_df[blastn_df["qcovs"] < 95].index)
         #derive read/contig count per viral spp
-        summary_per_spp_high_conf = blastn_viral_top_hit_high_conf['species'].value_counts().to_frame()
-        summary_per_spp = blastn_df['species'].value_counts().to_frame()
-        summary_per_spp_high_conf.index.name = 'species'
-        summary_per_spp.index.name = 'species'
-        megablast_summary_per_spp_high_conf = summary_per_spp_high_conf.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
-        megablast_summary_per_spp = summary_per_spp.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
+        #summary_per_spp_high_conf = blastn_viral_top_hit_high_conf['species'].value_counts().to_frame()
+        #summary_per_spp = blastn_df['species'].value_counts().to_frame()
+        #summary_per_spp_high_conf.index.name = 'species'
+        #summary_per_spp.index.name = 'species'
+        #megablast_summary_per_spp_high_conf = summary_per_spp_high_conf.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
+        #megablast_summary_per_spp = summary_per_spp.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
+
+    for blastn_file in glob.glob('*_viral_spp_abundance.txt'):
+        for blastn_file_filt in glob.glob('*_viral_spp_abundance_filtered.txt'):
+            blastn_df = pd.read_csv(blastn_file, sep="\t", index_col=False)
+            megablast_summary_per_spp = blastn_df.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">')
+            blastn_df_high_conf = pd.read_csv(blastn_file_filt, sep="\t", index_col=False)
+            megablast_summary_per_spp_high_conf = blastn_df_high_conf.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">')
+        
 
     #consider all options
     #A-B-C kaiju braken megablast
@@ -52,7 +60,7 @@ def main():
     #A kaiju done
     #B braken done
     #C homology search
-    if glob.glob("*_bracken_report_viral.txt") and glob.glob("*_kaiju_summary_viral.tsv") and not glob.glob("*_blastn_top_viral_hits.txt"):
+    if glob.glob("*_bracken_report_viral.txt") and glob.glob("*_kaiju_summary_viral.tsv") and not glob.glob("*_viral_spp_abundance*.txt"):
         html_string = '''
             <html>
                 <head>
@@ -163,7 +171,7 @@ def main():
         report.write(html_string)
         report.close()
 
-    elif glob.glob("*_bracken_report_viral.txt") and glob.glob("*_kaiju_summary_viral.tsv") and glob.glob("*_blastn_top_viral_hits.txt"):
+    elif glob.glob("*_bracken_report_viral.txt") and glob.glob("*_kaiju_summary_viral.tsv") and glob.glob("*_viral_spp_abundance*.txt"):
         html_string = '''
             <html>
                 <head>
@@ -281,7 +289,7 @@ def main():
         report.write(html_string)
         report.close()
 
-    elif glob.glob("*_bracken_report_viral.txt") and not glob.glob("*_kaiju_summary_viral.tsv") and not glob.glob("*_blastn_top_viral_hits.txt"):
+    elif glob.glob("*_bracken_report_viral.txt") and not glob.glob("*_kaiju_summary_viral.tsv") and not glob.glob("*_viral_spp_abundance*.txt"):
         html_string = '''
         <html>
             <head>
@@ -305,7 +313,7 @@ def main():
         report.write(html_string)
         report.close()
 
-    elif glob.glob("*_kaiju_summary_viral.tsv") and not glob.glob("*_bracken_report_viral.txt") and not glob.glob("*_blastn_top_viral_hits.txt"):
+    elif glob.glob("*_kaiju_summary_viral.tsv") and not glob.glob("*_bracken_report_viral.txt") and not glob.glob("*_viral_spp_abundance*.txt"):
         html_string = '''
         <html>
             <head>
@@ -330,7 +338,7 @@ def main():
         report.close()
 
 
-    if glob.glob("*_blastn_top_viral_hits.txt") and not glob.glob("*_bracken_report_viral.txt") and not glob.glob("*_kaiju_summary_viral.tsv"):
+    elif glob.glob("*_viral_spp_abundance*.txt") and not glob.glob("*_bracken_report_viral.txt") and not glob.glob("*_kaiju_summary_viral.tsv"):
         html_string = '''
             <html>
             <head>
@@ -354,7 +362,7 @@ def main():
         report.write(html_string)
         report.close()
     
-    if glob.glob("*_bracken_report_viral.txt") and not glob.glob("*_kaiju_summary_viral.tsv") and glob.glob("*_blastn_top_viral_hits.txt"):
+    elif glob.glob("*_bracken_report_viral.txt") and not glob.glob("*_kaiju_summary_viral.tsv") and glob.glob("*_viral_spp_abundance*.txt"):
         html_string = '''
             <html>
                 <head>
@@ -464,7 +472,7 @@ def main():
         report.write(html_string)
         report.close()
 
-    if not glob.glob("*_bracken_report_viral.txt") and glob.glob("*_kaiju_summary_viral.tsv") and glob.glob("*_blastn_top_viral_hits.txt"):
+    elif not glob.glob("*_bracken_report_viral.txt") and glob.glob("*_kaiju_summary_viral.tsv") and glob.glob("*_viral_spp_abundance*.txt"):
         html_string = '''
             <html>
                 <head>
