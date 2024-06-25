@@ -130,38 +130,38 @@ def main():
         <body>
             <h1>Homology blast results</h1>
 
-            <button type="button" class="collapsible"> Total number of match(es) to viral species</button>
+            <button type="button" class="collapsible"> Total number of matches to viral species</button>
             <div class="content">
                 ''' + summary_per_spp + '''
             </div>
 
-            <button type="button" class="collapsible"> Total number of match(es) to viral species (filtered) </button>
+            <button type="button" class="collapsible"> Total number of matches to viral species (filtered) </button>
             <div class="content">
                 <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
                 ''' + summary_per_spp_high_conf + '''
             </div>
 
-            <button type="button" class="collapsible"> Total number of match(es) to specific viral accession number </h2></button>
+            <button type="button" class="collapsible"> Total number of matches to specific viral accession number </h2></button>
             <div class="content">
                 ''' + spp + '''
             </div>
 
-            <button type="button" class="collapsible"> Top viral species match(es) based on query length (qlen) </h2></button>
+            <button type="button" class="collapsible"> Top viral match per species based on query length (qlen) </h2></button>
             <div class="content">
                 ''' + blastn_viral_top_hit_spp_length_based + '''
             </div>
 
-            <button type="button" class="collapsible"> Top viral species match(es) based on evalue </h2></button>
+            <button type="button" class="collapsible"> Top viral match per species based on evalue </h2></button>
             <div class="content">
                 ''' + blastn_viral_top_hit_spp_evalue_based + '''
             </div>
 
-            <button type="button" class="collapsible"> Top viral species match(es) based on % identity (pident) </h2></button>
+            <button type="button" class="collapsible"> Top viral match per species based on % identity (pident) </h2></button>
             <div class="content">
                 ''' + blastn_viral_top_hit_spp_pident_based + '''
             </div>
 
-            <button type="button" class="collapsible"> Top viral species match(es) based on bitscore </h2></button>
+            <button type="button" class="collapsible"> Top viral match per species based on bitscore </h2></button>
             <div class="content">
                 ''' + blastn_viral_top_hit_spp_bitscore_based + '''
             </div>
