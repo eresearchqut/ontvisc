@@ -723,6 +723,7 @@ results
 │   │       └── MT001_raw_NanoPlot-report.html
 │   ├── assembly
 │   │   ├── blastn
+│   │   │   ├── MT001_blast_report.html
 │   │   │   ├── MT001_assembly_blastn_top_hits.txt
 │   │   │   ├── MT001_assembly_blastn_top_viral_hits.txt
 │   │   │   ├── MT001_assembly_blastn_top_viral_spp_hits.txt
@@ -749,18 +750,21 @@ results
 │       │   ├── MT001_kraken_report.txt
 │       │   └── MT001_unclassified.fastq
 │       ├── homology_search
+│       │   ├── MT001_blast_report.html
 │       │   ├── MT001_read_classification_blastn_top_hits.txt
 │       │   ├── MT001_read_classification_blastn_top_viral_hits.txt
 │       │   ├── MT001_read_classification_blastn_top_viral_spp_hits.txt
 │       │   ├── MT001_read_classification_queryid_list_with_viral_match.txt
 │       │   └── MT001_read_classification_viral_spp_abundance.txt
 │       └── kaiju
-│           ├── MT001_kaiju.krona
-│           ├── MT001_kaiju_name.tsv
-│           ├── MT001_kaiju_summary.tsv
-│           ├── MT001_kaiju_summary_viral_filtered.tsv
-│           ├── MT001_kaiju_summary_viral.tsv
-│           └── MT001_krona.html
+│       │   ├── MT001_kaiju.krona
+│       │   ├── MT001_kaiju_name.tsv
+│       │   ├── MT001_kaiju_summary.tsv
+│       │   ├── MT001_kaiju_summary_viral_filtered.tsv
+│       │   ├── MT001_kaiju_summary_viral.tsv
+│       │   └── MT001_krona.html
+│       └── Summary
+│           └── MT001_read_classification_report.html
 └── qc_report
     └── run_qc_report_20231009-114823.txt
 ```

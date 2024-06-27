@@ -508,7 +508,7 @@ process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
   file "*/${sampleid}*_blastn_top_viral_hits.txt"
   file "*/${sampleid}*_blastn_top_viral_spp_hits.txt"
   file "*/${sampleid}*_queryid_list_with_viral_match.txt"
-  file "*/${sampleid}*_viral_spp_abundance*.txt"
+  file "*/${sampleid}*_viral_spp_abundance.txt"
   file "*/*report*html"
 
   tuple val(sampleid), path("*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
