@@ -558,7 +558,7 @@ The **SampleName_blast_report.html** enables the user to have a quick look at th
 ```
 
 #### Summary
-A summary of the results gets output in the **SampleName__read_classification_report.html**. If several modes were tested, they can be found in separate tabs (Megablast, Kraken and/or Kaiju)
+A summary of the results gets output in the **SampleName_read_classification_report.html**. If several modes were tested, they can be found in separate tabs (i.e. Megablast, Kraken and/or Kaiju)
 
 ### De novo assembly mode outputs
 In this mode, the assembly created by Canu will be saved under the **SampleName/assembly/canu** folder.
