@@ -235,7 +235,7 @@ If you trim raw read of adapters and/or quality filter the raw reads, an additio
 ### Host read filtering
 - Reads mapping to a host genome reference or sequences can be filtered out by specifying the ``--host_filtering`` parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``.
 
-A qc report will be generated summarising the read counts recovered after host filtering.
+A qc report will be generated in text and html formats summarising the read counts recovered after host filtering.
 
 ### Read classification analysis mode
 - Perform a direct blast homology search using megablast (``--megablast``).
@@ -780,6 +780,7 @@ results
 │       └── Summary
 │           └── MT001_read_classification_report.html
 └── qc_report
+    │   run_qc_report_20231009-114823.html
     └── run_qc_report_20231009-114823.txt
 ```
 
