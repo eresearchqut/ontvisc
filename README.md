@@ -235,7 +235,7 @@ If you trim raw read of adapters and/or quality filter the raw reads, an additio
 ### Host read filtering
 - Reads mapping to a host genome reference or sequences can be filtered out by specifying the ``--host_filtering`` parameter and provide the path to the host fasta file with ``--host_fasta /path/to/host/fasta/file``.
 
-A qc report will be generated in text and html formats summarising the read counts recovered after host filtering.
+A qc report will be generated summarising the read counts recovered after host filtering.
 
 ### Read classification analysis mode
 - Perform a direct blast homology search using megablast (``--megablast``).
@@ -538,27 +538,13 @@ In the example below, 200 reads were recovered matching to the Tomato spotted wi
 species	Count
 Tomato spotted wilt orthotospovirus	200
 ```
-The **SampleName_assembly_queryid_list_with_viral_match.txt** will list each unique accession IDs detected in the sample, the viral species they correspond to, and the number of reads matching to it, and their IDs.  
+Finally the **SampleName_assembly_queryid_list_with_viral_match.txt** will list each unique accession IDs detected in the sample, the viral species they correspond to, and the number of reads matching to it, and their IDs.  
 We can see from the example above, that the reads matching to tomato spotted wilt orthotospovirus correspond to 2 different accession numbers matching to 2 separate segments (L and E) of the virus. there are 2 reads matching to OM112200 and 3 reads matching to OM112202.
 ```
 species	sacc	count	qseqid
 Tomato spotted wilt orthotospovirus	OM112200	2	['415df728-dbe8-47a8-afba-e15870adfa5e', 'c443fc2e-6bbe-433d-bfdf-6fa7411ab14f']
 Tomato spotted wilt orthotospovirus	OM112202	3	['ee4ccc30-b9fd-4c9b-8b0c-5a37059b539b', '20f389f9-a547-4c43-b0b7-5b0f902b408d', 'ead56ab2-328b-4785-a29a-9ae386ad418b']
 ```
-
-The **SampleName_blast_report.html** enables the user to have a quick look at the blast results for a sample. It displays:
-```
-- the total number of matches to viral species
-- the total number of matches to viral species (filtered)
-- the total number of matches to specific viral accession number
-- the top viral match per species based on query length (qlen)
-- the top viral match per species based on evalue
-- the top viral match per species based on % identity (pident)
-- the top viral match per species based on bitscore
-```
-
-#### Summary
-A summary of the results gets output in the **SampleName_read_classification_report.html**. If several modes were tested, they can be found in separate tabs (i.e. Megablast, Kraken and/or Kaiju)
 
 ### De novo assembly mode outputs
 In this mode, the assembly created by Canu will be saved under the **SampleName/assembly/canu** folder.
@@ -737,7 +723,6 @@ results
 │   │       └── MT001_raw_NanoPlot-report.html
 │   ├── assembly
 │   │   ├── blastn
-│   │   │   ├── MT001_blast_report.html
 │   │   │   ├── MT001_assembly_blastn_top_hits.txt
 │   │   │   ├── MT001_assembly_blastn_top_viral_hits.txt
 │   │   │   ├── MT001_assembly_blastn_top_viral_spp_hits.txt
@@ -764,23 +749,19 @@ results
 │       │   ├── MT001_kraken_report.txt
 │       │   └── MT001_unclassified.fastq
 │       ├── homology_search
-│       │   ├── MT001_blast_report.html
 │       │   ├── MT001_read_classification_blastn_top_hits.txt
 │       │   ├── MT001_read_classification_blastn_top_viral_hits.txt
 │       │   ├── MT001_read_classification_blastn_top_viral_spp_hits.txt
 │       │   ├── MT001_read_classification_queryid_list_with_viral_match.txt
 │       │   └── MT001_read_classification_viral_spp_abundance.txt
 │       └── kaiju
-│       │   ├── MT001_kaiju.krona
-│       │   ├── MT001_kaiju_name.tsv
-│       │   ├── MT001_kaiju_summary.tsv
-│       │   ├── MT001_kaiju_summary_viral_filtered.tsv
-│       │   ├── MT001_kaiju_summary_viral.tsv
-│       │   └── MT001_krona.html
-│       └── Summary
-│           └── MT001_read_classification_report.html
+│           ├── MT001_kaiju.krona
+│           ├── MT001_kaiju_name.tsv
+│           ├── MT001_kaiju_summary.tsv
+│           ├── MT001_kaiju_summary_viral_filtered.tsv
+│           ├── MT001_kaiju_summary_viral.tsv
+│           └── MT001_krona.html
 └── qc_report
-    │   run_qc_report_20231009-114823.html
     └── run_qc_report_20231009-114823.txt
 ```
 

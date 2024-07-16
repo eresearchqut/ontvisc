@@ -8,7 +8,7 @@ def helpMessage () {
     Marie-Emilie Gauthier 23/05/2023
     Magda Antczak
     Craig Windell
-    Roberto Barrero 
+    Roberto Barrero
 
     Usage:
     Run the command
@@ -40,9 +40,9 @@ def helpMessage () {
       --qual_filt                     Run quality filtering step
                                       [False]
       --chopper_options               Chopper options
-                                      [null]                                        
+                                      [null]
       --host_filtering                Run host filtering step using Minimap2
-                                      Default: false                 
+                                      Default: false
       --host_fasta                    Fasta file of nucleotide sequences to filter
                                       [null]
       --canu                          Use Canu for de novo assembly step
@@ -129,7 +129,7 @@ process MERGE {
   script:
   """
   cat ${lanes} > ${sampleid}.fastq.gz
-  
+
   """
 }
 */
@@ -197,8 +197,8 @@ maxInputCoverage=10000 corOutCoverage=10000
 corMhapSensitivity=high
 corMinCoverage=0
 redMemory=32 oeaMemory=32 batMemory=64
-useGrid=false 
-minReadLength=200 
+useGrid=false
+minReadLength=200
 minOverlapLength=50
 maxThreads=4
 minInputCoverage=0
@@ -220,7 +220,7 @@ process CANU {
     tuple val(sampleid), path("${sampleid}_canu.fastq.gz"), path("${sampleid}_canu_assembly.fasta"), emit: assembly
     tuple val(sampleid), path("${sampleid}_canu_assembly.fasta"), emit: assembly2
 
-    
+
   script:
   def canu_options = (params.canu_options) ? " ${params.canu_options}" : ''
 
@@ -232,7 +232,7 @@ process CANU {
   if [[ ! -s ${sampleid}/${sampleid}.contigs.fasta ]]
     then
       touch ${sampleid}_canu_assembly.fasta
-  else 
+  else
     cat ${sampleid}/${sampleid}.contigs.fasta ${sampleid}/${sampleid}.unassembled.fasta > ${sampleid}_canu_assembly.fasta
   fi
   cp ${fastq} ${sampleid}_canu.fastq.gz
@@ -251,7 +251,7 @@ process FLYE {
     path("${sampleid}_flye.log")
     tuple val(sampleid), path("${sampleid}_flye.fastq.gz"), path("${sampleid}_flye_assembly.fasta"), emit: assembly
     tuple val(sampleid), path("${sampleid}_flye_assembly.fasta"), emit: assembly2
-  
+
   script:
   def flye_options = (params.flye_options) ? " ${params.flye_options}" : ''
 
@@ -261,7 +261,7 @@ process FLYE {
   if [[ ! -s outdir/assembly.fasta ]]
     then
       touch ${sampleid}_flye_assembly.fasta
-  else 
+  else
     cp outdir/assembly.fasta ${sampleid}_flye_assembly.fasta
   cp outdir/flye.log ${sampleid}_flye.log
   fi
@@ -292,30 +292,30 @@ process BLASTN2REF {
       mkdir -p assembly/blast_to_ref
       blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_canu_assembly_tmp.txt \
       -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
-    
+
       echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
-    
+
       cat header ${sampleid}_blastn_reference_vs_canu_assembly_tmp.txt >  assembly/blast_to_ref/${sampleid}_blastn_reference_vs_canu_assembly.txt
     elif [[ ${assembly} == *flye_assembly*.fasta ]] ;
     then
       mkdir -p assembly/blast_to_ref
-    
+
       blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_flye_assembly_tmp.txt \
       -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
-    
+
       echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
-    
+
       cat header ${sampleid}_blastn_reference_vs_flye_assembly_tmp.txt > assembly/blast_to_ref/${sampleid}_blastn_reference_vs_flye_assembly.txt
     fi
   elif [[ ${assembly} == *clustering.fasta ]] ;
   then
     mkdir -p clustering/blast_to_ref
-  
+
     blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_clustering_tmp.txt \
     -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
-  
+
     echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
-  
+
     cat header ${sampleid}_blastn_reference_vs_clustering_tmp.txt > clustering/blast_to_ref/${sampleid}_blastn_reference_vs_clustering_assembly.txt
   fi
 
@@ -356,10 +356,130 @@ process SAMTOOLS {
   samtools index ${sampleid}_aln.sorted.bam
   samtools coverage ${sampleid}_aln.sorted.bam > ${sampleid}_histogram.txt  > ${sampleid}_coverage.txt
   samtools coverage -A -w 50 ${sampleid}_aln.sorted.bam > ${sampleid}_histogram
-
   """
 }
 
+process EXTRACT_REF_FASTA {
+  tag "$sampleid"
+  label "setting_1"
+  publishDir "${params.outdir}/${sampleid}/alignments", mode: 'copy', pattern: '*fasta'
+  containerOptions "${bindOptions}"
+
+  input:
+    tuple val(sampleid), path(blast_results)
+
+  output:
+    path("*fasta")
+    tuple val(sampleid), path("*fasta"), emit: fasta_files
+
+  script:
+  """
+  cut -f1,4 ${blast_results} | sed '1d' | sed 's/ /_/g' > ids_to_retrieve.txt
+  for i in `cut -f2  ids_to_retrieve.txt`; do j=`grep \${i} ids_to_retrieve.txt | cut -f1`; efetch -db nucleotide  -id \${i} -format fasta > ${sampleid}_\${i}_\${j}.fasta ; done
+  """
+}
+
+process MAPPING_BACK_TO_REF {
+  tag "$sampleid"
+  label "setting_3"
+  publishDir "${params.outdir}/${sampleid}/alignments", mode: 'copy', pattern: '*sorted.bam*'
+  //publishDir "${params.outdir}/01_VirReport/${sampleid}/alignments/NT", mode: 'link', overwrite: true, pattern: "*{.fa*,.fasta,metrics.txt,scores.txt,targets.txt,stats.txt,log.txt,.bcf*,.vcf.gz*,.bam*}"
+
+  input:
+    tuple val(sampleid), path(results)
+
+  output:
+    path("*bam")
+    path("*bam.bai")
+    tuple val(sampleid), path("*sorted.bam"), emit: bam_files
+    tuple val(sampleid), path("*sorted.bam.bai"), emit: bai_files
+
+  script:
+  """
+  mapping_back_to_ref.py --fastq ${sampleid}_preprocessed.fastq.gz
+  """
+}
+
+
+process MOSDEPTH {
+  tag "$sampleid"
+  label "setting_3"
+  publishDir "${params.outdir}/${sampleid}/alignments", mode: 'copy'
+
+  input:
+    tuple val(sampleid), path("*")
+
+  output:
+    path("*")
+    tuple val(sampleid), path("*mosdepth.global.dist.txt"), emit: mosdepth_results
+
+  script:
+  """
+  for i in *bam;
+  do
+    echo \${i%.sorted.bam}
+    filen=`echo "\${i%.sorted.bam}"`
+    mosdepth \${filen} \${i};
+  done
+  """
+
+}
+
+process COVERM {
+  tag "$sampleid"
+  label "setting_3"
+  publishDir "${params.outdir}/${sampleid}/alignments", mode: 'copy'
+
+  input:
+    tuple val(sampleid), path("*")
+
+  output:
+    path("*")
+    tuple val(sampleid), path("*_coverm_summary.txt"), emit: coverm_results
+
+
+  script:
+  """
+  for i in *bam;
+  do
+    echo \${i%.sorted.bam}
+    filen=`echo "\${i%.sorted.bam}"`
+    
+    coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_coverm_summary.txt -m count mean variance rpkm covered_bases length --min-covered-fraction 0;
+    coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_coverage_histogram.txt -m coverage_histogram --min-covered-fraction 0;
+  done
+  """
+}
+
+process COVSTATS {
+  tag "$sampleid"
+  label "setting_3"
+  publishDir "${params.outdir}/${sampleid}/alignments", mode: 'copy'
+
+  input:
+    tuple val(sampleid), path("*")
+
+  output:
+    path("*")
+
+  script:
+  """
+  derive_coverage_stats.py --sample ${sampleid}
+  """
+}
+
+
+/*
+#
+    coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_coverage_histogram.txt -m coverage_histogram --min-covered-fraction 0;
+    coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_count.txt -m count --min-covered-fraction  0;
+    coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_rpkm.txt -m rpkm --min-covered-fraction 0;
+    coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_covered_bases.txt -m covered_bases --min-covered-fraction 0;
+//cut -f2 \${j} >> \${filen}.coverm_summary.txt;
+//WARN: Input tuple does not match input set cardinality declared by process `MOSDEPTH` -- offending value: 
+//[MT010, /mnt/work/hia_mt18005/diagnostics/2023/2021_ONT_MinION_NZMPI/work/7f/ca551c42b0a9fe5b0a0c1f4d54b3d4/MT010_OL312763_Miscanthus_sinensis_mosaic_virus.sorted.bam, 
+///mnt/work/hia_mt18005/diagnostics/2023/2021_ONT_MinION_NZMPI/work/7f/ca551c42b0a9fe5b0a0c1f4d54b3d4/MT010_OL312763_Miscanthus_sinensis_mosaic_virus.sorted.bam.bai]
+//#
 /*
 process BAMCOVERAGE {
   publishDir "${params.outdir}/${sampleid}/mapping", mode: 'link'
@@ -428,6 +548,7 @@ process REFORMAT {
   tuple val(sampleid), path(fastq)
   output:
   tuple val(sampleid), path("${sampleid}_preprocessed.fastq.gz"), emit: reformatted_fq
+  tuple val(sampleid), path("${sampleid}_preprocessed.fastq.gz"), emit: cov_derivation_ch
 
   script:
   """
@@ -447,7 +568,7 @@ process CAP3 {
   output:
   file("${sampleid}_rattle.fasta")
   tuple val(sampleid), path("${sampleid}_clustering.fasta"), emit: scaffolds
-  
+
 
   script:
   """
@@ -475,6 +596,7 @@ process EXTRACT_VIRAL_BLAST_HITS {
   file "*/*/*report*html"
 
   tuple val(sampleid), path("*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"), path("*/*/${sampleid}*_queryid_list_with_viral_match.txt"), path("*/*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
+  tuple val(sampleid), path("*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"), emit: blast_results2
 
   script:
   """
@@ -522,9 +644,6 @@ process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
   """
 }
 
-//tuple val(sampleid), path("*/${sampleid}*_blastn_top_viral_hits.txt"), emit: blast_results
-
-
 process CONCATENATE_FASTA {
   tag "${sampleid}"
   label "setting_2"
@@ -542,14 +661,14 @@ process CONCATENATE_FASTA {
   """
   seqtk seq -l0 ${sampleid}_canu_assembly.fasta > ${sampleid}_canu_assembly_1l.fasta
   seqtk seq -l0 ${sampleid}_cap3.fasta >  ${sampleid}_cap3_1l.fasta
-  seqtk seq -l0 ${sampleid}.fasta >  ${sampleid}_1l.fasta 
+  seqtk seq -l0 ${sampleid}.fasta >  ${sampleid}_1l.fasta
   cat  ${sampleid}_canu_assembly_1l.fasta ${sampleid}_cap3_1l.fasta  ${sampleid}.fasta > ${sampleid}_merged.fasta
   """
 }
 
 /*
 KAIJU notes
-The default run mode is Greedy with three allowed mismatches. 
+The default run mode is Greedy with three allowed mismatches.
 The number of allowed mismatches can be changed using option -e.
 In Greedy mode, matches are filtered by a minimum length and score and their E-value (similar to blastp)
 The cutoffs for minimum required match length and match score can be changed using the options -m (default: 11) and -s (default: 65)
@@ -560,17 +679,17 @@ Greedy run mode yields a higher sensitivity compared with MEM mode.
 For lowest memory usage use the proGenomes reference database. The number of parallel threads has only little impact on memory usage.
 
 
-Further, the choice of the minimum required match length (-m) in MEM mode or match score (-s) in Greedy mode governs the trade-off between 
+Further, the choice of the minimum required match length (-m) in MEM mode or match score (-s) in Greedy mode governs the trade-off between
 sensitivity and precision of the classification. Please refer to the paper for a discussion on this topic.
 
-Option -x enables filtering of query sequences containing low-complexity regions by using the SEG algorithm from the blast+ package. 
-It is enabled by default and can be disabled by the -X option. SEG filtering is always recommended in order to avoid 
+Option -x enables filtering of query sequences containing low-complexity regions by using the SEG algorithm from the blast+ package.
+It is enabled by default and can be disabled by the -X option. SEG filtering is always recommended in order to avoid
 false positive taxon assignments that are caused by spurious matches due to simple repeat patterns or other sequencing noise.
 
-The accuracy of the classification depends both on the choice of the reference database and the chosen options when running Kaiju. 
+The accuracy of the classification depends both on the choice of the reference database and the chosen options when running Kaiju.
 These choices also affect the speed and memory usage of Kaiju.
 
-For highest sensitivity, it is recommended to use the nr database (+eukaryotes) as a reference database because it is the most comprehensive 
+For highest sensitivity, it is recommended to use the nr database (+eukaryotes) as a reference database because it is the most comprehensive
 set of protein sequences. Alternatively, use proGenomes over Refseq for increased sensitivity.
 NOTE, viroid will not be detected using this approach
 
@@ -622,11 +741,11 @@ process KAIJU {
       -o ${sampleid}_kaiju.tsv \
       -i ${fastq} \
       -v
-  
+
   kaiju-addTaxonNames -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju_name.tsv
   kaiju2table -e -t ${params.kaiju_nodes} -r species -n ${params.kaiju_names} -o ${sampleid}_kaiju_summary.tsv ${sampleid}_kaiju.tsv
   kaiju2krona -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju.krona
-  
+
   c1grep "taxon_id\\|virus\\|viroid\\|viricota\\|viridae\\|viriform\\|virales\\|virinae\\|viricetes\\|virae\\|viral" ${sampleid}_kaiju_summary.tsv > ${sampleid}_kaiju_summary_viral.tsv
   awk -F'\\t' '\$2>=0.05' ${sampleid}_kaiju_summary_viral.tsv > ${sampleid}_kaiju_summary_viral_filtered.tsv
   """
@@ -776,7 +895,7 @@ process BRACKEN {
 	script:
 	"""
   c1grep() { grep "\$@" || test \$? = 1; }
-  
+
 	est_abundance.py -i ${kraken_report} \
                   -k ${params.krkdb}/database50mers.kmer_distrib \
                   -t 1 \
@@ -798,7 +917,7 @@ process BRACKEN_HTML {
 		tuple val(sampleid), path(braken_report)
 
 	output:
-		
+
     file("*_bracken_report.html")
 
 
@@ -846,19 +965,18 @@ process MEDAKA {
 
   output:
     tuple val(sampleid), path("${sampleid}_medaka.annotated.unfiltered.vcf"), emit: unfilt_vcf
-  
+
   script:
   def medaka_consensus_options = (params.medaka_consensus_options) ? " ${params.medaka_consensus_options}" : ''
   """
   medaka consensus ${bam} ${sampleid}_medaka_consensus_probs.hdf \
      ${medaka_consensus_options} --threads ${task.cpus}
-  
+
   medaka variant ${reference_dir}/${reference_name} ${sampleid}_medaka_consensus_probs.hdf ${sampleid}_medaka.vcf
   medaka tools annotate --dpsp ${sampleid}_medaka.vcf ${reference_dir}/${reference_name} ${bam} \
         ${sampleid}_medaka.annotated.unfiltered.vcf
   """
 }
-
 
 process FILTER_VCF {
   publishDir "${params.outdir}/${sampleid}/mapping", mode: 'copy'
@@ -902,7 +1020,7 @@ process FASTCAT {
       path("${sampleid}_stats.tsv")
       path("histograms/*")
       tuple val(sampleid), path("${sampleid}.fastq.gz"), emit: merged
-  
+
     script:
     """
     fastcat \
@@ -911,8 +1029,6 @@ process FASTCAT {
         --histograms histograms \
         ${fastq} \
         | bgzip > ${sampleid}.fastq.gz
-
-  
     """
 }
 
@@ -943,18 +1059,18 @@ workflow {
   if ( params.analysis_mode == 'clustering' | params.analysis_mode == 'denovo_assembly' | (params.analysis_mode == 'read_classification' & params.megablast)) {
     if (!params.blast_vs_ref) {
       if ( params.blastn_db == null) {
-        error("Please provide the path to a blast database using the parameter --blastn_db.") 
+        error("Please provide the path to a blast database using the parameter --blastn_db.")
       }
     }
     else if (params.blast_vs_ref ) {
       if ( params.reference == null) {
-      error("Please provide the path to a reference fasta file with the parameter --reference.") 
+      error("Please provide the path to a reference fasta file with the parameter --reference.")
       }
     }
   }
   else if ( params.analysis_mode == 'map2ref' ) {
     if ( params.reference == null) {
-      error("Please provide the path to a reference fasta file with the parameter --reference.") 
+      error("Please provide the path to a reference fasta file with the parameter --reference.")
       }
   }
 
@@ -975,8 +1091,8 @@ workflow {
       PORECHOP_ABI ( fq )
       trimmed_fq = PORECHOP_ABI.out.porechopabi_trimmed_fq
     }
-    
-    else { 
+
+    else {
       trimmed_fq = fq
     }
 
@@ -996,7 +1112,7 @@ workflow {
 
     if (params.host_filtering) {
       if ( params.host_fasta == null) {
-        error("Please provide the path to a fasta file of host sequences that need to be filtered with the parameter --host_fasta.") 
+        error("Please provide the path to a fasta file of host sequences that need to be filtered with the parameter --host_fasta.")
       }
       else {
         MINIMAP2_ALIGN_RNA ( REFORMAT.out.reformatted_fq, params.host_fasta )
@@ -1041,12 +1157,12 @@ workflow {
         if (params.blast_vs_ref) {
           BLASTN2REF ( contigs )
           }
-        else { 
+        else {
           CLUSTERING_BLASTN ( contigs )
           EXTRACT_VIRAL_BLAST_HITS ( CLUSTERING_BLASTN.out.blast_results )
         }
       }
-      
+
       //perform de novo assembly using either canu or flye
       else if ( params.analysis_mode == 'denovo_assembly' ) {
         if (params.canu) {
@@ -1071,15 +1187,26 @@ workflow {
       //  BLASTN.out.blast_results
       //    .groupTuple()
       //    .set { ch_blastresults }
-        else { 
+        else {
           ASSEMBLY_BLASTN ( contigs )
           EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
+          EXTRACT_REF_FASTA (EXTRACT_VIRAL_BLAST_HITS.out.blast_results2)
+          mapping_ch = Channel.empty()
+          mapping_ch = EXTRACT_REF_FASTA.out.fasta_files.concat(REFORMAT.out.cov_derivation_ch).groupTuple().map { [it[0], it[1].flatten()] }//.view()
+          //mapping_ch = EXTRACT_REF_FASTA.out.fasta_files.concat(REFORMAT.out.cov_derivation_ch).map { tuple (groupKey)(it[0], it[0]_frequency[it[0]], it[1]) }.groupTuple().view()
+          MAPPING_BACK_TO_REF ( mapping_ch )
+          bamf_ch = Channel.empty()
+          bamf_ch = MAPPING_BACK_TO_REF.out.bam_files.concat(MAPPING_BACK_TO_REF.out.bai_files, EXTRACT_REF_FASTA.out.fasta_files).groupTuple().map { [it[0], it[1].flatten()] }//.view()
+          MOSDEPTH (bamf_ch)
+          COVERM (bamf_ch)
+          cov_stats_summary_ch = Channel.empty()
+          cov_stats_summary_ch = MOSDEPTH.out.mosdepth_results.concat(COVERM.out.coverm_results, EXTRACT_REF_FASTA.out.fasta_files, EXTRACT_VIRAL_BLAST_HITS.out.blast_results2).groupTuple().map { [it[0], it[1].flatten()] }.view()
+          COVSTATS(cov_stats_summary_ch)
         }
       }
 
       else if ( params.analysis_mode == 'read_classification') {
       //just perform direct read search
-        
         if (params.megablast) {
           FASTQ2FASTA_STEP1( final_fq )
           READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true) )
@@ -1087,19 +1214,16 @@ workflow {
             .groupTuple()
             .set { ch_blastresults }
           EXTRACT_VIRAL_BLAST_SPLIT_HITS( ch_blastresults )
-          
         }
         if (params.kaiju) {
           KAIJU ( final_fq )
           KRONA ( KAIJU.out.krona_results)
-          
         }
         if (params.kraken2) {
           KRAKEN2 ( final_fq )
           BRACKEN ( KRAKEN2.out.results )
         }
-        
-        
+
         foo_in_ch = Channel.empty()
         if ( params.megablast & !params.kaiju & !params.kraken2 ) {
         READ_CLASSIFICATION_HTML( EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results ).concat(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results_filt).groupTuple().map { [it[0], it[1].flatten()] }.view()
@@ -1128,7 +1252,7 @@ workflow {
         }
       }
 
-      //just perform direct alignment 
+      //just perform direct alignment
       else if ( params.analysis_mode == 'map2ref') {
         MINIMAP2_REF ( final_fq )
         SAMTOOLS ( MINIMAP2_REF.out.aligned_sample )
@@ -1136,7 +1260,7 @@ workflow {
         FILTER_VCF ( MEDAKA.out.unfilt_vcf )
       }
       else {
-        error("Analysis mode (read_classification, clustering, denovo_assembly, map2ref) not specified with e.g. '--analysis_mode clustering' or via a detectable config file.") 
+        error("Analysis mode (read_classification, clustering, denovo_assembly, map2ref) not specified with e.g. '--analysis_mode clustering' or via a detectable config file.")
       }
     }
   }
