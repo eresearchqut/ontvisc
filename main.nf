@@ -369,13 +369,16 @@ process EXTRACT_REF_FASTA {
     tuple val(sampleid), path(blast_results)
 
   output:
-    path("*fasta")
-    tuple val(sampleid), path("*fasta"), emit: fasta_files
-
+    path("*fasta"), optional: true
+    tuple val(sampleid), path("*fasta"), emit: fasta_files, optional: true
+  
   script:
   """
   cut -f1,4 ${blast_results} | sed '1d' | sed 's/ /_/g' > ids_to_retrieve.txt
-  for i in `cut -f2  ids_to_retrieve.txt`; do j=`grep \${i} ids_to_retrieve.txt | cut -f1`; efetch -db nucleotide  -id \${i} -format fasta > ${sampleid}_\${i}_\${j}.fasta ; done
+  if [ -s ids_to_retrieve.txt ]
+    then
+      for i in `cut -f2  ids_to_retrieve.txt`; do j=`grep \${i} ids_to_retrieve.txt | cut -f1`; efetch -db nucleotide  -id \${i} -format fasta > ${sampleid}_\${i}_\${j}.fasta ; done
+  fi
   """
 }
 
@@ -1191,9 +1194,9 @@ workflow {
           ASSEMBLY_BLASTN ( contigs )
           EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
           EXTRACT_REF_FASTA (EXTRACT_VIRAL_BLAST_HITS.out.blast_results2)
+
           mapping_ch = Channel.empty()
           mapping_ch = EXTRACT_REF_FASTA.out.fasta_files.concat(REFORMAT.out.cov_derivation_ch).groupTuple().map { [it[0], it[1].flatten()] }//.view()
-          //mapping_ch = EXTRACT_REF_FASTA.out.fasta_files.concat(REFORMAT.out.cov_derivation_ch).map { tuple (groupKey)(it[0], it[0]_frequency[it[0]], it[1]) }.groupTuple().view()
           MAPPING_BACK_TO_REF ( mapping_ch )
           bamf_ch = Channel.empty()
           bamf_ch = MAPPING_BACK_TO_REF.out.bam_files.concat(MAPPING_BACK_TO_REF.out.bai_files, EXTRACT_REF_FASTA.out.fasta_files).groupTuple().map { [it[0], it[1].flatten()] }//.view()
