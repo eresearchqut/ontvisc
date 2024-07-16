@@ -1,579 +1,164 @@
 #!/usr/bin/env python
-import pandas as pd
 import argparse
-import glob
-
+import pandas as pd
+import numpy as np
+import os
+import subprocess
+from functools import reduce
+from glob import glob
+from subprocess import run, PIPE
 
 def main():
     ################################################################################
-    parser = argparse.ArgumentParser(description="Load blast results")
+    parser = argparse.ArgumentParser(description="Load coverage stats files")
+
     # All the required arguments #
     parser.add_argument("--sample", type=str)
-    parser.add_argument("--mode", type=str)
-    args = parser.parse_args()
-    sample_name = args.sample
-    mode = args.mode
-
-    for bracken_file in glob.glob('*_bracken_report_viral.txt'):
-        bracken_df = pd.read_csv(bracken_file, sep="\t", index_col=False)
-        bracken_df["fraction_total_reads"] = pd.to_numeric(bracken_df["fraction_total_reads"], errors='coerce', downcast="float")
-        bracken_df_filtered = bracken_df.drop(bracken_df[bracken_df["fraction_total_reads"] < 0.0001].index).sort_values(by=['kraken_assigned_reads'], ascending=False)
-        bracken_df_html = bracken_df.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
-        bracken_df_filtered_html = bracken_df_filtered.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
-        
-    for kaiju_file in glob.glob('*_kaiju_summary_viral.tsv'):
-        #file	percent	reads	taxon_id	taxon_name
-        kaiju_df = pd.read_csv(kaiju_file, sep="\t", index_col=False)
-        kaiju_df["percent"] = pd.to_numeric(kaiju_df["percent"], errors='coerce', downcast="float")
-        kaiju_df_filtered = kaiju_df.drop(kaiju_df[kaiju_df["percent"] < 0.05].index).sort_values(by=['reads'], ascending=False)
-        kaiju_df_html = kaiju_df.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
-        kaiju_df_filtered_html = kaiju_df_filtered.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling 
-
-    for blastn_file in glob.glob('*_blastn_top_viral_hits.txt'):
-        #file	percent	reads	taxon_id	taxon_name
-        blastn_df = pd.read_csv(blastn_file, sep="\t", index_col=False)
-        if mode == "ncbi":
-            blastn_viral_top_hit_high_conf = blastn_df.drop(blastn_df[blastn_df["qcovs"] < 90].index).sort_values(by=['evalue'], ascending=True)
-        elif mode == "localdb":
-            blastn_viral_top_hit_high_conf = blastn_df.drop(blastn_df[blastn_df["qcovs"] < 95].index)
-        #derive read/contig count per viral spp
-        summary_per_spp_high_conf = blastn_viral_top_hit_high_conf['species'].value_counts().to_frame()
-        summary_per_spp = blastn_df['species'].value_counts().to_frame()
-        summary_per_spp_high_conf.index.name = 'species'
-        summary_per_spp.index.name = 'species'
-        megablast_summary_per_spp_high_conf = summary_per_spp_high_conf.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
-        megablast_summary_per_spp = summary_per_spp.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
-
-    #consider all options
-    #A-B-C kaiju braken megablast
-    #A-B kaiju braken done
-    #B-C kaiju megablast
-    #A-C
-    #A kaiju done
-    #B braken done
-    #C homology search
-    if glob.glob("*_bracken_report_viral.txt") and glob.glob("*_kaiju_summary_viral.tsv") and not glob.glob("*_blastn_top_viral_hits.txt"):
-        html_string = '''
-            <html>
-                <head>
-                    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-                    <style>
-                    body { margin:0 100; background:whitesmoke; 
-                    }
-                    container {
-                        border: 1px solid grey;
-                        margin: 1rem;
-                    }
-                    [data-tab-info] {
-                        display: none;
-                    }
- 
-                    .active[data-tab-info] {
-                        display: block;
-                    }
- 
-                    .tab-content {
-                        margin-top: 1rem;
-                        padding-left: 1rem;
-                        font-size: 20px;
-                        font-family: sans-serif;
-                        font-weight: bold;
-                        color: rgb(0, 0, 0);
-                    }
- 
-                    .tabs {
-                        border-bottom: 1px solid grey;
-                        background-color: rgb(170, 245, 144);
-                        font-size: 25px;
-                        color: rgb(0, 0, 0);
-                        display: flex;
-                        margin: 0;
-                    }
- 
-                    .tabs span {
-                        background: rgb(170, 245, 144);
-                        padding: 10px;
-                        border: 1px solid rgb(255, 255, 255);
-                    }
-            
-                    .tabs span:hover {
-                        background: rgb(55, 219, 46);
-                        cursor: pointer;
-                        color: black;
-                    }
-                    </style>
-                </head>
-                <body>
-                    <!-- Body Container -->
-                    <div class="container">
-                    
-                        <!-- Tabs Detail -->
-                        <div class="tabs">
-                            <span data-tab-value="#tab_1">Kraken</span>
-                            <span data-tab-value="#tab_2">Kaiju</span>
-                        </div>
-
-                        <!-- Tab content -->
-                        <div class="tab-content">
-                            <div class="tabs__tab active" id="tab_1" data-tab-info>
-                                <h1>Direct read taxonomic classification (nucleotide-based)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Kraken2 and Bracken viral results filtered </h2>
-                                <p>Only viral matches which represented >=0.0001 of the total read fraction are retained </p>
-                                ''' + bracken_df_filtered_html + '''
-
-                                <!-- *** Section 2 *** --->
-                                <h2>Section 2: All Kraken2 and Bracken viral results </h2>
-                                ''' + bracken_df_html + '''
-                            </div>
-                            <div class="tabs__tab" id="tab_2" data-tab-info>
-                                <h1>Direct read taxonomic classification (protein-based)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Kaiju results filtered </h2>
-                                <p>Only viral matches which represented >=0.05 of the total read fraction are retained </p>
-                                ''' + kaiju_df_filtered_html + '''
-
-                                <!-- *** Section 2 *** --->
-                                <h2>Section 2: All Kaiju results </h2>
-                                ''' + kaiju_df_html + '''
-                            </div>
-                        </div>
-                    </div>
-                     <script type="text/javascript">
-       
-                        // function to get each tab details
-                        const tabs = document.querySelectorAll('[data-tab-value]')
-                        const tabInfos = document.querySelectorAll('[data-tab-info]')
-                
-                        tabs.forEach(tab => {
-                            tab.addEventListener('click', () => {
-                                const target = document
-                                    .querySelector(tab.dataset.tabValue);
-                                tabInfos.forEach(tabInfo => {
-                                    tabInfo.classList.remove('active')
-                                })
-                                target.classList.add('active');
-                            })
-                        })
-                    </script>
-                </body>
-            </html>'''
-
-        report = open(sample_name + "_read_classification_report.html", "w")
-        report.write(html_string)
-        report.close()
-
-    elif glob.glob("*_bracken_report_viral.txt") and glob.glob("*_kaiju_summary_viral.tsv") and glob.glob("*_blastn_top_viral_hits.txt"):
-        html_string = '''
-            <html>
-                <head>
-                    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-                    <style>
-                    body { margin:0 100; background:whitesmoke; 
-                    }
-                    container {
-                        border: 1px solid grey;
-                        margin: 1rem;
-                    }
-                    [data-tab-info] {
-                        display: none;
-                    }
- 
-                    .active[data-tab-info] {
-                        display: block;
-                    }
- 
-                    .tab-content {
-                        margin-top: 1rem;
-                        padding-left: 1rem;
-                        font-size: 20px;
-                        font-family: sans-serif;
-                        font-weight: bold;
-                        color: rgb(0, 0, 0);
-                    }
- 
-                    .tabs {
-                        border-bottom: 1px solid grey;
-                        background-color: rgb(170, 245, 144);
-                        font-size: 25px;
-                        color: rgb(0, 0, 0);
-                        display: flex;
-                        margin: 0;
-                    }
- 
-                    .tabs span {
-                        background: rgb(170, 245, 144);
-                        padding: 10px;
-                        border: 1px solid rgb(255, 255, 255);
-                    }
-            
-                    .tabs span:hover {
-                        background: rgb(55, 219, 46);
-                        cursor: pointer;
-                        color: black;
-                    }
-                    </style>
-                </head>
-                <body>
-                    <!-- Body Container -->
-                    <div class="container">
-                        <!-- Tabs Detail -->
-                        <div class="tabs">
-                            <span data-tab-value="#tab_1">Megablast</span>
-                            <span data-tab-value="#tab_2">Kraken</span>
-                            <span data-tab-value="#tab_3">Kaiju</span>
-                            
-                        </div>
-                        <!-- Tab content -->
-                        <div class="tab-content">
-                            <div class="tabs__tab active" id="tab_1" data-tab-info>
-                                <h1>Direct read homology search (megablast)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Number of reads matching to viral species filtered </h2>
-                                <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
-                                ''' + megablast_summary_per_spp_high_conf + '''
-                                <h2>Section 2: Number of reads matching to viral species </h2>
-                                <p>All blast viral matches were considered here.</p>
-                                ''' + megablast_summary_per_spp + '''
-                            </div>
-                            <div class="tabs__tab" id="tab_2" data-tab-info>
-                                <h1>Direct read taxonomic classification (nucleotide-based)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Kraken2 and Bracken viral results filtered </h2>
-                                <p>Only viral matches which represented >=0.0001 of the total read fraction are retained </p>
-                                ''' + bracken_df_filtered_html + '''
-                                <!-- *** Section 2 *** --->
-                                <h2>Section 2: All Kraken2 and Bracken viral results </h2>
-                                ''' + bracken_df_html + '''
-                            </div>
-                            <div class="tabs__tab" id="tab_3" data-tab-info>
-                                <h1>Direct read taxonomic classification (protein-based)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Kaiju results filtered </h2>
-                                <p>Only viral matches which represented >=0.05 of the total read fraction are retained </p>
-                                ''' + kaiju_df_filtered_html + '''
-                                <!-- *** Section 2 *** --->
-                                <h2>Section 2: All Kaiju results </h2>
-                                ''' + kaiju_df_html + '''
-                            </div>
-                        </div>
-                    </div>
-                     <script type="text/javascript">
-       
-                        // function to get each tab details
-                        const tabs = document.querySelectorAll('[data-tab-value]')
-                        const tabInfos = document.querySelectorAll('[data-tab-info]')
-                
-                        tabs.forEach(tab => {
-                            tab.addEventListener('click', () => {
-                                const target = document
-                                    .querySelector(tab.dataset.tabValue);
-                                tabInfos.forEach(tabInfo => {
-                                    tabInfo.classList.remove('active')
-                                })
-                                target.classList.add('active');
-                            })
-                        })
-                    </script>
-                </body>
-            </html>'''
-        report = open(sample_name + "_read_classification_report.html", "w")
-        report.write(html_string)
-        report.close()
-
-    elif glob.glob("*_bracken_report_viral.txt") and not glob.glob("*_kaiju_summary_viral.tsv") and not glob.glob("*_blastn_top_viral_hits.txt"):
-        html_string = '''
-        <html>
-            <head>
-                <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-                <style>body{ margin:0 100; background:whitesmoke; }</style>
-            </head>
-            <body>
-                <h1>Direct read taxonomic classification (nucleotide-based)</h1>
-                <!-- *** Section 1 *** --->
-                <h2>Section 1: Kraken2 and Bracken viral results filtered </h2>
-                <p>Only viral matches which represented >=0.0001 of the total read fraction are retained </p>
-                ''' + bracken_df_filtered_html + '''
-
-                <!-- *** Section 2 *** --->
-                <h2>Section 2: All Kraken2 and Bracken viral results </h2>
-                ''' + bracken_df_html + '''
-            </body>
-        </html>'''
-
-        report = open(sample_name + "_read_classification_report.html", "w")
-        report.write(html_string)
-        report.close()
-
-    elif glob.glob("*_kaiju_summary_viral.tsv") and not glob.glob("*_bracken_report_viral.txt") and not glob.glob("*_blastn_top_viral_hits.txt"):
-        html_string = '''
-        <html>
-            <head>
-                <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-                <style>body{ margin:0 100; background:whitesmoke; }</style>
-            </head>
-            <body>
-                <h1>Direct read taxonomic classification (protein-based)</h1>
-                <!-- *** Section 1 *** --->
-                <h2>Section 1: Kaiju results filtered </h2>
-                <p>Only viral matches which represented >=0.05 of the total read fraction are retained </p>
-                ''' + kaiju_df_filtered_html + '''
-
-                <!-- *** Section 2 *** --->
-                <h2>Section 2: All Kaiju results </h2>
-                ''' + kaiju_df_html + '''
-            </body>
-        </html>'''
-
-        report = open(sample_name + "_read_classification_report.html", "w")
-        report.write(html_string)
-        report.close()
-
-
-    if glob.glob("*_blastn_top_viral_hits.txt") and not glob.glob("*_bracken_report_viral.txt") and not glob.glob("*_kaiju_summary_viral.tsv"):
-        html_string = '''
-            <html>
-            <head>
-                <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-                <style>body{ margin:0 100; background:whitesmoke; }</style>
-            </head>
-            <body>
-                <h1>Direct read homology search (megablast)</h1>
-               <!-- *** Section 1 *** --->
-                <h2>Section 1: Number of reads matching to viral species filtered </h2>
-                <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
-                ''' + megablast_summary_per_spp_high_conf + '''
-                
-                <h2>Section 2: Number of reads matching to viral species </h2>
-                <p>All blast viral matches were considered here.</p>
-                ''' + megablast_summary_per_spp + '''
-            </body>
-        </html>'''
-
-        report = open(sample_name + "_read_classification_report.html", "w")
-        report.write(html_string)
-        report.close()
     
-    if glob.glob("*_bracken_report_viral.txt") and not glob.glob("*_kaiju_summary_viral.tsv") and glob.glob("*_blastn_top_viral_hits.txt"):
-        html_string = '''
-            <html>
-                <head>
-                    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-                    <style>
-                    body { margin:0 100; background:whitesmoke; 
-                    }
-                    container {
-                        border: 1px solid grey;
-                        margin: 1rem;
-                    }
-                    [data-tab-info] {
-                        display: none;
-                    }
- 
-                    .active[data-tab-info] {
-                        display: block;
-                    }
- 
-                    .tab-content {
-                        margin-top: 1rem;
-                        padding-left: 1rem;
-                        font-size: 20px;
-                        font-family: sans-serif;
-                        font-weight: bold;
-                        color: rgb(0, 0, 0);
-                    }
- 
-                    .tabs {
-                        border-bottom: 1px solid grey;
-                        background-color: rgb(170, 245, 144);
-                        font-size: 25px;
-                        color: rgb(0, 0, 0);
-                        display: flex;
-                        margin: 0;
-                    }
- 
-                    .tabs span {
-                        background: rgb(170, 245, 144);
-                        padding: 10px;
-                        border: 1px solid rgb(255, 255, 255);
-                    }
-            
-                    .tabs span:hover {
-                        background: rgb(55, 219, 46);
-                        cursor: pointer;
-                        color: black;
-                    }
-                    </style>
-                </head>
-                <body>
-                    <!-- Body Container -->
-                    <div class="container">
-                    
-                        <!-- Tabs Detail -->
-                        <div class="tabs">
-                            <span data-tab-value="#tab_1">Megablast</span>
-                            <span data-tab-value="#tab_2">Kraken</span>
-                        </div>
+    
+        
+#    parser.add_argument("--fasta", type=str)
+#    parser.add_argument("--blast_results", type=str)
+#    parser.add_argument("--mosdepth_results", type=str)
+#    parser.add_argument("--coverm-results", type=str)
+    
 
-                        <!-- Tab content -->
-                        <div class="tab-content">
-                            <div class="tabs__tab active" id="tab_1" data-tab-info>
-                                <h1>Direct read homology search (megablast)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Number of reads matching to viral species filtered </h2>
-                                <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
-                                ''' + megablast_summary_per_spp_high_conf + '''
-                                
-                                <h2>Section 2: Number of reads matching to viral species </h2>
-                                <p>All blast viral matches were considered here.</p>
-                                ''' + megablast_summary_per_spp + '''
-                            </div>
-                            <div class="tabs__tab" id="tab_2" data-tab-info>
-                                <h1>Direct read taxonomic classification (nucleotide-based)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Kraken2 and Bracken viral results filtered </h2>
-                                <p>Only viral matches which represented >=0.0001 of the total read fraction are retained </p>
-                                ''' + bracken_df_filtered_html + '''
-                                <!-- *** Section 2 *** --->
-                                <h2>Section 2: All Kraken2 and Bracken viral results </h2>
-                                ''' + bracken_df_html + '''
-                            </div>
-                        </div>
-                    </div>
-                     <script type="text/javascript">
-       
-                        // function to get each tab details
-                        const tabs = document.querySelectorAll('[data-tab-value]')
-                        const tabInfos = document.querySelectorAll('[data-tab-info]')
-                
-                        tabs.forEach(tab => {
-                            tab.addEventListener('click', () => {
-                                const target = document
-                                    .querySelector(tab.dataset.tabValue);
-                                tabInfos.forEach(tabInfo => {
-                                    tabInfo.classList.remove('active')
-                                })
-                                target.classList.add('active');
-                            })
-                        })
-                    </script>                    
-                </body>
-            </html>'''
+    args = parser.parse_args()
+    
+#    blast = args.blast_results
+#    mosdepth = args.mosdepth_results
+#    coverm = args.coverm-results
+    sample_name = args.sample
+    print(sample_name)
+    PCT_10X_all = ()
+    coverm_all = pd.DataFrame()
+    blast_df = pd.DataFrame()
+    for blast_results in glob("*_blastn_top_viral_spp_hits.txt"):
+        blastn_results = pd.read_csv(blast_results, sep="\t", index_col=False)
+        blast_df = blastn_results[["species", "stitle", "qseqid", "sacc", "length", "pident", "sstrand", "evalue", "bitscore", "qcovs"]]
+        sacc_list = blast_df["sacc"].tolist()
+        for sacc in sacc_list:
+            for coverm_results in glob("*_coverm_summary.txt"):
+                if sacc in str(coverm_results):
+                    coverm_results = pd.read_csv(coverm_results, sep="\t", index_col=False)
+                    coverm_results.columns = ["genome", "read_counts", "mean_cov", "variance", "RPKM", "%_bases_cov", "length"]
+                    coverm_results["sacc"] = sacc
+                    coverm_df=coverm_results[["sacc", "read_counts", "mean_cov", "RPKM"]]
+                    #print(coverm_df)
+                    coverm_all = coverm_all.append(coverm_df)
+            for mosdepth_results in glob("*mosdepth.global.dist.txt"):
+                if sacc in str(mosdepth_results):
+                    mosdepth_results = pd.read_csv(mosdepth_results, sep="\t", index_col=False)
+                    mosdepth_results.columns = ["genome", "pc_coverage", "depth"]
+                    PCT_10X = mosdepth_results[(mosdepth_results['pc_coverage']==10) & (mosdepth_results['genome']==sacc)]
+                    print(PCT_10X)
+                    #PCT_10X_all = PCT_10X_all.append(PCT_10X)
 
-        report = open(sample_name + "_read_classification_report.html", "w")
-        report.write(html_string)
-        report.close()
 
-    if not glob.glob("*_bracken_report_viral.txt") and glob.glob("*_kaiju_summary_viral.tsv") and glob.glob("*_blastn_top_viral_hits.txt"):
-        html_string = '''
-            <html>
-                <head>
-                    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-                    <style>
-                    body { margin:0 100; background:whitesmoke; 
-                    }
-                    container {
-                        border: 1px solid grey;
-                        margin: 1rem;
-                    }
-                    [data-tab-info] {
-                        display: none;
-                    }
- 
-                    .active[data-tab-info] {
-                        display: block;
-                    }
- 
-                    .tab-content {
-                        margin-top: 1rem;
-                        padding-left: 1rem;
-                        font-size: 20px;
-                        font-family: sans-serif;
-                        font-weight: bold;
-                        color: rgb(0, 0, 0);
-                    }
- 
-                    .tabs {
-                        border-bottom: 1px solid grey;
-                        background-color: rgb(170, 245, 144);
-                        font-size: 25px;
-                        color: rgb(0, 0, 0);
-                        display: flex;
-                        margin: 0;
-                    }
- 
-                    .tabs span {
-                        background: rgb(170, 245, 144);
-                        padding: 10px;
-                        border: 1px solid rgb(255, 255, 255);
-                    }
-            
-                    .tabs span:hover {
-                        background: rgb(55, 219, 46);
-                        cursor: pointer;
-                        color: black;
-                    }
-                    </style>
-                </head>
-                <body>
-                    <!-- Body Container -->
-                    <div class="container">
-                    
-                        <!-- Tabs Detail -->
-                        <div class="tabs">
-                            <span data-tab-value="#tab_1">Megablast</span>
-                            <span data-tab-value="#tab_2">Kaiju</span>
-                        </div>
 
-                        <!-- Tab content -->
-                        <div class="tab-content">
-                            <div class="tabs__tab active" id="tab_1" data-tab-info>
-                                <h1>Direct read homology search (megablast)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Number of reads matching to viral species filtered </h2>
-                                <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
-                                ''' + megablast_summary_per_spp_high_conf + '''
-                                
-                                <h2>Section 2: Number of reads matching to viral species </h2>
-                                <p>All blast viral matches were considered here.</p>
-                                ''' + megablast_summary_per_spp + '''
-                            </div>
-                            <div class="tabs__tab" id="tab_2" data-tab-info>
-                                <h1>Direct read taxonomic classification (protein-based)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Kaiju results filtered </h2>
-                                <p>Only viral matches which represented >=0.05 of the total read fraction are retained </p>
-                                ''' + kaiju_df_filtered_html + '''
+        blast_df = pd.merge(blast_df, coverm_all, on='sacc')
+        print(blast_df)
 
-                                <!-- *** Section 2 *** --->
-                                <h2>Section 2: All Kaiju results </h2>
-                                ''' + kaiju_df_html + '''
-                            </div>
-                        </div>
-                    </div>
-                     <script type="text/javascript">
-       
-                        // function to get each tab details
-                        const tabs = document.querySelectorAll('[data-tab-value]')
-                        const tabInfos = document.querySelectorAll('[data-tab-info]')
-                
-                        tabs.forEach(tab => {
-                            tab.addEventListener('click', () => {
-                                const target = document
-                                    .querySelector(tab.dataset.tabValue);
-                                tabInfos.forEach(tabInfo => {
-                                    tabInfo.classList.remove('active')
-                                })
-                                target.classList.add('active');
-                            })
-                        })
-                    </script>                    
-                </body>
-            </html>'''
+    #def cov_stats(blastdbpath, cpus, dedup, fastqfiltbysize, final_data, rawfastq, read_size, sample, target_dict, mode):
+    #print("Align reads and derive coverage and depth for best hit")
+    #rawfastq_read_counts = (len(open(rawfastq).readlines(  ))/4)
+        blast_df.to_csv(sample_name +  "_top_scoring_targets_with_cov_stats.txt", index=None, sep="\t",float_format="%.2f")
 
-        report = open(sample_name + "_read_classification_report.html", "w")
-        report.write(html_string)
-        report.close()
+    #cov_dict = {}
+    #dedup_read_counts_dict = {}
+    #dup_pc_dict = {}
+    #fpkm_dict = {}
+    #PCT_1X_dict = {}
+    #PCT_5X_dict = {}
+    #PCT_10X_dict = {}
+    #PCT_20X_dict = {}
+    ##read_counts_dict = {}
+    #rpm_dict = {}
+    #consensus_dict = {}
 
+    #read_counts_dedup_df = pd.DataFrame()
+    #dup_pc_df = pd.DataFrame()
+    #cov_df = pd.DataFrame()
+    #read_counts_df = pd.DataFrame()
+    #rpm_df = pd.DataFrame()
+    #fpkm_df = pd.DataFrame()
+    #PCT_1X_df = pd.DataFrame()
+    #PCT_5X_df = pd.DataFrame()
+    #PCT_10X_df = pd.DataFrame()
+    #PCT_20X_df = pd.DataFrame()
+    #consensus_df = pd.DataFrame()
+
+
+    #reflen = ()
+    #cov = ()
+    #PCT_1X = ()
+    #PCT_5X = ()
+    #PCT_10X = ()
+    #PCT_20X = ()
+
+    #with open(picard_output) as f:
+#a = " "
+#while(a):
+#    a = f.readline()
+#    l = a.find("MEAN_COVERAGE") #Gives a non-negative value when there is a match
+#    if ( l >= 0 ):
+#        line = f.readline()
+#        elements = line.split("\t")
+#        reflen, cov, PCT_1X, PCT_5X, PCT_10X, PCT_20X = elements[0], elements[1], elements[13], elements[14], elements[15],elements[17]
+#f.close()
+#cov_dict[refspname] = cov
+#PCT_1X_dict[refspname] = PCT_1X
+#PCT_5X_dict[refspname] = PCT_5X
+#PCT_10X_dict[refspname] = PCT_10X
+#PCT_20X_dict[refspname] = PCT_20X
+
+#fpkm = round(int(final_read_counts)/(int(reflen)/1000*int(rawfastq_read_counts)/1000000))
+#rpm = round(int(final_read_counts)*1000000/int(rawfastq_read_counts))
+
+#rpm_dict[refspname] = rpm
+#fpkm_dict[refspname] = fpkm
+
+#cov_df = pd.DataFrame(cov_dict.items(),columns=["Species_updated", "mean_read_depth"])
+#read_counts_df = pd.DataFrame(read_counts_dict.items(),columns=["Species_updated", "read_count"])
+#rpm_df = pd.DataFrame(rpm_dict.items(),columns=["Species_updated", "RPM"])
+#fpkm_df = pd.DataFrame(fpkm_dict.items(),columns=["Species_updated", "FPKM"])
+#PCT_1X_df = pd.DataFrame(PCT_1X_dict.items(),columns=["Species_updated", "PCT_1X"])
+#PCT_5X_df = pd.DataFrame(PCT_5X_dict.items(),columns=["Species_updated", "PCT_5X"])
+#PCT_10X_df = pd.DataFrame(PCT_10X_dict.items(),columns=["Species_updated", "PCT_10X"])
+#PCT_20X_df = pd.DataFrame(PCT_20X_dict.items(),columns=["Species_updated", "PCT_20X"])
+#consensus_df = pd.DataFrame(consensus_dict.items(),columns=["Species_updated", "consensus_fasta"])
+
+#project_files = glob(index + "*ebwt") + glob(index + ".vcf.gz*")
+#    for fl in project_files:
+#        subprocess.call(["rm","-r", fl])
+#except OSError as err:
+#    print("OS error: {0}".format(err))
+
+#print("Deriving summary table with coverage statistics")
+
+#if read_counts_dedup_df.empty:
+#dfs = [final_data, cov_df, read_counts_df, rpm_df, fpkm_df, PCT_1X_df, PCT_5X_df, PCT_10X_df, PCT_20X_df, consensus_df]
+#else:
+#dfs = [final_data, cov_df, read_counts_df, read_counts_dedup_df, dup_pc_df, rpm_df, fpkm_df, PCT_1X_df, PCT_5X_df, PCT_10X_df, PCT_20X_df, consensus_df]
+
+#full_table = reduce(lambda left,right: pd.merge(left,right,on=["Species_updated"],how='outer'), dfs)
+
+#full_table["mean_read_depth"] = full_table["mean_read_depth"].astype(float)
+#full_table["PCT_1X"] = full_table["PCT_1X"].astype(float)
+#full_table["PCT_5X"] = full_table["PCT_5X"].astype(float)
+#full_table["PCT_10X"] = full_table["PCT_10X"].astype(float)
+#full_table["PCT_20X"] = full_table["PCT_20X"].astype(float)
+#if "duplication_rate" in full_table.columns:
+#full_table["duplication_rate"] = full_table["duplication_rate"].astype(float)
+#full_table.insert(0, "Sample", sample)
+
+#if mode == 'ncbi':
+#full_table = full_table.drop(["Species"], axis=1)
+#full_table = full_table.rename(columns={"Species_updated": "Species"})
+#full_table.to_csv(sample + "_" + read_size + "_top_scoring_targets_with_cov_stats.txt", index=None, sep="\t",float_format="%.2f")
+
+#elif mode == 'viral_db':
+#full_table = full_table.rename(columns={"Species_updated": "Species"})
+#full_table.to_csv(sample + "_" + read_size + "_top_scoring_targets_with_cov_stats_viral_db.txt", index=None, sep="\t",float_format="%.2f")
 if __name__ == "__main__":
-    main()  
+    main()

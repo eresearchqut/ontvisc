@@ -411,6 +411,7 @@ process MOSDEPTH {
 
   output:
     path("*")
+    tuple val(sampleid), path("*mosdepth.global.dist.txt"), emit: mosdepth_results
 
   script:
   """
@@ -434,6 +435,8 @@ process COVERM {
 
   output:
     path("*")
+    tuple val(sampleid), path("*_coverm_summary.txt"), emit: coverm_results
+
 
   script:
   """
@@ -444,10 +447,28 @@ process COVERM {
     
     coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_coverm_summary.txt -m count mean variance rpkm covered_bases length --min-covered-fraction 0;
     coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_coverage_histogram.txt -m coverage_histogram --min-covered-fraction 0;
-    sed -i 's/\${filen}.sorted //g'  \${filen}_coverm_summary.txt
   done
   """
 }
+
+process COVSTATS {
+  tag "$sampleid"
+  label "setting_3"
+  publishDir "${params.outdir}/${sampleid}/alignments", mode: 'copy'
+
+  input:
+    tuple val(sampleid), path("*")
+
+  output:
+    path("*")
+
+  script:
+  """
+  derive_coverage_stats.py --sample ${sampleid}
+  """
+}
+
+
 /*
 #
     coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_coverage_histogram.txt -m coverage_histogram --min-covered-fraction 0;
@@ -1178,6 +1199,9 @@ workflow {
           bamf_ch = MAPPING_BACK_TO_REF.out.bam_files.concat(MAPPING_BACK_TO_REF.out.bai_files, EXTRACT_REF_FASTA.out.fasta_files).groupTuple().map { [it[0], it[1].flatten()] }//.view()
           MOSDEPTH (bamf_ch)
           COVERM (bamf_ch)
+          cov_stats_summary_ch = Channel.empty()
+          cov_stats_summary_ch = MOSDEPTH.out.mosdepth_results.concat(COVERM.out.coverm_results, EXTRACT_REF_FASTA.out.fasta_files, EXTRACT_VIRAL_BLAST_HITS.out.blast_results2).groupTuple().map { [it[0], it[1].flatten()] }.view()
+          COVSTATS(cov_stats_summary_ch)
         }
       }
 
