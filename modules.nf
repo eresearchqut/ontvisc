@@ -79,29 +79,6 @@ process EXTRACT_READS {
   """
 }
 
-/*
-n_lines=\$(bc <<< \$(cat ${fastq.baseName}_unaligned.fastq | wc -l)/4)
-process MAP_BACK_TO_ASSEMBLY {
-  cpus "${params.minimap2_threads}"
-  tag "${sampleid}"
-  label "large"
-  publishDir "$params.outdir/$sampleid",  mode: 'copy', pattern: '*.sam'
-
-  container 'quay.io/biocontainers/minimap2:2.24--h7132678_1'
-
-  input:
-  tuple val(sampleid), path(fastq), path(assembly)
-  output:
-  path "${sampleid}.sam"
-  tuple val(sampleid), path(fastq), path("${sampleid}_unaligned_ids.txt"), emit: unmapped_ids
-
-  script:
-  """
-  minimap2 -ax splice -uf -k14 ${assembly} ${fastq} > ${sampleid}.sam
-  awk '\$6 == "*" { print \$0 }' ${sampleid}.sam | cut -f1 | uniq >  ${sampleid}_unaligned_ids.txt
-  """
-}
-*/
 
 process FASTQ2FASTA {
   tag "${sampleid}"

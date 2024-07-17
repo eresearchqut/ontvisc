@@ -51,9 +51,9 @@ def main():
                     print(PCTs_all)
 
         summary_dfs = (blast_df, coverm_all, PCTs_all)
-        blast_df = reduce(lambda left,right: pd.merge(left,right,on=["sacc"],how='outer'), summary_dfs)
+        blast_df = reduce(lambda left,right: pd.merge(left,right,on=["sacc"],how='outer').fillna("NA"), summary_dfs)
         print(blast_df)
-        blast_df.to_csv(str(sample_name) + "_top_scoring_targets_with_cov_stats.txt", index=None, sep="\t")
+        blast_df.to_csv(str(sample_name) + "_top_blast_with_cov_stats.txt", index=None, sep="\t")
         
 if __name__ == "__main__":
     main()

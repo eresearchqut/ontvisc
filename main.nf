@@ -392,17 +392,19 @@ process MAPPING_BACK_TO_REF {
     tuple val(sampleid), path(results)
 
   output:
-    path("*bam")
-    path("*bam.bai")
-    tuple val(sampleid), path("*sorted.bam"), emit: bam_files
-    tuple val(sampleid), path("*sorted.bam.bai"), emit: bai_files
+    path("*bam"), optional: true
+    path("*bam.bai"), optional: true
+    tuple val(sampleid), path("*sorted.bam"), emit: bam_files, optional: true
+    tuple val(sampleid), path("*sorted.bam.bai"), emit: bai_files, optional: true
 
   script:
   """
-  mapping_back_to_ref.py --fastq ${sampleid}_preprocessed.fastq.gz
+  if compgen -G "*.fasta" > /dev/null;
+    then
+      mapping_back_to_ref.py --fastq ${sampleid}_preprocessed.fastq.gz
+  fi
   """
 }
-
 
 process MOSDEPTH {
   tag "$sampleid"
@@ -413,17 +415,20 @@ process MOSDEPTH {
     tuple val(sampleid), path("*")
 
   output:
-    path("*")
-    tuple val(sampleid), path("*mosdepth.global.dist.txt"), emit: mosdepth_results
+    path("*"), optional: true
+    tuple val(sampleid), path("*mosdepth.global.dist.txt"), emit: mosdepth_results, optional: true
 
   script:
   """
-  for i in *bam;
-  do
-    echo \${i%.sorted.bam}
-    filen=`echo "\${i%.sorted.bam}"`
-    mosdepth \${filen} \${i};
-  done
+  if compgen -G "*.bam" > /dev/null;
+    then
+      for i in *bam;
+      do
+        echo \${i%.sorted.bam}
+        filen=`echo "\${i%.sorted.bam}"`
+        mosdepth \${filen} \${i};
+      done
+  fi
   """
 
 }
@@ -437,52 +442,46 @@ process COVERM {
     tuple val(sampleid), path("*")
 
   output:
-    path("*")
-    tuple val(sampleid), path("*_coverm_summary.txt"), emit: coverm_results
+    path("*"), optional: true
+    tuple val(sampleid), path("*_coverm_summary.txt"), emit: coverm_results, optional: true
 
 
   script:
   """
-  for i in *bam;
-  do
-    echo \${i%.sorted.bam}
-    filen=`echo "\${i%.sorted.bam}"`
-    
-    coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_coverm_summary.txt -m count mean variance rpkm covered_bases length --min-covered-fraction 0;
-    coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_coverage_histogram.txt -m coverage_histogram --min-covered-fraction 0;
-  done
+  if compgen -G "*.bam" > /dev/null;
+    then
+      for i in *bam;
+      do
+        echo \${i%.sorted.bam}
+        filen=`echo "\${i%.sorted.bam}"`
+        coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_coverm_summary.txt -m count mean variance rpkm covered_bases length --min-covered-fraction 0;
+        coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_coverage_histogram.txt -m coverage_histogram --min-covered-fraction 0;
+      done
+  fi
   """
 }
 
 process COVSTATS {
   tag "$sampleid"
-  label "setting_3"
+  label "setting_2"
   publishDir "${params.outdir}/${sampleid}/alignments", mode: 'copy'
 
   input:
     tuple val(sampleid), path("*")
 
   output:
-    path("*")
+    path("*top_blast_with_cov_stats.txt"), emit: coverm_results, optional: true
 
   script:
   """
-  derive_coverage_stats.py --sample ${sampleid}
+  if compgen -G "*coverm_summary.txt" > /dev/null;
+    then
+      derive_coverage_stats.py --sample ${sampleid}
+  fi
   """
 }
 
 
-/*
-#
-    coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_coverage_histogram.txt -m coverage_histogram --min-covered-fraction 0;
-    coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_count.txt -m count --min-covered-fraction  0;
-    coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_rpkm.txt -m rpkm --min-covered-fraction 0;
-    coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_covered_bases.txt -m covered_bases --min-covered-fraction 0;
-//cut -f2 \${j} >> \${filen}.coverm_summary.txt;
-//WARN: Input tuple does not match input set cardinality declared by process `MOSDEPTH` -- offending value: 
-//[MT010, /mnt/work/hia_mt18005/diagnostics/2023/2021_ONT_MinION_NZMPI/work/7f/ca551c42b0a9fe5b0a0c1f4d54b3d4/MT010_OL312763_Miscanthus_sinensis_mosaic_virus.sorted.bam, 
-///mnt/work/hia_mt18005/diagnostics/2023/2021_ONT_MinION_NZMPI/work/7f/ca551c42b0a9fe5b0a0c1f4d54b3d4/MT010_OL312763_Miscanthus_sinensis_mosaic_virus.sorted.bam.bai]
-//#
 /*
 process BAMCOVERAGE {
   publishDir "${params.outdir}/${sampleid}/mapping", mode: 'link'
@@ -1203,7 +1202,7 @@ workflow {
           MOSDEPTH (bamf_ch)
           COVERM (bamf_ch)
           cov_stats_summary_ch = Channel.empty()
-          cov_stats_summary_ch = MOSDEPTH.out.mosdepth_results.concat(COVERM.out.coverm_results, EXTRACT_REF_FASTA.out.fasta_files, EXTRACT_VIRAL_BLAST_HITS.out.blast_results2).groupTuple().map { [it[0], it[1].flatten()] }.view()
+          cov_stats_summary_ch = MOSDEPTH.out.mosdepth_results.concat(COVERM.out.coverm_results, EXTRACT_REF_FASTA.out.fasta_files, EXTRACT_VIRAL_BLAST_HITS.out.blast_results2).groupTuple().map { [it[0], it[1].flatten()] }//.view()
           COVSTATS(cov_stats_summary_ch)
         }
       }
