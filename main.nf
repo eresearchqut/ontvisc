@@ -470,7 +470,9 @@ process COVSTATS {
     tuple val(sampleid), path("*")
 
   output:
-    path("*top_blast_with_cov_stats.txt"), emit: coverm_results, optional: true
+    path("*top_blast_with_cov_stats.txt"), optional: true
+    path("*top_blast_with_cov_stats.txt"), emit: detections_summary, optional: true
+
 
   script:
   """
@@ -1011,27 +1013,46 @@ process FILTER_VCF {
 
 
 process FASTCAT {
-    publishDir "${params.outdir}/${sampleid}/qc/fastcat", mode: 'copy'
-    tag "${sampleid}"
-    label "setting_2"
+  publishDir "${params.outdir}/${sampleid}/qc/fastcat", mode: 'copy'
+  tag "${sampleid}"
+  label "setting_2"
 
-    input:
-      tuple val(sampleid), path(fastq)
+  input:
+    tuple val(sampleid), path(fastq)
 
-    output:
-      path("${sampleid}_stats.tsv")
-      path("histograms/*")
-      tuple val(sampleid), path("${sampleid}.fastq.gz"), emit: merged
+  output:
+    path("${sampleid}_stats.tsv")
+    path("histograms/*")
+    tuple val(sampleid), path("${sampleid}.fastq.gz"), emit: merged
 
-    script:
-    """
-    fastcat \
-        -s ${sampleid} \
-        -f ${sampleid}_stats.tsv \
-        --histograms histograms \
-        ${fastq} \
-        | bgzip > ${sampleid}.fastq.gz
-    """
+  script:
+  """
+  fastcat \
+      -s ${sampleid} \
+      -f ${sampleid}_stats.tsv \
+      --histograms histograms \
+      ${fastq} \
+      | bgzip > ${sampleid}.fastq.gz
+  """
+}
+//
+process DETECTION_REPORT {
+  label "local"
+    publishDir "${params.outdir}/Summary", mode: 'copy', overwrite: true
+    containerOptions "${bindOptions}"
+
+  input:
+    path('*')
+
+  output:
+    path("summary_detection.txt")
+
+
+  script:
+  """
+  detection_summary.py --threshold ${params.contamination_flag}
+  """
+
 }
 
 include { MINIMAP2_ALIGN_RNA } from './modules.nf'
@@ -1204,6 +1225,8 @@ workflow {
           cov_stats_summary_ch = Channel.empty()
           cov_stats_summary_ch = MOSDEPTH.out.mosdepth_results.concat(COVERM.out.coverm_results, EXTRACT_REF_FASTA.out.fasta_files, EXTRACT_VIRAL_BLAST_HITS.out.blast_results2).groupTuple().map { [it[0], it[1].flatten()] }//.view()
           COVSTATS(cov_stats_summary_ch)
+
+          DETECTION_REPORT(COVSTATS.out.detections_summary.collect().ifEmpty([]))
         }
       }
 
