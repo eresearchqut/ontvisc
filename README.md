@@ -415,7 +415,7 @@ The minimum coverage for a variant not be flagged 'LOW_DEPTH' in the final VCF b
 ## Output files
 
 ### Preprocessing and host read filtering outputs
-If a merge step is required, fastcat will create a summary text file showing the read length distribution.
+If a merge step is required, fastcat will create a summary text file showing the read length distribution.  
 Quality check will be performed on the raw fastq file using [NanoPlot](https://github.com/wdecoster/NanoPlot) which it a tool that can be used to produce general quality metrics e.g. quality score distribution, read lengths and other general stats. A NanoPlot-report.html file will be saved under the **SampleName/qc/nanoplot** folder with the prefix **raw**. This report displays 6 plots as well as a table of summary statistics.  
 
 <p align="center"><img src="docs/images/Example_Statistics.png" width="1000"></p>
@@ -434,7 +434,7 @@ If adapter trimming and/or quality/length trimming is performed, a second qualit
 
 If host filtering of reads is performed, an unaligned.fastq.gz file and an unaligned_reads_count.txt file listing the remainder read count will be saved under the **SampleName/preprocessing/host_filtering** folder.
 
-If the adapter trimming, the quality filtering and/or the host filtering options have been run, a QC report will be saved both in text and html format (i.e. **run_qc_report_YYYYMMDD-HHMMSS.txt** and **run_qc_report_YYYYMMDD-HHMMSS.html**) under the **qc_report** folder 
+If the adapter trimming, the quality filtering and/or the host filtering options have been run, a QC report will be saved both in text and html format (i.e. **run_qc_report_YYYYMMDD-HHMMSS.txt** and **run_qc_report_YYYYMMDD-HHMMSS.html**) under the **qc_report** folder.  
 
 Example of report:
 
@@ -532,7 +532,7 @@ All the top hits derived for each contig are listed under the file **SampleName_
 ```
 
 Read matches to a virus or viroid as the top blast hit will be listed under the **SampleName_read_classification_blastn_top_viral_hits.txt** file.
-If multiple reads are recovered for the same viral species, only the best hit will be listed under **SampleName_assembly_blastn_top_viral_spp_hits.txt**. Selection of the best hit is based on length.
+If multiple reads are recovered for the same viral species, only the best hit will be listed under **SampleName_assembly_blastn_top_viral_spp_hits.txt**. Selection of the best hit is based on evalue, followed by query length.
 The **SampleName_assembly_viral_spp_abundance.txt** here will list the number of reads recovered for each viral species.  
 In the example below, 200 reads were recovered matching to the Tomato spotted wilt orthotospovirus:  
 ```
@@ -552,14 +552,14 @@ The **SampleName_blast_report.html** enables the user to have a quick look at th
 - the total number of matches to viral species
 - the total number of matches to viral species (filtered)
 - the total number of matches to specific viral accession number
-- the top viral match per species based on query length (qlen, followed by evalue
 - the top viral match per species based on evalue, followed by qlen
+- the top viral match per species based on query length (qlen), followed by evalue
 - the top viral match per species based on % identity (pident), followed by qlen
 - the top viral match per species based on bitscore, followed by qlen
 ```
 
 #### Summary
-A summary of the results gets output in the **SampleName__read_classification_report.html**. If several modes were tested, they can be found in separate tabs (Megablast, Kraken and/or Kaiju)
+A summary of the results gets output in the **SampleName_read_classification_report.html**. If several modes were tested, they can be found in separate tabs (Megablast, Kraken and/or Kaiju)
 
 
 ### De novo assembly mode outputs
