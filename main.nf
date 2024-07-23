@@ -1027,7 +1027,7 @@ process DETECTION_REPORT {
     path('*')
 
   output:
-    path("summary_detection*.txt")
+    path("detection_summary*.txt")
 
   script:
     """
