@@ -588,7 +588,7 @@ process CAP3 {
 process EXTRACT_VIRAL_BLAST_HITS {
   tag "${sampleid}"
   label "setting_2"
-  publishDir "$params.outdir/$sampleid", overwrite: true
+  publishDir "$params.outdir/$sampleid", mode: 'copy'
   containerOptions "${bindOptions}"
 
   input:
@@ -602,7 +602,8 @@ process EXTRACT_VIRAL_BLAST_HITS {
     file "*/*/${sampleid}*_viral_spp_abundance*.txt"
     file "*/*/*report*html"
 
-    tuple val(sampleid), path("*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"), path("*/*/${sampleid}*_queryid_list_with_viral_match.txt"), path("*/*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
+    tuple val(sampleid), path("*/*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
+    tuple val(sampleid), path("*/*/${sampleid}*_viral_spp_abundance_filtered.txt"), emit: blast_results_filt
     tuple val(sampleid), path("*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"), emit: blast_results2
 
   script:
@@ -619,7 +620,8 @@ process EXTRACT_VIRAL_BLAST_HITS {
       cat ${blast_results} > assembly/blastn/${sampleid}_blastn.txt
       cd assembly/blastn
       select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method assembly --mode ${params.blast_mode}
-    elif [[ ${params.analysis_mode} == "read_classification" ]]
+    elif [[ ${params.analysis_mode} == "read_classification" ]] ;
+    then
       mkdir -p read_classification/homology_search
       cat ${blast_results} > read_classification/homology_search/${sampleid}_blastn.txt
       cd read_classification/homology_search
@@ -1018,7 +1020,7 @@ process FASTCAT {
 
 process DETECTION_REPORT {
   label "local"
-    publishDir "${params.outdir}/summary", mode: 'copy', overwrite: true
+    publishDir "${params.outdir}/detection_summary", mode: 'copy', overwrite: true
     containerOptions "${bindOptions}"
 
   input:
@@ -1029,7 +1031,7 @@ process DETECTION_REPORT {
 
   script:
     """
-    detection_summary.py --threshold ${params.contamination_flag}
+    detection_summary.py --threshold ${params.contamination_flag_threshold}
     """
 }
 

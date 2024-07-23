@@ -38,7 +38,7 @@ def contamination_flag(df, threshold):
     df["RPKM_max"] =  df["RPKM_max"].round(1)
     df["threshold_value"]=df["RPKM_max"]*threshold
     df["threshold_value"] = df["threshold_value"].round(1)
-    df["contamination_flag"] = np.where(df["RPKM"] <= df["threshold_value"], True, False)
+    df["contamination_flag"] = np.where(df["RPKM"] < df["threshold_value"], True, False)
     df["contamination_flag"] = np.where(df["RPKM_max"] <= 10, "NA", df["contamination_flag"])
     df = df.sort_values(["Sample", "stitle"], ascending = (True, True))
 
