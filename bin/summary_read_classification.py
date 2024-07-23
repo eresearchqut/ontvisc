@@ -9,10 +9,8 @@ def main():
     parser = argparse.ArgumentParser(description="Load blast results")
     # All the required arguments #
     parser.add_argument("--sample", type=str)
-    parser.add_argument("--mode", type=str)
     args = parser.parse_args()
     sample_name = args.sample
-    mode = args.mode
 
     for bracken_file in glob.glob('*_bracken_report_viral.txt'):
         bracken_df = pd.read_csv(bracken_file, sep="\t", index_col=False)
@@ -22,35 +20,18 @@ def main():
         bracken_df_filtered_html = bracken_df_filtered.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
         
     for kaiju_file in glob.glob('*_kaiju_summary_viral.tsv'):
-        #file	percent	reads	taxon_id	taxon_name
         kaiju_df = pd.read_csv(kaiju_file, sep="\t", index_col=False)
         kaiju_df["percent"] = pd.to_numeric(kaiju_df["percent"], errors='coerce', downcast="float")
         kaiju_df_filtered = kaiju_df.drop(kaiju_df[kaiju_df["percent"] < 0.05].index).sort_values(by=['reads'], ascending=False)
         kaiju_df_html = kaiju_df.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
         kaiju_df_filtered_html = kaiju_df_filtered.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling 
 
-    #for blastn_file in glob.glob('*_blastn_top_viral_hits.txt'):
-        #file	percent	reads	taxon_id	taxon_name
-        #blastn_df = pd.read_csv(blastn_file, sep="\t", index_col=False)
-        #if mode == "ncbi":
-        #    blastn_viral_top_hit_high_conf = blastn_df.drop(blastn_df[blastn_df["qcovs"] < 90].index).sort_values(by=['evalue'], ascending=True)
-        #elif mode == "localdb":
-        #    blastn_viral_top_hit_high_conf = blastn_df.drop(blastn_df[blastn_df["qcovs"] < 95].index)
-        #derive read/contig count per viral spp
-        #summary_per_spp_high_conf = blastn_viral_top_hit_high_conf['species'].value_counts().to_frame()
-        #summary_per_spp = blastn_df['species'].value_counts().to_frame()
-        #summary_per_spp_high_conf.index.name = 'species'
-        #summary_per_spp.index.name = 'species'
-        #megablast_summary_per_spp_high_conf = summary_per_spp_high_conf.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
-        #megablast_summary_per_spp = summary_per_spp.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
-
     for blastn_file in glob.glob('*_viral_spp_abundance.txt'):
         for blastn_file_filt in glob.glob('*_viral_spp_abundance_filtered.txt'):
             blastn_df = pd.read_csv(blastn_file, sep="\t", index_col=False)
-            megablast_summary_per_spp = blastn_df.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">')
+            megablast_summary_per_spp = blastn_df.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
             blastn_df_high_conf = pd.read_csv(blastn_file_filt, sep="\t", index_col=False)
-            megablast_summary_per_spp_high_conf = blastn_df_high_conf.to_html().replace('<table border="1" class="dataframe">','<table class="table table-striped">')
-        
+            megablast_summary_per_spp_high_conf = blastn_df_high_conf.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
 
     #consider all options
     #A-B-C kaiju braken megablast
