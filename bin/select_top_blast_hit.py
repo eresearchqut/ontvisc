@@ -75,7 +75,7 @@ def main():
     
     blastn_viral_top_hit_spp_evalue_based = blastn_viral_top_hit_f.sort_values(["evalue", "qlen"], ascending=[True, False]).groupby("species", as_index=False).first().copy()
     blastn_viral_top_hit_spp_pident_based = blastn_viral_top_hit_f.sort_values(["pident", "qlen"], ascending=[False, False]).groupby("species", as_index=False).first().copy()
-    blastn_viral_top_hit_spp_length_based = blastn_viral_top_hit_f.sort_values(["qlen", "evalue"], ascending=[False, False]).groupby("species", as_index=False).first().copy()
+    blastn_viral_top_hit_spp_length_based = blastn_viral_top_hit_f.sort_values(["qlen", "evalue"], ascending=[False, True]).groupby("species", as_index=False).first().copy()
     blastn_viral_top_hit_spp_bitscore_based = blastn_viral_top_hit_f.sort_values(["bitscore", "qlen"], ascending=[False, False]).groupby("species", as_index=False).first().copy()
 
     summary_per_spp = summary_per_spp.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
