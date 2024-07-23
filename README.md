@@ -725,9 +725,14 @@ AobVX	1060	.	C	T	11.703	PASS	AR=5,5;DP=1510;DPS=904,606;DPSP=1492;SC=208276,1377
 ### Summary of detections for de novo assembly and clustering mode ###
 A summary of detections for all the samples included in the index file is provided under the detection_summary folder. A column labelled contamination_flag is included at the end of the text file which flags potential false positives.
 
-With the contamination flag, the assumption is that if a pest is present at high titer in a given sample and detection of reads matching to this pathogen in other samples occur at a significantly lower abundance, there is a risk that this lower signal is due to contamination (e.g. contamination or index hopping from high-titer sample). We first calculate the maximum RPKM value recorded for each virus and viroid identified on a run. If for a given virus, the RPKM value reported for a sample represents less than a percentage of this maximum FPKM value, it is then flagged as a contamination event.  
+With the contamination flag, the assumption is that if a pest is present at high titer in a given sample and detection of reads matching to this pathogen in other samples occur at a significantly lower abundance, it is possible that this lower signal is due to contamination (e.g. contamination or index hopping from high-titer sample). 
+
+We first calculate the maximum RPKM value recorded for each virus and viroid identified on a run. If for a given virus, the RPKM value reported for a sample represents less than a percentage of this maximum FPKM value, it is then flagged as a contamination event.  
+
 If a detection returns TRUE in the contamination_flag column, it is recommended to compare the sequences obtained, check the SNPs and if possible, validate the detection through an independent method. The contamination flag is just indicative and it cannot discriminate between false positives and viruses present at very low titer in a plant.  
+
 The RPKM needs to be >= 10 for the flag to be applied, oterhwise, it will be set to 'NA'.
+
 In summary:  
 - if RPKM < contamination_flag_threshold x RPKM_max =>  TRUE  
 - if RPKM >= contamination_flag_threshold x RPKM_max =>  FALSE  
