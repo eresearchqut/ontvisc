@@ -750,7 +750,7 @@ results
 │   │   │   └── MT001.canu.log
 │   │   ├── MT001_canu_assembly_filtered.fa
 │   │   └── MT001_cutadapt.log
-|   ├── mapping
+│   ├── mapping
 │   │   ├── MT001_aln.sorted.bam
 │   │   ├── MT001_aln.sorted.bam.bai
 │   │   ├── MT001_coverage.txt
@@ -766,7 +766,7 @@ results
 │       │   ├── MT001_kraken_report.txt
 │       │   └── MT001_unclassified.fastq
 │       ├── homology_search
-|       │   ├── MT001_blast_report.html
+│       │   ├── MT001_blast_report.html
 │       │   ├── MT001_read_classification_blastn_top_hits.txt
 │       │   ├── MT001_read_classification_blastn_top_viral_hits.txt
 │       │   ├── MT001_read_classification_blastn_top_viral_spp_hits.txt
@@ -779,7 +779,7 @@ results
 │       │   ├── MT001_kaiju_summary_viral_filtered.tsv
 │       │   ├── MT001_kaiju_summary_viral.tsv
 │       │   └── MT001_krona.html
-│       └── Summary
+│       └── Summary
 │           └── MT001_read_classification_report.html
 └── qc_report
     ├── run_qc_report_20231009-114823.txt
