@@ -725,13 +725,13 @@ AobVX	1060	.	C	T	11.703	PASS	AR=5,5;DP=1510;DPS=904,606;DPSP=1492;SC=208276,1377
 ### Summary of detections for de novo assembly and clustering mode ###
 A summary of detections for all the samples included in the index file is provided under the detection_summary folder. A column labelled contamination_flag is included at the end of the text file which flags potential false positives.
 
-With the contamination flag, the assumption is that if a pest is present at high titer in a given sample and detection of reads matching to this pathogen in other samples occur at a significantly lower abundance, it is possible that this lower signal is due to contamination (e.g. contamination or index hopping from high-titer sample). 
+With the contamination flag, the assumption is that if a pest is present at high titer in a given sample and reads matching to this pathogen in other samples occur at a significantly lower abundance, it is possible that this lower signal is due to contamination (e.g. contamination or index hopping from high-titer sample). 
 
 We first calculate the maximum RPKM value recorded for each virus and viroid identified across samples tested  and provide it in the ```RPKM_MAX``` column. If for a given virus, the RPKM value recovered for a sample represents less than a percentage of this maximum FPKM value (provided in the ```threshold_value``` column), it is then flagged as a contamination event (```contamination_flag = TRUE```). By default, the ```--contamination_flag_threshold``` is set to 1%.  
 The RPKM needs to be >= 10 for the flag to be applied, otherwise, it will be set to 'NA'.  
 
 In summary:  
-- if RPKM < 10 =>  contamination_flag = NA  
+- if RPKM < 10 => contamination_flag = NA  
 - if RPKM >= 10 and < contamination_flag_threshold (0.01 default) x RPKM_max => contamination_flag = TRUE  
 - if RPKM >= 10 and >= contamination_flag_threshold (0.01 default) x RPKM_max => contamination_flag = FALSE  
 
