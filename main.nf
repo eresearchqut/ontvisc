@@ -665,7 +665,7 @@ process READ_CLASSIFICATION_HTML {
 
   script:
   """
-  summary_read_classification.py --sample ${sampleid} --mode ${params.blast_mode}
+  summary_read_classification.py --sample ${sampleid}
   """
 }
 
