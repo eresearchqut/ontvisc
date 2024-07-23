@@ -727,16 +727,18 @@ A summary of detections for all the samples included in the index file is provid
 
 With the contamination flag, the assumption is that if a pest is present at high titer in a given sample and detection of reads matching to this pathogen in other samples occur at a significantly lower abundance, it is possible that this lower signal is due to contamination (e.g. contamination or index hopping from high-titer sample). 
 
-We first calculate the maximum RPKM value recorded for each virus and viroid identified on a run. If for a given virus, the RPKM value reported for a sample represents less than a percentage of this maximum FPKM value, it is then flagged as a contamination event.  
+We first calculate the maximum RPKM value recorded for each virus and viroid identified across samples tested  and provide it in the ```RPKM_MAX``` column. If for a given virus, the RPKM value recovered for a sample represents less than a percentage of this maximum FPKM value (provided in the ```threshold_value``` column), it is then flagged as a contamination event (```contamination_flag = TRUE```). By default, the ```--contamination_flag_threshold``` is set to 1%.  
+The RPKM needs to be >= 10 for the flag to be applied, otherwise, it will be set to 'NA'.  
+
+In summary:  
+- if RPKM < 10 =>  contamination_flag = NA  
+- if RPKM >= 10 and < contamination_flag_threshold (0.01 default) x RPKM_max => contamination_flag = TRUE  
+- if RPKM >= 10 and >= contamination_flag_threshold (0.01 default) x RPKM_max => contamination_flag = FALSE  
+
 
 If a detection returns TRUE in the contamination_flag column, it is recommended to compare the sequences obtained, check the SNPs and if possible, validate the detection through an independent method. The contamination flag is just indicative and it cannot discriminate between false positives and viruses present at very low titer in a plant.  
 
-The RPKM needs to be >= 10 for the flag to be applied, oterhwise, it will be set to 'NA'.
 
-In summary:  
-- if RPKM < contamination_flag_threshold x RPKM_max =>  TRUE  
-- if RPKM >= contamination_flag_threshold x RPKM_max =>  FALSE  
-The ```--contamination_flag_threshold``` is set to 1% by default. 
 
 ### Results folder structure
 ```
