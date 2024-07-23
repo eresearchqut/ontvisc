@@ -779,7 +779,7 @@ results
 │       │   ├── MT001_kaiju_summary_viral_filtered.tsv
 │       │   ├── MT001_kaiju_summary_viral.tsv
 │       │   └── MT001_krona.html
-│       └── Summary
+│       └── Summary
 │           └── MT001_read_classification_report.html
 └── qc_report
     ├── run_qc_report_20231009-114823.txt
