@@ -68,7 +68,7 @@ def main():
     #replace space with underscore
     blastn_viral_top_hit.to_csv(sample_name + "_" + analysis_method + "_blastn_top_viral_hits.txt", index=False, sep="\t")
     #just retain longest contig for each virus/viroid species
-    blastn_viral_top_hit_spp = blastn_viral_top_hit.sort_values(["qlen", "pident"], ascending=[False, False]).groupby("species", as_index=False).first().copy()
+    blastn_viral_top_hit_spp = blastn_viral_top_hit.sort_values(["evalue", "qlen"], ascending=[False, False]).groupby("species", as_index=False).first().copy()
     blastn_viral_top_hit_spp.to_csv(sample_name + "_" + analysis_method +  "_blastn_top_viral_spp_hits.txt", index=False, sep="\t")
     
     blastn_viral_top_hit_f = blastn_viral_top_hit[["qseqid", "qlen", "species", "sacc", "stitle", "slen", "pident", "sstrand", "evalue", "bitscore", "qcovs"]]
@@ -134,17 +134,17 @@ def main():
                 ''' + spp + '''
             </div>
 
-            <button type="button" class="collapsible"> Top viral match per species based on query length (qlen), followed by evalue </h2></button>
-            <div class="content">
-                ''' + blastn_viral_top_hit_spp_length_based + '''
-            </div>
-
             <button type="button" class="collapsible"> Top viral match per species based on evalue, followed by query length (qlen) </h2></button>
             <div class="content">
                 ''' + blastn_viral_top_hit_spp_evalue_based + '''
             </div>
 
-            <button type="button" class="collapsible"> Top viral match per species based on % identity, followed by query length (qlen) (pident) </h2></button>
+            <button type="button" class="collapsible"> Top viral match per species based on query length (qlen), followed by evalue </h2></button>
+            <div class="content">
+                ''' + blastn_viral_top_hit_spp_length_based + '''
+            </div>
+
+            <button type="button" class="collapsible"> Top viral match per species based on % identity, followed by query length (qlen) </h2></button>
             <div class="content">
                 ''' + blastn_viral_top_hit_spp_pident_based + '''
             </div>

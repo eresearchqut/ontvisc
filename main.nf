@@ -588,8 +588,7 @@ process CAP3 {
 process EXTRACT_VIRAL_BLAST_HITS {
   tag "${sampleid}"
   label "setting_2"
-  publishDir "$params.outdir/$sampleid", mode: 'copy', pattern: '*/*/*txt', overwrite: true
-  publishDir "$params.outdir/$sampleid", mode: 'copy', pattern: '*/*/*html', overwrite: true
+  publishDir "$params.outdir/$sampleid", overwrite: true
   containerOptions "${bindOptions}"
 
   input:
@@ -600,7 +599,7 @@ process EXTRACT_VIRAL_BLAST_HITS {
     file "*/*/${sampleid}*_blastn_top_viral_hits*.txt"
     file "*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"
     file "*/*/${sampleid}*_queryid_list_with_viral_match.txt"
-    file "*/*/${sampleid}*_viral_spp_abundance.txt"
+    file "*/*/${sampleid}*_viral_spp_abundance*.txt"
     file "*/*/*report*html"
 
     tuple val(sampleid), path("*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"), path("*/*/${sampleid}*_queryid_list_with_viral_match.txt"), path("*/*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
@@ -608,49 +607,24 @@ process EXTRACT_VIRAL_BLAST_HITS {
 
   script:
     """
-    if [[ ${blast_results} == *clustering_blastn.bls ]] ;
+    if [[ ${params.analysis_mode} == "clustering" ]] ;
     then
       mkdir -p clustering/blastn
       cat ${blast_results} > clustering/blastn/${sampleid}_blastn.txt
       cd clustering/blastn
       select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method clustering --mode ${params.blast_mode}
-    elif [[ ${blast_results} == *assembly*_blastn.bls ]] ;
+    elif [[ ${params.analysis_mode} == "denovo_assembly" ]] ;
     then
       mkdir -p assembly/blastn
       cat ${blast_results} > assembly/blastn/${sampleid}_blastn.txt
       cd assembly/blastn
       select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method assembly --mode ${params.blast_mode}
+    elif [[ ${params.analysis_mode} == "read_classification" ]]
+      mkdir -p read_classification/homology_search
+      cat ${blast_results} > read_classification/homology_search/${sampleid}_blastn.txt
+      cd read_classification/homology_search
+      select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method read_classification --mode ${params.blast_mode}
     fi
-    """
-}
-
-process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
-  tag "${sampleid}"
-  label "setting_2"
-  publishDir "$params.outdir/$sampleid/read_classification", mode: 'copy', pattern: 'homology_search/*txt', overwrite: true
-  publishDir "$params.outdir/$sampleid/read_classification", mode: 'copy', pattern: 'homology_search/*html', overwrite: true
-  containerOptions "${bindOptions}"
-
-  input:
-    tuple val(sampleid), path(blast_results)
-
-  output:
-    file "*/${sampleid}*_blastn_top_hits.txt"
-    file "*/${sampleid}*_blastn_top_viral_hits.txt"
-    file "*/${sampleid}*_blastn_top_viral_spp_hits.txt"
-    file "*/${sampleid}*_queryid_list_with_viral_match.txt"
-    file "*/${sampleid}*_viral_spp_abundance.txt"
-    file "*/*report*html"
-
-    tuple val(sampleid), path("*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
-    tuple val(sampleid), path("*/${sampleid}*_viral_spp_abundance_filtered.txt"), emit: blast_results_filt
-
-  script:
-    """
-    mkdir homology_search
-    cat ${blast_results} > homology_search/${sampleid}_blastn.txt
-    cd homology_search
-    select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method read_classification --mode ${params.blast_mode}
     """
 }
 
@@ -782,7 +756,7 @@ process KAIJU_HTML {
 }
 */
 process READ_CLASSIFICATION_HTML {
-  publishDir "${params.outdir}/${sampleid}/read_classification/Summary", mode: 'copy', overwrite: true
+  publishDir "${params.outdir}/${sampleid}/read_classification/summary", mode: 'copy', overwrite: true
   label 'local'
   containerOptions "${bindOptions}"
   tag "${sampleid}"
@@ -1044,7 +1018,7 @@ process FASTCAT {
 
 process DETECTION_REPORT {
   label "local"
-    publishDir "${params.outdir}/Summary", mode: 'copy', overwrite: true
+    publishDir "${params.outdir}/summary", mode: 'copy', overwrite: true
     containerOptions "${bindOptions}"
 
   input:
@@ -1072,7 +1046,6 @@ include { NANOPLOT as QC_PRE_DATA_PROCESSING } from './modules.nf'
 include { NANOPLOT as QC_POST_DATA_PROCESSING } from './modules.nf'
 include { BLASTN as READ_CLASSIFICATION_BLASTN } from './modules.nf'
 include { BLASTN as ASSEMBLY_BLASTN } from './modules.nf'
-//include { BLASTN as CLUSTERING_BLASTN } from './modules.nf'
 
 workflow {
   if (params.samplesheet) {
@@ -1152,7 +1125,6 @@ workflow {
     }
 
     if ( params.qual_filt & params.host_filtering | params.adapter_trimming & params.host_filtering ) {
-      ch_multiqc_files = Channel.empty()
       ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
       ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS_STEP1.out.read_counts.collect().ifEmpty([]))
       ch_multiqc_files = ch_multiqc_files.mix(QC_POST_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
@@ -1160,14 +1132,12 @@ workflow {
     }
 
     else if ( params.host_filtering & !params.adapter_trimming & !params.qual_filt ) {
-      ch_multiqc_files = Channel.empty()
       ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
       ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS_STEP1.out.read_counts.collect().ifEmpty([]))
       QCREPORT(ch_multiqc_files.collect())
     }
 
     else if ( params.qual_filt & !params.host_filtering | params.adapter_trimming & !params.host_filtering) {
-      ch_multiqc_files = Channel.empty()
       ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
       ch_multiqc_files = ch_multiqc_files.mix(QC_POST_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
       QCREPORT(ch_multiqc_files.collect())
@@ -1237,7 +1207,7 @@ workflow {
           READ_CLASSIFICATION_BLASTN.out.blast_results
             .groupTuple()
             .set { ch_blastresults }
-          EXTRACT_VIRAL_BLAST_SPLIT_HITS( ch_blastresults )
+          EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
         }
         if (params.kaiju) {
           KAIJU ( final_fq )
@@ -1250,7 +1220,7 @@ workflow {
 
         foo_in_ch = Channel.empty()
         if ( params.megablast & !params.kaiju & !params.kraken2 ) {
-        READ_CLASSIFICATION_HTML( EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results ).concat(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results_filt).groupTuple().map { [it[0], it[1].flatten()] }.view()
+        READ_CLASSIFICATION_HTML( EXTRACT_VIRAL_BLAST_HITS.out.blast_results ).concat(EXTRACT_VIRAL_BLAST_HITS.out.blast_results_filt).groupTuple().map { [it[0], it[1].flatten()] }
         }
         else if (params.kaiju & !params.megablast & !params.kraken2) {
           READ_CLASSIFICATION_HTML( KAIJU.out.kaiju_results )
@@ -1259,19 +1229,19 @@ workflow {
           READ_CLASSIFICATION_HTML(BRACKEN.out.bracken_results )
         }
         else if (params.megablast & !params.kaiju & params.kraken2) {
-          foo_in_ch = EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results.concat(BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
+          foo_in_ch = EXTRACT_VIRAL_BLAST_HITS.out.blast_results.concat(BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }
           READ_CLASSIFICATION_HTML( foo_in_ch )
         }
         else if (params.megablast & params.kaiju & !params.kraken2) {
-          foo_in_ch = EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results.concat(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results_filt, KAIJU.out.kaiju_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
+          foo_in_ch = EXTRACT_VIRAL_BLAST_HITS.out.blast_results.concat(EXTRACT_VIRAL_BLAST_HITS.out.blast_results_filt, KAIJU.out.kaiju_results).groupTuple().map { [it[0], it[1].flatten()] }
           READ_CLASSIFICATION_HTML( foo_in_ch )
         }
         else if (!params.megablast & params.kaiju & params.kraken2) {
-          foo_in_ch = KAIJU.out.kaiju_results.concat(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results_filt, BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
+          foo_in_ch = KAIJU.out.kaiju_results.concat(EXTRACT_VIRAL_BLAST_HITS.out.blast_results_filt, BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }
           READ_CLASSIFICATION_HTML( foo_in_ch )
         }
         else if (params.megablast & params.kaiju & params.kraken2) {
-          foo_in_ch = KAIJU.out.kaiju_results.concat(EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results, EXTRACT_VIRAL_BLAST_SPLIT_HITS.out.blast_results_filt, BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }.view()
+          foo_in_ch = KAIJU.out.kaiju_results.concat(EXTRACT_VIRAL_BLAST_HITS.out.blast_results, EXTRACT_VIRAL_BLAST_HITS.out.blast_results_filt, BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }
           READ_CLASSIFICATION_HTML( foo_in_ch )
         }
       }
