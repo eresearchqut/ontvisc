@@ -19,17 +19,21 @@ def main():
 #     timestr = time.strftime("%Y%m%d-%H%M%S")
 
     run_data = pd.DataFrame()
+    
     for fl in glob.glob("*_top_blast_with_cov_stats.txt"):
         sample_data = pd.read_csv(fl, header=0, sep="\t",index_col=None)
-        
         run_data = pd.concat([run_data, sample_data], axis = 0)
     print(run_data)
     
-    
-    run_data = run_data[["Sample","species","stitle","qseqid","sacc","length","pident","sstrand","evalue","bitscore","bitscore","qcovs","read_count","mean_cov","RPKM","PCT_5X","PCT_10X","PCT_20X"]]
-    contamination_flag(run_data,threshold)
-    
-    run_data.to_csv("summary_detection.txt", index=None, sep="\t")
+    if len(run_data) == 0:
+        print("DataFrame is empty!")
+        dummy = open("summary_detection.txt", "w")
+        dummy.write("Sample\tspecies\tstitle\tqseqid\tsacc\tlength\tpident\tsstrand\tevalue\tbitscore\tqcovs\tread_count\tmean_cov\tRPKM\tPCT_5X\tPCT_10X\tPCT_20X")
+        dummy.close()
+    else:
+        run_data = run_data[["Sample","species","stitle","qseqid","sacc","length","pident","sstrand","evalue","bitscore","qcovs","read_count","mean_cov","RPKM","PCT_5X","PCT_10X","PCT_20X"]]
+        contamination_flag(run_data,threshold)
+        run_data.to_csv("summary_detection.txt", index=None, sep="\t")
 
 
 def contamination_flag(df, threshold):
