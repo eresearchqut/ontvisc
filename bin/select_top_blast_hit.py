@@ -44,15 +44,15 @@ def main():
     blastn_viral_top_hit = blastn_top_hit[blastn_top_hit["species"].str.contains('virus|viroid', na=False)].copy()
     
     if mode == "ncbi":
-        #only retain blast hits with qcovs < 90
+        #only retain blast hits with qcovs < 90 for NCBI
         blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 90].index)
     elif mode == "localdb":
-        #only retain blast hits with qcovs < 90
+        #only retain blast hits with qcovs < 95 for local db
         blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 95].index)
     #derive read/contig count per viral spp
     summary_per_spp = blastn_viral_top_hit['species'].value_counts().rename_axis('species').reset_index(name='count')
     summary_per_spp_high_conf = blastn_viral_top_hit_high_conf['species'].value_counts().rename_axis('species').reset_index(name='count')
-    
+
     summary_per_spp.to_csv(sample_name + "_" + analysis_method + "_viral_spp_abundance.txt", index=False, sep="\t")
     summary_per_spp_high_conf.to_csv(sample_name + "_" + analysis_method + "_viral_spp_abundance_filtered.txt", index=False, sep="\t")
 
@@ -75,7 +75,7 @@ def main():
     
     blastn_viral_top_hit_spp_evalue_based = blastn_viral_top_hit_f.sort_values(["evalue", "qlen"], ascending=[True, False]).groupby("species", as_index=False).first().copy()
     blastn_viral_top_hit_spp_pident_based = blastn_viral_top_hit_f.sort_values(["pident", "qlen"], ascending=[False, False]).groupby("species", as_index=False).first().copy()
-    blastn_viral_top_hit_spp_length_based = blastn_viral_top_hit_f.sort_values(["qlen", "pident"], ascending=[False, False]).groupby("species", as_index=False).first().copy()
+    blastn_viral_top_hit_spp_length_based = blastn_viral_top_hit_f.sort_values(["qlen", "evalue"], ascending=[False, False]).groupby("species", as_index=False).first().copy()
     blastn_viral_top_hit_spp_bitscore_based = blastn_viral_top_hit_f.sort_values(["bitscore", "qlen"], ascending=[False, False]).groupby("species", as_index=False).first().copy()
 
     summary_per_spp = summary_per_spp.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">')
@@ -134,22 +134,22 @@ def main():
                 ''' + spp + '''
             </div>
 
-            <button type="button" class="collapsible"> Top viral match per species based on query length (qlen) </h2></button>
+            <button type="button" class="collapsible"> Top viral match per species based on query length (qlen), followed by evalue </h2></button>
             <div class="content">
                 ''' + blastn_viral_top_hit_spp_length_based + '''
             </div>
 
-            <button type="button" class="collapsible"> Top viral match per species based on evalue </h2></button>
+            <button type="button" class="collapsible"> Top viral match per species based on evalue, followed by query length (qlen) </h2></button>
             <div class="content">
                 ''' + blastn_viral_top_hit_spp_evalue_based + '''
             </div>
 
-            <button type="button" class="collapsible"> Top viral match per species based on % identity (pident) </h2></button>
+            <button type="button" class="collapsible"> Top viral match per species based on % identity, followed by query length (qlen) (pident) </h2></button>
             <div class="content">
                 ''' + blastn_viral_top_hit_spp_pident_based + '''
             </div>
 
-            <button type="button" class="collapsible"> Top viral match per species based on bitscore </h2></button>
+            <button type="button" class="collapsible"> Top viral match per species based on bitscore, followed by query length (qlen) </h2></button>
             <div class="content">
                 ''' + blastn_viral_top_hit_spp_bitscore_based + '''
             </div>

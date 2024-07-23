@@ -139,14 +139,15 @@ process QCREPORT {
 
   input:
     path multiqc_files
+
   output:
     path("run_qc_report_*txt")
     path("run_qc_report_*html")
 
   script:
-  """
-  seq_run_qc_report.py --host_filtering ${params.host_filtering} --adapter_trimming ${params.adapter_trimming} --quality_trimming ${params.qual_filt}
-  """
+    """
+    seq_run_qc_report.py --host_filtering ${params.host_filtering} --adapter_trimming ${params.adapter_trimming} --quality_trimming ${params.qual_filt}
+    """
 }
 
 process CUTADAPT {
@@ -157,16 +158,18 @@ process CUTADAPT {
 
   input:
     tuple val(sampleid), path(sample)
+
   output:
     file("${sampleid}_cutadapt.log")
     file("${sample.baseName}_filtered.fa")
     tuple val(sampleid), path("${sample.baseName}_filtered.fa"), emit: trimmed
+
   script:
-  """
-  cutadapt -j ${task.cpus} -g "AAGCAGTGGTATCAACGCAGAGTACGCGGG;min_overlap=14" -a "CCCGCGTACTCTGCGTTGATACCACTGCTT;min_overlap=14" -o ${sample.baseName}_filtered.fa ${sample} > ${sampleid}_cutadapt.log
-  sed -i 's/len=[0-9]* reads/reads/' ${sample.baseName}_filtered.fa
-  sed -i 's/ trim=.*\$//' ${sample.baseName}_filtered.fa
-  """
+    """
+    cutadapt -j ${task.cpus} -g "AAGCAGTGGTATCAACGCAGAGTACGCGGG;min_overlap=14" -a "CCCGCGTACTCTGCGTTGATACCACTGCTT;min_overlap=14" -o ${sample.baseName}_filtered.fa ${sample} > ${sampleid}_cutadapt.log
+    sed -i 's/len=[0-9]* reads/reads/' ${sample.baseName}_filtered.fa
+    sed -i 's/ trim=.*\$//' ${sample.baseName}_filtered.fa
+    """
 }
 
 process CHOPPER {
@@ -183,9 +186,9 @@ process CHOPPER {
 
   script:
   def chopper_options = (params.chopper_options) ? " ${params.chopper_options}" : ''
-  """
-  gunzip -c ${sample} | chopper ${chopper_options} 2> ${sampleid}_chopper.log | gzip > ${sampleid}_filtered.fastq.gz
-  """
+    """
+    gunzip -c ${sample} | chopper ${chopper_options} 2> ${sampleid}_chopper.log | gzip > ${sampleid}_filtered.fastq.gz
+    """
 }
 
 /*
@@ -223,20 +226,19 @@ process CANU {
 
   script:
   def canu_options = (params.canu_options) ? " ${params.canu_options}" : ''
+    """
+    canu -p ${sampleid} -d ${sampleid} \
+      genomeSize=${params.canu_genome_size} \
+      -nanopore ${fastq} ${canu_options} 2> ${sampleid}_canu.log
 
-  """
-  canu -p ${sampleid} -d ${sampleid} \
-    genomeSize=${params.canu_genome_size} \
-    -nanopore ${fastq} ${canu_options} 2> ${sampleid}_canu.log
-
-  if [[ ! -s ${sampleid}/${sampleid}.contigs.fasta ]]
-    then
-      touch ${sampleid}_canu_assembly.fasta
-  else
-    cat ${sampleid}/${sampleid}.contigs.fasta ${sampleid}/${sampleid}.unassembled.fasta > ${sampleid}_canu_assembly.fasta
-  fi
-  cp ${fastq} ${sampleid}_canu.fastq.gz
-  """
+    if [[ ! -s ${sampleid}/${sampleid}.contigs.fasta ]]
+      then
+        touch ${sampleid}_canu_assembly.fasta
+    else
+      cat ${sampleid}/${sampleid}.contigs.fasta ${sampleid}/${sampleid}.unassembled.fasta > ${sampleid}_canu_assembly.fasta
+    fi
+    cp ${fastq} ${sampleid}_canu.fastq.gz
+    """
 }
 
 process FLYE {
@@ -246,6 +248,7 @@ process FLYE {
 
   input:
     tuple val(sampleid), path(fastq)
+
   output:
     path("${sampleid}_flye_assembly.fasta")
     path("${sampleid}_flye.log")
@@ -254,19 +257,18 @@ process FLYE {
 
   script:
   def flye_options = (params.flye_options) ? " ${params.flye_options}" : ''
+    """
+    flye ${flye_options} --out-dir outdir --threads ${task.cpus} --${params.flye_mode} ${fastq}
 
-  """
-  flye ${flye_options} --out-dir outdir --threads ${task.cpus} --${params.flye_mode} ${fastq}
-
-  if [[ ! -s outdir/assembly.fasta ]]
-    then
-      touch ${sampleid}_flye_assembly.fasta
-  else
-    cp outdir/assembly.fasta ${sampleid}_flye_assembly.fasta
-  cp outdir/flye.log ${sampleid}_flye.log
-  fi
-  cp ${fastq} ${sampleid}_flye.fastq.gz
-  """
+    if [[ ! -s outdir/assembly.fasta ]]
+      then
+        touch ${sampleid}_flye_assembly.fasta
+    else
+      cp outdir/assembly.fasta ${sampleid}_flye_assembly.fasta
+    cp outdir/flye.log ${sampleid}_flye.log
+    fi
+    cp ${fastq} ${sampleid}_flye.fastq.gz
+    """
 }
 /*
 errorStrategy 'ignore'
@@ -280,46 +282,46 @@ process BLASTN2REF {
 
   input:
     tuple val(sampleid), path(assembly)
+
   output:
     path "*/*/${sampleid}_blastn_reference_vs_*.txt"
 
   script:
-  """
-  if [[ ${assembly} == *_assembly*.fa* ]] ;
-  then
-    if [[ ${assembly} == *canu_assembly*.fa* ]] ;
+    """
+    if [[ ${assembly} == *_assembly*.fa* ]] ;
     then
-      mkdir -p assembly/blast_to_ref
-      blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_canu_assembly_tmp.txt \
+      if [[ ${assembly} == *canu_assembly*.fa* ]] ;
+      then
+        mkdir -p assembly/blast_to_ref
+        blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_canu_assembly_tmp.txt \
+        -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
+
+        echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
+
+        cat header ${sampleid}_blastn_reference_vs_canu_assembly_tmp.txt >  assembly/blast_to_ref/${sampleid}_blastn_reference_vs_canu_assembly.txt
+      elif [[ ${assembly} == *flye_assembly*.fasta ]] ;
+      then
+        mkdir -p assembly/blast_to_ref
+
+        blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_flye_assembly_tmp.txt \
+        -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
+
+        echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
+
+        cat header ${sampleid}_blastn_reference_vs_flye_assembly_tmp.txt > assembly/blast_to_ref/${sampleid}_blastn_reference_vs_flye_assembly.txt
+      fi
+    elif [[ ${assembly} == *clustering.fasta ]] ;
+    then
+      mkdir -p clustering/blast_to_ref
+
+      blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_clustering_tmp.txt \
       -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
 
       echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
 
-      cat header ${sampleid}_blastn_reference_vs_canu_assembly_tmp.txt >  assembly/blast_to_ref/${sampleid}_blastn_reference_vs_canu_assembly.txt
-    elif [[ ${assembly} == *flye_assembly*.fasta ]] ;
-    then
-      mkdir -p assembly/blast_to_ref
-
-      blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_flye_assembly_tmp.txt \
-      -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
-
-      echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
-
-      cat header ${sampleid}_blastn_reference_vs_flye_assembly_tmp.txt > assembly/blast_to_ref/${sampleid}_blastn_reference_vs_flye_assembly.txt
+      cat header ${sampleid}_blastn_reference_vs_clustering_tmp.txt > clustering/blast_to_ref/${sampleid}_blastn_reference_vs_clustering_assembly.txt
     fi
-  elif [[ ${assembly} == *clustering.fasta ]] ;
-  then
-    mkdir -p clustering/blast_to_ref
-
-    blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_clustering_tmp.txt \
-    -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
-
-    echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
-
-    cat header ${sampleid}_blastn_reference_vs_clustering_tmp.txt > clustering/blast_to_ref/${sampleid}_blastn_reference_vs_clustering_assembly.txt
-  fi
-
-  """
+    """
 }
 
 process MINIMAP2_REF {
@@ -329,12 +331,14 @@ process MINIMAP2_REF {
 
   input:
     tuple val(sampleid), path(sample)
+
   output:
     tuple val(sampleid), file("${sampleid}_aln.sam"), emit: aligned_sample
+
   script:
-  """
-  minimap2 -ax map-ont --MD --sam-hit-only ${reference_dir}/${reference_name} ${sample} > ${sampleid}_aln.sam
-  """
+    """
+    minimap2 -ax map-ont --MD --sam-hit-only ${reference_dir}/${reference_name} ${sample} > ${sampleid}_aln.sam
+    """
 }
 
 process SAMTOOLS {
@@ -344,19 +348,21 @@ process SAMTOOLS {
 
   input:
     tuple val(sampleid), path(sample)
+
   output:
     path "${sampleid}_aln.sorted.bam"
     path "${sampleid}_aln.sorted.bam.bai"
     path "${sampleid}_coverage.txt"
     path "${sampleid}_histogram"
     tuple val(sampleid), path("${sampleid}_aln.sorted.bam"), path("${sampleid}_aln.sorted.bam.bai"), emit: sorted_sample
+
   script:
-  """
-  samtools view -Sb -F 4 ${sample} | samtools sort -o ${sampleid}_aln.sorted.bam
-  samtools index ${sampleid}_aln.sorted.bam
-  samtools coverage ${sampleid}_aln.sorted.bam > ${sampleid}_histogram.txt  > ${sampleid}_coverage.txt
-  samtools coverage -A -w 50 ${sampleid}_aln.sorted.bam > ${sampleid}_histogram
-  """
+    """
+    samtools view -Sb -F 4 ${sample} | samtools sort -o ${sampleid}_aln.sorted.bam
+    samtools index ${sampleid}_aln.sorted.bam
+    samtools coverage ${sampleid}_aln.sorted.bam > ${sampleid}_histogram.txt  > ${sampleid}_coverage.txt
+    samtools coverage -A -w 50 ${sampleid}_aln.sorted.bam > ${sampleid}_histogram
+    """
 }
 
 process EXTRACT_REF_FASTA {
@@ -373,13 +379,13 @@ process EXTRACT_REF_FASTA {
     tuple val(sampleid), path("*fasta"), emit: fasta_files, optional: true
   
   script:
-  """
-  cut -f1,4 ${blast_results} | sed '1d' | sed 's/ /_/g' > ids_to_retrieve.txt
-  if [ -s ids_to_retrieve.txt ]
-    then
-      for i in `cut -f2  ids_to_retrieve.txt`; do j=`grep \${i} ids_to_retrieve.txt | cut -f1`; efetch -db nucleotide  -id \${i} -format fasta > ${sampleid}_\${i}_\${j}.fasta ; done
-  fi
-  """
+    """
+    cut -f1,4 ${blast_results} | sed '1d' | sed 's/ /_/g' > ids_to_retrieve.txt
+    if [ -s ids_to_retrieve.txt ]
+      then
+        for i in `cut -f2  ids_to_retrieve.txt`; do j=`grep \${i} ids_to_retrieve.txt | cut -f1`; efetch -db nucleotide  -id \${i} -format fasta > ${sampleid}_\${i}_\${j}.fasta ; done
+    fi
+    """
 }
 
 process MAPPING_BACK_TO_REF {
@@ -398,12 +404,12 @@ process MAPPING_BACK_TO_REF {
     tuple val(sampleid), path("*sorted.bam.bai"), emit: bai_files, optional: true
 
   script:
-  """
-  if compgen -G "*.fasta" > /dev/null;
-    then
-      mapping_back_to_ref.py --fastq ${sampleid}_preprocessed.fastq.gz
-  fi
-  """
+    """
+    if compgen -G "*.fasta" > /dev/null;
+      then
+        mapping_back_to_ref.py --fastq ${sampleid}_preprocessed.fastq.gz
+    fi
+    """
 }
 
 process MOSDEPTH {
@@ -419,18 +425,17 @@ process MOSDEPTH {
     tuple val(sampleid), path("*mosdepth.global.dist.txt"), emit: mosdepth_results, optional: true
 
   script:
-  """
-  if compgen -G "*.bam" > /dev/null;
-    then
-      for i in *bam;
-      do
-        echo \${i%.sorted.bam}
-        filen=`echo "\${i%.sorted.bam}"`
-        mosdepth \${filen} \${i};
-      done
-  fi
-  """
-
+    """
+    if compgen -G "*.bam" > /dev/null;
+      then
+        for i in *bam;
+        do
+          echo \${i%.sorted.bam}
+          filen=`echo "\${i%.sorted.bam}"`
+          mosdepth \${filen} \${i};
+        done
+    fi
+    """
 }
 
 process COVERM {
@@ -445,20 +450,19 @@ process COVERM {
     path("*"), optional: true
     tuple val(sampleid), path("*_coverm_summary.txt"), emit: coverm_results, optional: true
 
-
   script:
-  """
-  if compgen -G "*.bam" > /dev/null;
-    then
-      for i in *bam;
-      do
-        echo \${i%.sorted.bam}
-        filen=`echo "\${i%.sorted.bam}"`
-        coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_coverm_summary.txt -m count mean variance rpkm covered_bases length --min-covered-fraction 0;
-        coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_coverage_histogram.txt -m coverage_histogram --min-covered-fraction 0;
-      done
-  fi
-  """
+    """
+    if compgen -G "*.bam" > /dev/null;
+      then
+        for i in *bam;
+        do
+          echo \${i%.sorted.bam}
+          filen=`echo "\${i%.sorted.bam}"`
+          coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_coverm_summary.txt -m count mean variance rpkm covered_bases length --min-covered-fraction 0;
+          coverm genome --genome-fasta-files \${filen}.fasta --bam-files \${i} --threads ${task.cpus} --output-file \${filen}_coverage_histogram.txt -m coverage_histogram --min-covered-fraction 0;
+        done
+    fi
+    """
 }
 
 process COVSTATS {
@@ -473,16 +477,14 @@ process COVSTATS {
     path("*top_blast_with_cov_stats.txt"), optional: true
     path("*top_blast_with_cov_stats.txt"), emit: detections_summary, optional: true
 
-
   script:
-  """
-  if compgen -G "*coverm_summary.txt" > /dev/null;
-    then
-      derive_coverage_stats.py --sample ${sampleid}
-  fi
-  """
+    """
+    if compgen -G "*coverm_summary.txt" > /dev/null;
+      then
+        derive_coverage_stats.py --sample ${sampleid}
+    fi
+    """
 }
-
 
 /*
 process BAMCOVERAGE {
@@ -515,8 +517,8 @@ process BAMCOVERAGE {
   bamcov -H ${bam} > ${sampleid}.bamcov.txt
   """
 }
-
 */
+
 process PORECHOP_ABI {
   tag "${sampleid}"
   publishDir "$params.outdir/${sampleid}/preprocessing/porechop",  mode: 'link', pattern: '*_porechop.log'
@@ -533,13 +535,13 @@ process PORECHOP_ABI {
 
   script:
   def porechop_options = (params.porechop_options) ? " ${params.porechop_options}" : ''
-  """
-  if [[ ${params.porechop_custom_primers} == true ]]; then
-    porechop_abi -i ${sample} -t ${task.cpus} -o ${sampleid}_porechop_trimmed.fastq.gz --custom_adapters ${params.porechop_custom_primers_path} ${porechop_options}  > ${sampleid}_porechop.log
-  else
-    porechop_abi -i ${sample} -t ${task.cpus} -o ${sampleid}_porechop_trimmed.fastq.gz ${porechop_options}  > ${sampleid}_porechop.log
-  fi
-  """
+    """
+    if [[ ${params.porechop_custom_primers} == true ]]; then
+      porechop_abi -i ${sample} -t ${task.cpus} -o ${sampleid}_porechop_trimmed.fastq.gz --custom_adapters ${params.porechop_custom_primers_path} ${porechop_options}  > ${sampleid}_porechop.log
+    else
+      porechop_abi -i ${sample} -t ${task.cpus} -o ${sampleid}_porechop_trimmed.fastq.gz ${porechop_options}  > ${sampleid}_porechop.log
+    fi
+    """
 }
 
 //trims fastq read names after the first whitespace
@@ -549,15 +551,16 @@ process REFORMAT {
   publishDir "$params.outdir/${sampleid}/preprocessing", mode: 'copy'
 
   input:
-  tuple val(sampleid), path(fastq)
+    tuple val(sampleid), path(fastq)
+
   output:
-  tuple val(sampleid), path("${sampleid}_preprocessed.fastq.gz"), emit: reformatted_fq
-  tuple val(sampleid), path("${sampleid}_preprocessed.fastq.gz"), emit: cov_derivation_ch
+    tuple val(sampleid), path("${sampleid}_preprocessed.fastq.gz"), emit: reformatted_fq
+    tuple val(sampleid), path("${sampleid}_preprocessed.fastq.gz"), emit: cov_derivation_ch
 
   script:
-  """
-  reformat.sh in=${fastq} out=${sampleid}_preprocessed.fastq.gz trd qin=33
-  """
+    """
+    reformat.sh in=${fastq} out=${sampleid}_preprocessed.fastq.gz trd qin=33
+    """
 }
 
 process CAP3 {
@@ -568,18 +571,18 @@ process CAP3 {
   publishDir "$params.outdir/$sampleid/clustering/rattle", mode: 'copy', pattern: '*_rattle.fasta'
 
   input:
-  tuple val(sampleid), path(fasta)
-  output:
-  file("${sampleid}_rattle.fasta")
-  tuple val(sampleid), path("${sampleid}_clustering.fasta"), emit: scaffolds
+    tuple val(sampleid), path(fasta)
 
+  output:
+    file("${sampleid}_rattle.fasta")
+    tuple val(sampleid), path("${sampleid}_clustering.fasta"), emit: scaffolds
 
   script:
-  """
-  cap3 ${fasta}
-  cat ${fasta}.cap.singlets ${fasta}.cap.contigs > ${sampleid}_clustering.fasta
-  cp ${fasta} ${sampleid}_rattle.fasta
-  """
+    """
+    cap3 ${fasta}
+    cat ${fasta}.cap.singlets ${fasta}.cap.contigs > ${sampleid}_clustering.fasta
+    cp ${fasta} ${sampleid}_rattle.fasta
+    """
 }
 
 process EXTRACT_VIRAL_BLAST_HITS {
@@ -590,34 +593,35 @@ process EXTRACT_VIRAL_BLAST_HITS {
   containerOptions "${bindOptions}"
 
   input:
-  tuple val(sampleid), path(blast_results)
-  output:
-  file "*/*/${sampleid}*_blastn_top_hits.txt"
-  file "*/*/${sampleid}*_blastn_top_viral_hits*.txt"
-  file "*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"
-  file "*/*/${sampleid}*_queryid_list_with_viral_match.txt"
-  file "*/*/${sampleid}*_viral_spp_abundance.txt"
-  file "*/*/*report*html"
+    tuple val(sampleid), path(blast_results)
 
-  tuple val(sampleid), path("*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"), path("*/*/${sampleid}*_queryid_list_with_viral_match.txt"), path("*/*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
-  tuple val(sampleid), path("*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"), emit: blast_results2
+  output:
+    file "*/*/${sampleid}*_blastn_top_hits.txt"
+    file "*/*/${sampleid}*_blastn_top_viral_hits*.txt"
+    file "*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"
+    file "*/*/${sampleid}*_queryid_list_with_viral_match.txt"
+    file "*/*/${sampleid}*_viral_spp_abundance.txt"
+    file "*/*/*report*html"
+
+    tuple val(sampleid), path("*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"), path("*/*/${sampleid}*_queryid_list_with_viral_match.txt"), path("*/*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
+    tuple val(sampleid), path("*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"), emit: blast_results2
 
   script:
-  """
-  if [[ ${blast_results} == *clustering_blastn.bls ]] ;
-  then
-    mkdir -p clustering/blastn
-    cat ${blast_results} > clustering/blastn/${sampleid}_blastn.txt
-    cd clustering/blastn
-    select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method clustering --mode ${params.blast_mode}
-  elif [[ ${blast_results} == *assembly*_blastn.bls ]] ;
-  then
-    mkdir -p assembly/blastn
-    cat ${blast_results} > assembly/blastn/${sampleid}_blastn.txt
-    cd assembly/blastn
-    select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method assembly --mode ${params.blast_mode}
-  fi
-  """
+    """
+    if [[ ${blast_results} == *clustering_blastn.bls ]] ;
+    then
+      mkdir -p clustering/blastn
+      cat ${blast_results} > clustering/blastn/${sampleid}_blastn.txt
+      cd clustering/blastn
+      select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method clustering --mode ${params.blast_mode}
+    elif [[ ${blast_results} == *assembly*_blastn.bls ]] ;
+    then
+      mkdir -p assembly/blastn
+      cat ${blast_results} > assembly/blastn/${sampleid}_blastn.txt
+      cd assembly/blastn
+      select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method assembly --mode ${params.blast_mode}
+    fi
+    """
 }
 
 process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
@@ -628,24 +632,26 @@ process EXTRACT_VIRAL_BLAST_SPLIT_HITS {
   containerOptions "${bindOptions}"
 
   input:
-  tuple val(sampleid), path(blast_results)
-  output:
-  file "*/${sampleid}*_blastn_top_hits.txt"
-  file "*/${sampleid}*_blastn_top_viral_hits.txt"
-  file "*/${sampleid}*_blastn_top_viral_spp_hits.txt"
-  file "*/${sampleid}*_queryid_list_with_viral_match.txt"
-  file "*/${sampleid}*_viral_spp_abundance.txt"
-  file "*/*report*html"
+    tuple val(sampleid), path(blast_results)
 
-  tuple val(sampleid), path("*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
-  tuple val(sampleid), path("*/${sampleid}*_viral_spp_abundance_filtered.txt"), emit: blast_results_filt
+  output:
+    file "*/${sampleid}*_blastn_top_hits.txt"
+    file "*/${sampleid}*_blastn_top_viral_hits.txt"
+    file "*/${sampleid}*_blastn_top_viral_spp_hits.txt"
+    file "*/${sampleid}*_queryid_list_with_viral_match.txt"
+    file "*/${sampleid}*_viral_spp_abundance.txt"
+    file "*/*report*html"
+
+    tuple val(sampleid), path("*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
+    tuple val(sampleid), path("*/${sampleid}*_viral_spp_abundance_filtered.txt"), emit: blast_results_filt
+
   script:
-  """
-  mkdir homology_search
-  cat ${blast_results} > homology_search/${sampleid}_blastn.txt
-  cd homology_search
-  select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method read_classification --mode ${params.blast_mode}
-  """
+    """
+    mkdir homology_search
+    cat ${blast_results} > homology_search/${sampleid}_blastn.txt
+    cd homology_search
+    select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method read_classification --mode ${params.blast_mode}
+    """
 }
 
 process CONCATENATE_FASTA {
@@ -654,20 +660,21 @@ process CONCATENATE_FASTA {
   publishDir "${params.outdir}/${sampleid}", mode: 'link'
 
   input:
-  tuple val(sampleid), path("${sampleid}_canu_assembly.fasta")
-  tuple val(sampleid), path("${sampleid}_cap3.fasta")
-  tuple val(sampleid), path("${sampleid}.fasta")
+    tuple val(sampleid), path("${sampleid}_canu_assembly.fasta")
+    tuple val(sampleid), path("${sampleid}_cap3.fasta")
+    tuple val(sampleid), path("${sampleid}.fasta")
+
   output:
-  file "${sampleid}_merged.fasta"
-  tuple val(sampleid), path("*_merged.fasta"), emit: assembly
+    file "${sampleid}_merged.fasta"
+    tuple val(sampleid), path("*_merged.fasta"), emit: assembly
 
   script:
-  """
-  seqtk seq -l0 ${sampleid}_canu_assembly.fasta > ${sampleid}_canu_assembly_1l.fasta
-  seqtk seq -l0 ${sampleid}_cap3.fasta >  ${sampleid}_cap3_1l.fasta
-  seqtk seq -l0 ${sampleid}.fasta >  ${sampleid}_1l.fasta
-  cat  ${sampleid}_canu_assembly_1l.fasta ${sampleid}_cap3_1l.fasta  ${sampleid}.fasta > ${sampleid}_merged.fasta
-  """
+    """
+    seqtk seq -l0 ${sampleid}_canu_assembly.fasta > ${sampleid}_canu_assembly_1l.fasta
+    seqtk seq -l0 ${sampleid}_cap3.fasta >  ${sampleid}_cap3_1l.fasta
+    seqtk seq -l0 ${sampleid}.fasta >  ${sampleid}_1l.fasta
+    cat  ${sampleid}_canu_assembly_1l.fasta ${sampleid}_cap3_1l.fasta  ${sampleid}.fasta > ${sampleid}_merged.fasta
+    """
 }
 
 /*
@@ -725,34 +732,34 @@ process KAIJU {
   tag "${sampleid}"
 
   input:
-  tuple val(sampleid), path(fastq)
+    tuple val(sampleid), path(fastq)
 
   output:
-  file "${sampleid}_kaiju_name.tsv"
-  file "${sampleid}_kaiju_summary*.tsv"
-  file "${sampleid}_kaiju.krona"
-  tuple val(sampleid), path("${sampleid}_kaiju_summary_viral.tsv"), emit: kaiju_results
-  tuple val(sampleid), path("*kaiju.krona"), emit: krona_results
+    file "${sampleid}_kaiju_name.tsv"
+    file "${sampleid}_kaiju_summary*.tsv"
+    file "${sampleid}_kaiju.krona"
+    tuple val(sampleid), path("${sampleid}_kaiju_summary_viral.tsv"), emit: kaiju_results
+    tuple val(sampleid), path("*kaiju.krona"), emit: krona_results
 
   script:
-  """
-  c1grep() { grep "\$@" || test \$? = 1; }
+    """
+    c1grep() { grep "\$@" || test \$? = 1; }
 
-  kaiju \
-      -z ${params.kaiju_threads} \
-      -t ${params.kaiju_nodes}  \
-      -f ${params.kaiju_dbname} \
-      -o ${sampleid}_kaiju.tsv \
-      -i ${fastq} \
-      -v
+    kaiju \
+        -z ${params.kaiju_threads} \
+        -t ${params.kaiju_nodes}  \
+        -f ${params.kaiju_dbname} \
+        -o ${sampleid}_kaiju.tsv \
+        -i ${fastq} \
+        -v
 
-  kaiju-addTaxonNames -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju_name.tsv
-  kaiju2table -e -t ${params.kaiju_nodes} -r species -n ${params.kaiju_names} -o ${sampleid}_kaiju_summary.tsv ${sampleid}_kaiju.tsv
-  kaiju2krona -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju.krona
+    kaiju-addTaxonNames -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju_name.tsv
+    kaiju2table -e -t ${params.kaiju_nodes} -r species -n ${params.kaiju_names} -o ${sampleid}_kaiju_summary.tsv ${sampleid}_kaiju.tsv
+    kaiju2krona -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju.krona
 
-  c1grep "taxon_id\\|virus\\|viroid\\|viricota\\|viridae\\|viriform\\|virales\\|virinae\\|viricetes\\|virae\\|viral" ${sampleid}_kaiju_summary.tsv > ${sampleid}_kaiju_summary_viral.tsv
-  awk -F'\\t' '\$2>=0.05' ${sampleid}_kaiju_summary_viral.tsv > ${sampleid}_kaiju_summary_viral_filtered.tsv
-  """
+    c1grep "taxon_id\\|virus\\|viroid\\|viricota\\|viridae\\|viriform\\|virales\\|virinae\\|viricetes\\|virae\\|viral" ${sampleid}_kaiju_summary.tsv > ${sampleid}_kaiju_summary_viral.tsv
+    awk -F'\\t' '\$2>=0.05' ${sampleid}_kaiju_summary_viral.tsv > ${sampleid}_kaiju_summary_viral_filtered.tsv
+    """
 }
 /*
 process KAIJU_HTML {
@@ -781,15 +788,15 @@ process READ_CLASSIFICATION_HTML {
   tag "${sampleid}"
 
   input:
-  tuple val(sampleid), path(results)
+    tuple val(sampleid), path(results)
 
   output:
-  file "*_read_classification_report.html"
+    file "*_read_classification_report.html"
 
   script:
-  """
-  summary_read_classification.py --sample ${sampleid} --mode ${params.blast_mode}
-  """
+    """
+    summary_read_classification.py --sample ${sampleid}
+    """
 }
 
 process KRONA {
@@ -799,15 +806,15 @@ process KRONA {
   tag "${sampleid}"
 
   input:
-  tuple val(sampleid), path(krona_input)
+    tuple val(sampleid), path(krona_input)
 
   output:
-  file "${sampleid}_krona.html"
+    file "${sampleid}_krona.html"
 
   script:
-  """
-  ktImportText -o ${sampleid}_krona.html ${krona_input}
-  """
+    """
+    ktImportText -o ${sampleid}_krona.html ${krona_input}
+    """
 }
 
 /*
@@ -856,59 +863,60 @@ Usage: kraken2 [options] <filename(s)>
 */
 
 process KRAKEN2 {
-	tag "${sampleid}"
-	label 'setting_5'
-	publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'copy'
+  tag "${sampleid}"
+  label 'setting_5'
+  publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'copy'
   containerOptions "${bindOptions}"
 
-	input:
-		tuple val(sampleid), path(fastq)
+  input:
+    tuple val(sampleid), path(fastq)
 
-	output:
-		file("${sampleid}.kraken2")
+  output:
+    file("${sampleid}.kraken2")
     file("${sampleid}_kraken_report.txt")
     file("${sampleid}_unclassified.fastq")
     tuple val(sampleid), path("${sampleid}_kraken_report.txt"), emit: results
-	script:
-	"""
-	kraken2 --db ${params.krkdb} \
-          --use-names \
-          --threads ${task.cpus} \
-          --report ${sampleid}_kraken_report.txt \
-          --report-minimizer-data \
-          --minimum-hit-groups 3 \
-          --unclassified-out ${sampleid}_unclassified.fastq \
-          ${fastq} > ${sampleid}.kraken2
-  """
+
+  script:
+    """
+    kraken2 --db ${params.krkdb} \
+            --use-names \
+            --threads ${task.cpus} \
+            --report ${sampleid}_kraken_report.txt \
+            --report-minimizer-data \
+            --minimum-hit-groups 3 \
+            --unclassified-out ${sampleid}_unclassified.fastq \
+            ${fastq} > ${sampleid}.kraken2
+    """
 }
 
 process BRACKEN {
   tag "${sampleid}"
-	label 'setting_2'
-	publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'copy'
+  label 'setting_2'
+  publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'copy'
   containerOptions "${bindOptions}"
 
-	input:
-		tuple val(sampleid), path(kraken_report)
+  input:
+    tuple val(sampleid), path(kraken_report)
 
-	output:
-		file("${sampleid}_bracken_report*.txt")
+  output:
+    file("${sampleid}_bracken_report*.txt")
 
     tuple val(sampleid), path("${sampleid}_bracken_report_viral.txt"), emit: bracken_results
 
-	script:
-	"""
-  c1grep() { grep "\$@" || test \$? = 1; }
+  script:
+    """
+    c1grep() { grep "\$@" || test \$? = 1; }
 
-	est_abundance.py -i ${kraken_report} \
-                  -k ${params.krkdb}/database50mers.kmer_distrib \
-                  -t 1 \
-                  -l S -o ${sampleid}_bracken_report.txt
+    est_abundance.py -i ${kraken_report} \
+                    -k ${params.krkdb}/database50mers.kmer_distrib \
+                    -t 1 \
+                    -l S -o ${sampleid}_bracken_report.txt
 
 
-  c1grep  "taxonomy_id\\|virus\\|viroid" ${sampleid}_bracken_report.txt > ${sampleid}_bracken_report_viral.txt
-  awk -F'\\t'  '\$7>=0.0001'  ${sampleid}_bracken_report_viral.txt > ${sampleid}_bracken_report_viral_filtered.txt
-  """
+    c1grep  "taxonomy_id\\|virus\\|viroid" ${sampleid}_bracken_report.txt > ${sampleid}_bracken_report_viral.txt
+    awk -F'\\t'  '\$7>=0.0001'  ${sampleid}_bracken_report_viral.txt > ${sampleid}_bracken_report_viral_filtered.txt
+    """
 }
 
 process BRACKEN_HTML {
@@ -917,18 +925,16 @@ process BRACKEN_HTML {
 	publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'link'
   containerOptions "${bindOptions}"
 
-	input:
-		tuple val(sampleid), path(braken_report)
+  input:
+    tuple val(sampleid), path(braken_report)
 
-	output:
-
+  output:
     file("*_bracken_report.html")
 
-
-	script:
-	"""
-  kraken_html_report.py --sample ${sampleid}
-  """
+  script:
+    """
+    kraken_html_report.py --sample ${sampleid}
+    """
 }
 
 process RATTLE {
@@ -945,17 +951,17 @@ process RATTLE {
     tuple val(sampleid), path("transcriptome.fq"), emit: clusters
     tuple val(sampleid), path(fastq), path("transcriptome.fq"), emit: clusters2
 
+  script:
   def rattle_polishing_options = (params.rattle_polishing_options) ? " ${params.rattle_polishing_options}" : ''
   def rattle_clustering_options = (params.rattle_clustering_options) ? " ${params.rattle_clustering_options}" : ''
-  script:
-  """
-  rattle cluster -i ${fastq} -t ${task.cpus} ${rattle_clustering_options}  -o .
-  rattle cluster_summary -i ${fastq} -c clusters.out > ${sampleid}_cluster_summary.txt
-  mkdir clusters
-  rattle extract_clusters -i ${fastq} -c clusters.out -l ${sampleid} -o clusters --fastq
-  rattle correct -i ${fastq} -c clusters.out -t ${task.cpus} -l ${sampleid}
-  rattle polish -i consensi.fq -t ${task.cpus} --summary ${rattle_polishing_options}
-  """
+    """
+    rattle cluster -i ${fastq} -t ${task.cpus} ${rattle_clustering_options}  -o .
+    rattle cluster_summary -i ${fastq} -c clusters.out > ${sampleid}_cluster_summary.txt
+    mkdir clusters
+    rattle extract_clusters -i ${fastq} -c clusters.out -l ${sampleid} -o clusters --fastq
+    rattle correct -i ${fastq} -c clusters.out -t ${task.cpus} -l ${sampleid}
+    rattle polish -i consensi.fq -t ${task.cpus} --summary ${rattle_polishing_options}
+    """
 }
 
 process MEDAKA {
@@ -972,14 +978,14 @@ process MEDAKA {
 
   script:
   def medaka_consensus_options = (params.medaka_consensus_options) ? " ${params.medaka_consensus_options}" : ''
-  """
-  medaka consensus ${bam} ${sampleid}_medaka_consensus_probs.hdf \
-     ${medaka_consensus_options} --threads ${task.cpus}
+    """
+    medaka consensus ${bam} ${sampleid}_medaka_consensus_probs.hdf \
+      ${medaka_consensus_options} --threads ${task.cpus}
 
-  medaka variant ${reference_dir}/${reference_name} ${sampleid}_medaka_consensus_probs.hdf ${sampleid}_medaka.vcf
-  medaka tools annotate --dpsp ${sampleid}_medaka.vcf ${reference_dir}/${reference_name} ${bam} \
-        ${sampleid}_medaka.annotated.unfiltered.vcf
-  """
+    medaka variant ${reference_dir}/${reference_name} ${sampleid}_medaka_consensus_probs.hdf ${sampleid}_medaka.vcf
+    medaka tools annotate --dpsp ${sampleid}_medaka.vcf ${reference_dir}/${reference_name} ${bam} \
+          ${sampleid}_medaka.annotated.unfiltered.vcf
+    """
 }
 
 process FILTER_VCF {
@@ -996,19 +1002,19 @@ process FILTER_VCF {
     path("${sampleid}_medaka.annotated.vcf.gz")
 
   script:
-  """
-  bcftools reheader ${vcf} -s <(echo '${sampleid}') \
-  | bcftools filter \
-      -e 'INFO/DP < ${params.bcftools_min_coverage}' \
-      -s LOW_DEPTH \
-      -Oz -o ${sampleid}_medaka.annotated.vcf.gz
+    """
+    bcftools reheader ${vcf} -s <(echo '${sampleid}') \
+    | bcftools filter \
+        -e 'INFO/DP < ${params.bcftools_min_coverage}' \
+        -s LOW_DEPTH \
+        -Oz -o ${sampleid}_medaka.annotated.vcf.gz
 
-  # create consensus
-  bcftools index ${sampleid}_medaka.annotated.vcf.gz
-  bcftools consensus -f ${reference_dir}/${reference_name} ${sampleid}_medaka.annotated.vcf.gz \
-      -i 'FILTER="PASS"' \
-      -o ${sampleid}_medaka.consensus.fasta
-  """
+    # create consensus
+    bcftools index ${sampleid}_medaka.annotated.vcf.gz
+    bcftools consensus -f ${reference_dir}/${reference_name} ${sampleid}_medaka.annotated.vcf.gz \
+        -i 'FILTER="PASS"' \
+        -o ${sampleid}_medaka.consensus.fasta
+    """
 }
 
 
@@ -1026,16 +1032,16 @@ process FASTCAT {
     tuple val(sampleid), path("${sampleid}.fastq.gz"), emit: merged
 
   script:
-  """
-  fastcat \
-      -s ${sampleid} \
-      -f ${sampleid}_stats.tsv \
-      --histograms histograms \
-      ${fastq} \
-      | bgzip > ${sampleid}.fastq.gz
-  """
+    """
+    fastcat \
+        -s ${sampleid} \
+        -f ${sampleid}_stats.tsv \
+        --histograms histograms \
+        ${fastq} \
+        | bgzip > ${sampleid}.fastq.gz
+    """
 }
-//
+
 process DETECTION_REPORT {
   label "local"
     publishDir "${params.outdir}/Summary", mode: 'copy', overwrite: true
@@ -1047,12 +1053,10 @@ process DETECTION_REPORT {
   output:
     path("summary_detection.txt")
 
-
   script:
-  """
-  detection_summary.py --threshold ${params.contamination_flag}
-  """
-
+    """
+    detection_summary.py --threshold ${params.contamination_flag}
+    """
 }
 
 include { MINIMAP2_ALIGN_RNA } from './modules.nf'
@@ -1068,7 +1072,7 @@ include { NANOPLOT as QC_PRE_DATA_PROCESSING } from './modules.nf'
 include { NANOPLOT as QC_POST_DATA_PROCESSING } from './modules.nf'
 include { BLASTN as READ_CLASSIFICATION_BLASTN } from './modules.nf'
 include { BLASTN as ASSEMBLY_BLASTN } from './modules.nf'
-include { BLASTN as CLUSTERING_BLASTN } from './modules.nf'
+//include { BLASTN as CLUSTERING_BLASTN } from './modules.nf'
 
 workflow {
   if (params.samplesheet) {
@@ -1180,10 +1184,12 @@ workflow {
         if (params.blast_vs_ref) {
           BLASTN2REF ( contigs )
           }
+        /*
         else {
           CLUSTERING_BLASTN ( contigs )
           EXTRACT_VIRAL_BLAST_HITS ( CLUSTERING_BLASTN.out.blast_results )
         }
+        */
       }
 
       //perform de novo assembly using either canu or flye
@@ -1200,34 +1206,27 @@ workflow {
           CUTADAPT ( contigs )
           contigs = CUTADAPT.out.trimmed
         }
-      //limit blast homology search to a reference
+        //limit blast homology search to a reference
         if (params.blast_vs_ref) {
           BLASTN2REF ( contigs )
         }
-      //blast against a database
-      //else {
-      //  BLASTN( contigs.splitFasta(by: 5000, file: true) )
-      //  BLASTN.out.blast_results
-      //    .groupTuple()
-      //    .set { ch_blastresults }
-        else {
-          ASSEMBLY_BLASTN ( contigs )
-          EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
-          EXTRACT_REF_FASTA (EXTRACT_VIRAL_BLAST_HITS.out.blast_results2)
+      
+      //blast to NCBI
+      }
+      if ( params.analysis_mode == 'denovo_assembly' | params.analysis_mode == 'clustering' & !params.blast_vs_ref ) {
+        ASSEMBLY_BLASTN ( contigs )
+        EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
+        EXTRACT_REF_FASTA (EXTRACT_VIRAL_BLAST_HITS.out.blast_results2)
 
-          mapping_ch = Channel.empty()
-          mapping_ch = EXTRACT_REF_FASTA.out.fasta_files.concat(REFORMAT.out.cov_derivation_ch).groupTuple().map { [it[0], it[1].flatten()] }//.view()
-          MAPPING_BACK_TO_REF ( mapping_ch )
-          bamf_ch = Channel.empty()
-          bamf_ch = MAPPING_BACK_TO_REF.out.bam_files.concat(MAPPING_BACK_TO_REF.out.bai_files, EXTRACT_REF_FASTA.out.fasta_files).groupTuple().map { [it[0], it[1].flatten()] }//.view()
-          MOSDEPTH (bamf_ch)
-          COVERM (bamf_ch)
-          cov_stats_summary_ch = Channel.empty()
-          cov_stats_summary_ch = MOSDEPTH.out.mosdepth_results.concat(COVERM.out.coverm_results, EXTRACT_REF_FASTA.out.fasta_files, EXTRACT_VIRAL_BLAST_HITS.out.blast_results2).groupTuple().map { [it[0], it[1].flatten()] }//.view()
-          COVSTATS(cov_stats_summary_ch)
+        mapping_ch = EXTRACT_REF_FASTA.out.fasta_files.concat(REFORMAT.out.cov_derivation_ch).groupTuple().map { [it[0], it[1].flatten()] }//.view()
+        MAPPING_BACK_TO_REF ( mapping_ch )
+        bamf_ch = MAPPING_BACK_TO_REF.out.bam_files.concat(MAPPING_BACK_TO_REF.out.bai_files, EXTRACT_REF_FASTA.out.fasta_files).groupTuple().map { [it[0], it[1].flatten()] }//.view()
+        MOSDEPTH (bamf_ch)
+        COVERM (bamf_ch)
+        cov_stats_summary_ch = MOSDEPTH.out.mosdepth_results.concat(COVERM.out.coverm_results, EXTRACT_REF_FASTA.out.fasta_files, EXTRACT_VIRAL_BLAST_HITS.out.blast_results2).groupTuple().map { [it[0], it[1].flatten()] }//.view()
+        COVSTATS(cov_stats_summary_ch)
 
-          DETECTION_REPORT(COVSTATS.out.detections_summary.collect().ifEmpty([]))
-        }
+        DETECTION_REPORT(COVSTATS.out.detections_summary.collect().ifEmpty([]))
       }
 
       else if ( params.analysis_mode == 'read_classification') {
