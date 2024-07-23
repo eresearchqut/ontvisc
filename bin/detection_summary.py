@@ -16,7 +16,7 @@ def main():
     args = parser.parse_args()
     threshold = args.threshold
     
-#     timestr = time.strftime("%Y%m%d-%H%M%S")
+    timestr = time.strftime("%Y%m%d-%H%M%S")
 
     run_data = pd.DataFrame()
     
@@ -27,13 +27,13 @@ def main():
     
     if len(run_data) == 0:
         print("DataFrame is empty!")
-        dummy = open("summary_detection.txt", "w")
+        dummy = open(("detection_summary_" + timestr + ".txt"), "w")
         dummy.write("Sample\tspecies\tstitle\tqseqid\tsacc\tlength\tpident\tsstrand\tevalue\tbitscore\tqcovs\tread_count\tmean_cov\tRPKM\tPCT_5X\tPCT_10X\tPCT_20X")
         dummy.close()
     else:
         run_data = run_data[["Sample","species","stitle","qseqid","sacc","length","pident","sstrand","evalue","bitscore","qcovs","read_count","mean_cov","RPKM","PCT_5X","PCT_10X","PCT_20X"]]
         contamination_flag(run_data,threshold)
-        run_data.to_csv("summary_detection.txt", index=None, sep="\t")
+        run_data.to_csv("detection_summary_" + timestr + ".txt", index=None, sep="\t")
 
 
 def contamination_flag(df, threshold):
