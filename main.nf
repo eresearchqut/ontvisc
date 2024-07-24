@@ -503,7 +503,7 @@ process MOSDEPTH {
 process COVERM {
   tag "$sampleid"
   label "setting_3"
-  publishDir "${params.outdir}/${sampleid}/alignments", mode: 'copy'
+  publishDir "${params.outdir}/${sampleid}/alignments", mode: 'copy', pattern: '*coverage_histogram.txt'
 
   input:
     tuple val(sampleid), path("*")
