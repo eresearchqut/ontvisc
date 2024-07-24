@@ -19,7 +19,7 @@ def main():
         blastn_results = pd.read_csv(blast_results, sep="\t", index_col=False)
         blast_df = blastn_results[["species", "stitle", "qseqid", "sacc", "length", "pident", "sstrand", "evalue", "bitscore", "qcovs"]]
         blast_df.columns = ["species", "reference_title", "query_id", "reference_accession", "query_length", "pc_ident", "orientation", "evalue", "bitscore", "query_coverage"]
-        sacc_list = blast_df["sacc"].tolist()
+        sacc_list = blast_df["reference_accession"].tolist()
         for sacc in sacc_list:
             for coverm_results in glob("*_coverm_summary.txt"):
                 if sacc in str(coverm_results):

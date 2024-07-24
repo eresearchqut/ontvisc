@@ -482,7 +482,8 @@ process MOSDEPTH {
     tuple val(sampleid), path("*")
 
   output:
-    path("*"), optional: true
+    path("*.mosdepth.global.dist.txt"), optional: true
+    path("*.per-base.bed.gz*"), optional: true
     tuple val(sampleid), path("*mosdepth.global.dist.txt"), emit: mosdepth_results, optional: true
 
   script:
@@ -508,7 +509,7 @@ process COVERM {
     tuple val(sampleid), path("*")
 
   output:
-    path("*"), optional: true
+    path("*coverage_histogram.txt"), optional: true
     tuple val(sampleid), path("*_coverm_summary.txt"), emit: coverm_results, optional: true
 
   script:
