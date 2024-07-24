@@ -21,45 +21,106 @@ def helpMessage () {
       --samplesheet '[path/to/file]'    Path to the csv file that contains the list of
                                         samples to be analysed by this pipeline.
                                         Default:  'index.csv'
-    Contents of samplesheet csv:
+      --help                            Will print this usage document
+    Contents of index.csv:
       sampleid,sample_files
       SAMPLE01,/user/folder/sample.fastq.gz
       SAMPLE02,/user/folder/*.fastq.gz
 
-      sample_files can refer to a folder with a number of
-      files that will be merged in the pipeline
-
       #### Pre-processing and QC options ####
+      --merge                         Merge fastq files with the same sample name
       --qc_only                       Only perform preliminary QC step using Nanoplot
-      --analysis_mode                 clustering, denovo_assembly, read_classification, map2ref
-                                      Default: ''
+                                      Default: false
+      --preprocessing_only            Only perform preprocessing steps specied
+                                      Default: false
+
       --adapter_trimming              Run porechop step
-                                      [False]
+                                      Default: false
       --porechop_options              Porechop_ABI options
-                                      [null]
-      --qual_filt                     Run quality filtering step
+                                      Default: ''
+      --porechop_custom_primers       Limit porechop search to custom adapters specified under porechop_custom_primers_path
+                                      Default: ''
+      --porechop_custom_primers_path  Path to custom adpaters for porechop
+                                      Default: ''
+
+      --qual_filt                     Run quality filtering step using chopper
                                       [False]
       --chopper_options               Chopper options
-                                      [null]
+                                      Default: ''
+
       --host_filtering                Run host filtering step using Minimap2
                                       Default: false
-      --host_fasta                    Fasta file of nucleotide sequences to filter
-                                      [null]
+      --host_fasta                    Path to the fasta file of nucleotide sequences to filter
+                                      Default: ''
+
+      #### Analysis mode and associated parameters ####
+      
+      --analysis_mode                 clustering, denovo_assembly, read_classification, map2ref
+                                      Default: '' [required]
+
+      ### De novo assembly (denovo_assembly) ###
       --canu                          Use Canu for de novo assembly step
                                       Default: false
+      --canu_genome_size              Expected genome size of target
+                                      Default: '0.01m'
       --canu_options                  Canu options
                                       Default:  ''
+
       --flye                          Use Flye for de novo assembly step
-      --flye_ont_mode                 Select from nano-raw, nano-corr, nano-hq
+      --flye_mode                     Select from nano-raw, nano-corr, nano-hq
                                       Default:  'nano-raw'
       --flye_options                  Flye options
                                       Default: ''
+
+      --final_primer_check            Performs a final primer check using cutadapt after performing de novo assembly step
+                                      Default: false
+
+      ### Clustering (clustering) ###
       --rattle_clustering_options     Rattle clustering options
                                       Default: ''
       --rattle_polishing_options      Rattle polishing options
                                       Default: ''
-      --final_primer_check            Performs a final primer check after performing de novo assembly step
+
+      ### Map to reference (map2ref) ###
+      --reference                     Path to the reference fasta file to map reads to
+                                      Default: ''
+      --medaka_consensus_options      Medaka options
+                                      Default: ''
+      --bcftools_min_coverage         Minimum coverage required by bcftools for annotation
+                                      Default: '20'
+
+      ### Read classification (read_classification) ###
+      --megablast                     Perform homology search using megablast
                                       Default: false
+      --kaiju                         Perform protein taxonomic classification using Kaiju
+                                      Default: false
+      --kaiju_threads                 Number of threads for kaiju
+                                      Default: '8'
+      --kaiju_nodes                   Path to kaiju nodes
+                                      Default: ''
+      --kaiju_dbname                  Path to kaiju database name
+                                      Default: ''
+      --kaiju_names                   Path to kaiju names
+                                      Default: ''
+      --kraken2                       Perform nucleotide taxonomic classification using Kraken2
+                                      Default: false
+      --krkdb                         Path to kraken2 database
+                                      Default: false
+      --final_primer_check            Performs a final primer check using cutadapt after performing de novo assembly step
+                                      Default: false
+      #### Blast options ####
+      --blast_mode                    Specify whether megablast search is against NCBI or a custom database
+                                      Default: ''. Select from 'ncbi' or 'localdb'
+      --blast_threads                 Number of threads for megablast
+                                      Default: '4'
+      --blastn_db                     Path to blast database
+                                      Default: '4'
+      --blast_vs_ref                  blast versus reference specified in fasta file.
+                                      Default: 'false'
+
+      ### Reporting ###
+      --contamination_flag_threshold  Percentage of maximum FPKM value to use as threshold for flagging detection as potential contamination
+                                      Default: '0.01'
 
     """.stripIndent()
 }
@@ -1035,15 +1096,51 @@ process DETECTION_REPORT {
     """
 }
 
-include { MINIMAP2_ALIGN_RNA } from './modules.nf'
-include { EXTRACT_READS as EXTRACT_READS_STEP1 } from './modules.nf'
-include { EXTRACT_READS as EXTRACT_READS_STEP2 } from './modules.nf'
-include { EXTRACT_READS as EXTRACT_READS_STEP3 } from './modules.nf'
-include { MINIMAP2_ALIGN_DNA as MAP_BACK_TO_CONTIGS } from './modules.nf'
-include { MINIMAP2_ALIGN_DNA as MAP_BACK_TO_CLUSTERS } from './modules.nf'
+process MINIMAP2_ALIGN_RNA {
+  tag "${sampleid}"
+  label "setting_8"
+  containerOptions "${bindOptions}"
+
+  input:
+  tuple val(sampleid), path(fastq)
+  path(reference)
+  output:
+  tuple val(sampleid), path(fastq), path("${sampleid}_unaligned_ids.txt"), emit: sequencing_ids
+
+  script:
+  """
+  minimap2 -ax splice -uf -k14 -L ${reference} ${fastq} -t ${task.cpus} > ${sampleid}.sam
+  awk '\$6 == "*" { print \$0 }' ${sampleid}.sam | cut -f1 | sort | uniq >  ${sampleid}_unaligned_ids.txt
+  """
+}
+
+process EXTRACT_READS {
+  tag "${sampleid}"
+  label "setting_11"
+  publishDir "${params.outdir}/${sampleid}/host_filtering", mode: 'copy', pattern: '{*.fastq.gz,*reads_count.txt}'
+
+  input:
+  tuple val(sampleid), path(fastq), path(unaligned_ids)
+  output:
+  path("*reads_count.txt"), emit: read_counts
+  file("${sampleid}_unaligned_reads_count.txt")
+  file("${sampleid}_unaligned.fastq.gz")
+  tuple val(sampleid), path("*_unaligned.fastq"), emit: unaligned_fq
+
+  script:
+  """
+  seqtk subseq ${fastq} ${unaligned_ids} > ${sampleid}_unaligned.fastq
+  gzip -c ${sampleid}_unaligned.fastq > ${sampleid}_unaligned.fastq.gz
+  
+  n_lines=\$(expr \$(cat ${sampleid}_unaligned.fastq | wc -l) / 4)
+  echo \$n_lines > ${sampleid}_unaligned_reads_count.txt
+  """
+}
+
+//include { MINIMAP2_ALIGN_RNA } from './modules.nf'
+//include { EXTRACT_READS as EXTRACT_READS } from './modules.nf'
 include { FASTQ2FASTA } from './modules.nf'
 include { FASTQ2FASTA as FASTQ2FASTA_STEP1} from './modules.nf'
-include { FASTQ2FASTA as FASTQ2FASTA_STEP2} from './modules.nf'
 include { NANOPLOT as QC_PRE_DATA_PROCESSING } from './modules.nf'
 include { NANOPLOT as QC_POST_DATA_PROCESSING } from './modules.nf'
 include { BLASTN as READ_CLASSIFICATION_BLASTN } from './modules.nf'
@@ -1118,8 +1215,8 @@ workflow {
       }
       else {
         MINIMAP2_ALIGN_RNA ( REFORMAT.out.reformatted_fq, params.host_fasta )
-        EXTRACT_READS_STEP1 ( MINIMAP2_ALIGN_RNA.out.sequencing_ids )
-        final_fq = EXTRACT_READS_STEP1.out.unaligned_fq
+        EXTRACT_READS ( MINIMAP2_ALIGN_RNA.out.sequencing_ids )
+        final_fq = EXTRACT_READS.out.unaligned_fq
       }
     }
     else {
@@ -1129,7 +1226,7 @@ workflow {
     if ( params.qual_filt & params.host_filtering | params.adapter_trimming & params.host_filtering ) {
       ch_multiqc_files = Channel.empty()
       ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
-      ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS_STEP1.out.read_counts.collect().ifEmpty([]))
+      ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS.out.read_counts.collect().ifEmpty([]))
       ch_multiqc_files = ch_multiqc_files.mix(QC_POST_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
       QCREPORT(ch_multiqc_files.collect())
     }
@@ -1137,7 +1234,7 @@ workflow {
     else if ( params.host_filtering & !params.adapter_trimming & !params.qual_filt ) {
       ch_multiqc_files = Channel.empty()
       ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
-      ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS_STEP1.out.read_counts.collect().ifEmpty([]))
+      ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS.out.read_counts.collect().ifEmpty([]))
       QCREPORT(ch_multiqc_files.collect())
     }
 
@@ -1158,13 +1255,7 @@ workflow {
 
         if (params.blast_vs_ref) {
           BLASTN2REF ( contigs )
-          }
-        /*
-        else {
-          CLUSTERING_BLASTN ( contigs )
-          EXTRACT_VIRAL_BLAST_HITS ( CLUSTERING_BLASTN.out.blast_results )
         }
-        */
       }
 
       //perform de novo assembly using either canu or flye
@@ -1185,9 +1276,9 @@ workflow {
         if (params.blast_vs_ref) {
           BLASTN2REF ( contigs )
         }
-      
+       }
+
       //blast to NCBI
-      }
       if ( params.analysis_mode == 'denovo_assembly' | params.analysis_mode == 'clustering' & !params.blast_vs_ref ) {
         ASSEMBLY_BLASTN ( contigs )
         EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
@@ -1223,7 +1314,6 @@ workflow {
           BRACKEN ( KRAKEN2.out.results )
         }
 
-        foo_in_ch = Channel.empty()
         if ( params.megablast & !params.kaiju & !params.kraken2 ) {
         READ_CLASSIFICATION_HTML( EXTRACT_VIRAL_BLAST_HITS.out.blast_results ).concat(EXTRACT_VIRAL_BLAST_HITS.out.blast_results_filt).groupTuple().map { [it[0], it[1].flatten()] }
         }

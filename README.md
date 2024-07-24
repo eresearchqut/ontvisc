@@ -56,10 +56,12 @@ f. [Results folder structure](#results-folder-structure)
   - Cluster scaffolding (Cap3)
   - Megablast homology search against ncbi or custom database (blast)
   - Derive top candidate viral hits
+  - Align reads back to top reference and derive coverage statistics (mosdepth and coverM)
 - De novo assembly mode
   - De novo assembly (Canu or Flye)
   - Megablast homology search against ncbi or custom database or reference (blast)
   - Derive top candidate viral hits
+  - Align reads back to top reference and derive coverage statistics (mosdepth and coverM)
 - Read classification mode
   - Option 1 Nucleotide-based taxonomic classification of reads (Kraken2, Braken)
   - Option 2 Protein-based taxonomic classification of reads (Kaiju, Krona)
