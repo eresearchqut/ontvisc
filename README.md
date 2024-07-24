@@ -660,13 +660,12 @@ The fasta file of the best target reference identified is extracted (**SampleNam
 
 A summary of the coverage statistics is provided in **SampleName/alignments/SampleName_referenceID_species_name_top_blast_with_cov_stats.txt**.  
 This file contains the following 17 columns:
-- Sample: sample name
+- sample: sample name
 - species: species name of target identified
-- stitle: sequence name in database
 - qseqid: query id name (ie cluster or contig name)
 - sacc:  Accession number of best homology match recovered
 - length: length of query
-- pident: Per cent identity of contig/cluster to the top reference
+- pident: Per cent identity of contig/cluster query to the top reference
 - sstrand: direction of blast match
 - evalue: evalue of blast match
 - bitscore: bitscore of blast match
@@ -683,7 +682,7 @@ A summary of detections for all the samples included in the index file is provid
 
 With the contamination flag, the assumption is that if a pest is present at high titer in a given sample and reads matching to this pathogen in other samples occur at a significantly lower abundance, it is possible that this lower signal is due to contamination (e.g. contamination or index hopping from high-titer sample).  
 
-We first calculate the maximum RPKM value recorded for each virus and viroid identified across samples tested (see the **RPKM_MAX** column). If for a given virus, the RPKM value recovered for a sample represents less than a percentage of this maximum FPKM value (see the **threshold_value** column), it is then flagged as a contamination event (**contamination_flag = TRUE**). By default, the ```--contamination_flag_threshold``` is set to 1%.  
+We first calculate the maximum RPKM value recorded for each virus and viroid identified across samples tested (called **RPKM_MAX**). If for a given virus, the RPKM value recovered for a sample represents less than a percentage of this RPKM_MAX value (by default, the ```--contamination_flag_threshold``` is set to 1%), it is then flagged as a contamination event (**contamination_flag = TRUE**).  
 The RPKM needs to be >= 10 for the flag to be applied, otherwise, it will be set to 'NA'.  
 
 In summary:  
