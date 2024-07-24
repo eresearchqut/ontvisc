@@ -1,15 +1,9 @@
 #!/usr/bin/env python
 import argparse
 import pandas as pd
-import numpy as np
-from functools import reduce
 import glob
-import re
 import os
 import time
-import IPython
-
-from IPython.display import HTML
 
 def main():
     parser = argparse.ArgumentParser(description="Derive a qc report")

@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 import argparse
 import pandas as pd
-import numpy as np
-import os
-import subprocess
 from functools import reduce
 from glob import glob
-from subprocess import run, PIPE
+from subprocess import PIPE
 
 def main():
     ################################################################################
