@@ -798,26 +798,7 @@ process KAIJU {
     awk -F'\\t' '\$2>=0.05' ${sampleid}_kaiju_summary_viral.tsv > ${sampleid}_kaiju_summary_viral_filtered.tsv
     """
 }
-/*
-process KAIJU_HTML {
-  tag "${sampleid}"
-  label "local"
-  publishDir "$params.outdir/$sampleid/read_classification/kaiju",  mode: 'link'
-  containerOptions "${bindOptions}"
 
-  input:
-    tuple val(sampleid), path(kaiju_report)
-
-  output:
-    file("*_kaiju_report.html")
-
-
-  script:
-  """
-  kraken_html_report.py  --sample ${sampleid}
-  """
-}
-*/
 process READ_CLASSIFICATION_HTML {
   publishDir "${params.outdir}/${sampleid}/read_classification/summary", mode: 'copy', overwrite: true
   label 'local'
@@ -1184,7 +1165,7 @@ workflow {
   }
 
   // Data pre-processing
-  // Remove adapters uisng either PORECHOP_ABI or CUTADAPT
+  // Remove adapters using either PORECHOP_ABI
   if (!params.qc_only) {
     if (params.adapter_trimming) {
       PORECHOP_ABI ( fq )
@@ -1246,7 +1227,7 @@ workflow {
     }
 
     if (!params.preprocessing_only) {
-      //perform clustering using Rattle
+      //Perform clustering using Rattle
       if ( params.analysis_mode == 'clustering' ) {
         RATTLE ( final_fq )
         FASTQ2FASTA( RATTLE.out.clusters )
@@ -1258,7 +1239,7 @@ workflow {
         }
       }
 
-      //perform de novo assembly using either canu or flye
+      //Perform de novo assembly using either canu or flye
       else if ( params.analysis_mode == 'denovo_assembly' ) {
         if (params.canu) {
           CANU ( final_fq )
@@ -1278,7 +1259,7 @@ workflow {
         }
        }
 
-      //blast to NCBI
+      //blast to database
       if ( params.analysis_mode == 'denovo_assembly' | params.analysis_mode == 'clustering' & !params.blast_vs_ref ) {
         ASSEMBLY_BLASTN ( contigs )
         EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
@@ -1295,8 +1276,8 @@ workflow {
         DETECTION_REPORT(COVSTATS.out.detections_summary.collect().ifEmpty([]))
       }
 
+      //Perform direct read classification
       else if ( params.analysis_mode == 'read_classification') {
-      //just perform direct read search
         if (params.megablast) {
           FASTQ2FASTA_STEP1( final_fq )
           READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true) )
@@ -1341,7 +1322,7 @@ workflow {
         }
       }
 
-      //just perform direct alignment
+      //Perform direct alignment to a reference
       else if ( params.analysis_mode == 'map2ref') {
         MINIMAP2_REF ( final_fq )
         SAMTOOLS ( MINIMAP2_REF.out.aligned_sample )

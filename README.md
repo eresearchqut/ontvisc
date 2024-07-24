@@ -561,8 +561,7 @@ The **SampleName_blast_report.html** enables the user to have a quick look at th
 ```
 
 #### Summary
-A summary of the results gets output in the **SampleName_read_classification_report.html**. If several modes were tested, they can be found in separate tabs (Megablast, Kraken and/or Kaiju)
-
+A summary of the results gets output in the **SampleName_read_classification_report.html**. If several modes were tested, they can be found in separate tabs (Megablast, Kraken and/or Kaiju).
 
 ### De novo assembly mode outputs
 In this mode, the assembly created by Canu will be saved under the **SampleName/assembly/canu** folder.
@@ -637,7 +636,7 @@ All the top hits derived for each contig are listed under the file **SampleName_
 - species
 ```
 
-For a blast search against NCBI NT, if a contig sequence matches at least 90% of its length to a virus or viroid as the top blast hit, they will be listed under the **SampleName_assembly_blastn_top_viral_hits.txt** file. If the search is against a local viral database, the match has to cover 95% of its length. Coverage is derived using **qcovs**).  
+For a blast search against NCBI NT, if a contig sequence matches at least 90% of its length to a virus or viroid as the top blast hit, they will be listed under the **SampleName_assembly_blastn_top_viral_hits.txt** file. If the search is against a local viral database, the match has to cover 95% of its length. Coverage is derived using **qcovs**.  
 If multiple contigs are recovered for the same viral species, only the best hit will be listed under **SampleName_assembly_blastn_top_viral_spp_hits.txt**. Selection of the best hit is based on e-value followed by length.
 The **SampleName_assembly_viral_spp_abundance.txt** here will list the number of contigs recovered for each viral species.  
 In the example below, 2 contigs were recovered matching to the Tomato spotted wilt orthotospovirus:  
@@ -654,7 +653,45 @@ Tomato spotted wilt orthotospovirus	OM112202	1	contig_4
 ```
 
 ### Clustering mode outputs
-In this mode, the output from Rattle will be saved under **clustering/rattle/SampleName_transcriptome.fq**. The number of reads contributing to each clusters is listed in the header. The amplicon of interest is usually amongst the most abundant clusters (i.e. the ones represented by the most reads). A fasta file of the clusters created by Rattle will be saved under the **SampleName/clustering/rattle/SampleName_rattle.fasta** file. This will only retain the  names of the clusters. The final cap3-collapsed clusters can be found in the **SampleName/clustering/cap3/SampleName_clustering.fasta** file. If cap3 collapsed clusters, they will be referred as **Contig_number** in the fasta file. Uncollapsed clusters names will remain unaltered (i.e. **cluster_number**).
+In this mode, the output from Rattle will be saved under **SampleName/clustering/rattle/SampleName_transcriptome.fq**. The number of reads contributing to each clusters is listed in the header. The amplicon of interest is usually amongst the most abundant clusters (i.e. the ones represented by the most reads). A fasta file of the clusters created by Rattle will be saved under the **SampleName/clustering/rattle/SampleName_rattle.fasta** file. This will only retain the names of the clusters. The final cap3-collapsed clusters can be found in the **SampleName/clustering/cap3/SampleName_clustering.fasta** file. If cap3 collapsed clusters, they will be referred as **Contig_number** in the fasta file. Uncollapsed clusters names will remain unaltered (i.e. **cluster_number**).
+
+### Coverage statistics outputs for de novo assembly and clustering mode ###
+The fasta file of the best target reference identified is extracted (**SampleName/alignments/SampleName_referenceID_species_name.fasta**) and reads are mapped back to it using Minimap2 (**SampleName/alignments/SampleName_referenceID_species_name.sorted.bam** and **SampleName/alignments/SampleName_referenceID_species_name.sorted.bam.bai**). Coverage statistics are derived using [CoverM](https://github.com/wwood/CoverM) (**SampleName/alignments/SampleName_referenceID_species_name_coverm_summary.txt** and **SampleName/alignments/SampleName_referenceID_species_name_coverage_histogram.txt**) and [mosdepth](https://github.com/brentp/mosdepth) (**SampleName/alignments/SampleName_referenceID_species_name.mosdepth.global.dist.txt**, **SampleName/alignments/SampleName_referenceID_species_name.mosdepth.summary.txt**, **SampleName/alignments/SampleName_referenceID_species_name.per-base.bed.gz**, **SampleName/alignments/SampleName_referenceID_species_name.per-base.bed.gz.csi**).
+
+A summary of the coverage statistics is provided in **SampleName/alignments/SampleName_referenceID_species_name_top_blast_with_cov_stats.txt**.  
+This file contains the following 17 columns:
+- Sample: sample name
+- species: species name of target identified
+- stitle: sequence name in database
+- qseqid: query id name (ie cluster or contig name)
+- sacc:  Accession number of best homology match recovered
+- length: length of query
+- pident: Per cent identity of contig/cluster to the top reference
+- sstrand: direction of blast match
+- evalue: evalue of blast match
+- bitscore: bitscore of blast match
+- qcovs: percent coverage of target by query
+- read_count: total number of reads mapping to top reference
+- mean_cov: mean coverage in bases to the genome/sequence of the best homology match
+- RPKM: Reads Per Kilobase of transcript, per Million mapped reads is a normalised unit of transcript expression. It scales by transcript length to compensate for the fact that most RNA-seq protocols will generate more sequencing reads from longer RNA molecules
+- PCT_5X: The fraction of bases in the reference that attained at least 5X sequence coverage
+- PCT_10X: The fraction of bases in the reference that attained at least 10X sequence coverage
+- PCT_20X: The fraction of bases in the reference that attained at least 20X sequence coverage
+
+### Summary of detections for de novo assembly and clustering mode ###
+A summary of detections for all the samples included in the index file is provided under the **detection_summary** folder. The file follows the same structure as the **SampleName/alignments/SampleName_referenceID_species_name_top_blast_with_cov_stats.txt** files. A column labelled **contamination_flag** is included at the end of the text file which flags potential false positives.  
+
+With the contamination flag, the assumption is that if a pest is present at high titer in a given sample and reads matching to this pathogen in other samples occur at a significantly lower abundance, it is possible that this lower signal is due to contamination (e.g. contamination or index hopping from high-titer sample).  
+
+We first calculate the maximum RPKM value recorded for each virus and viroid identified across samples tested (see the **RPKM_MAX** column). If for a given virus, the RPKM value recovered for a sample represents less than a percentage of this maximum FPKM value (see the **threshold_value** column), it is then flagged as a contamination event (**contamination_flag = TRUE**). By default, the ```--contamination_flag_threshold``` is set to 1%.  
+The RPKM needs to be >= 10 for the flag to be applied, otherwise, it will be set to 'NA'.  
+
+In summary:  
+- if RPKM < 10 => contamination_flag = NA  
+- if RPKM >= 10 and < contamination_flag_threshold (0.01 default) x RPKM_max => contamination_flag = TRUE  
+- if RPKM >= 10 and >= contamination_flag_threshold (0.01 default) x RPKM_max => contamination_flag = FALSE  
+
+If a detection returns TRUE in the contamination_flag column, it is recommended to compare the sequences obtained, check the SNPs and if available, validate the detection through an independent method. The contamination flag is just indicative and it cannot discriminate between false positives and viruses present at very low titer in a plant.  
 
 ### Map to reference mode outputs
 In this mode, the reads are alighned directly to a reference file to generate an indexed bam file which will be saved under **SampleName/mapping/SampleName_aln.sorted.bam**. A **SampleName/coverage.txt** file is also included which provides a table of coverage as a tabulated text file. Please refer to [Samtools coverage](http://www.htslib.org/doc/samtools-coverage.html) for detailed description. 
@@ -723,22 +760,6 @@ AobVX	544	.	A	G	9.665	PASS	AR=21,8;DP=1423;DPS=878,545;DPSP=1410;SC=201414,12648
 AobVX	991	.	C	T	9.212	PASS	AR=36,25;DP=1496;DPS=897,599;DPSP=1478;SC=209634,139079,213683,142081;SR=201,117,650,449	GT:GQ	1:9
 AobVX	1060	.	C	T	11.703	PASS	AR=5,5;DP=1510;DPS=904,606;DPSP=1492;SC=208276,137743,212647,140567;SR=201,138,689,454	GT:GQ	1:12
 ```
-
-### Summary of detections for de novo assembly and clustering mode ###
-A summary of detections for all the samples included in the index file is provided under the detection_summary folder. A column labelled contamination_flag is included at the end of the text file which flags potential false positives.
-
-With the contamination flag, the assumption is that if a pest is present at high titer in a given sample and reads matching to this pathogen in other samples occur at a significantly lower abundance, it is possible that this lower signal is due to contamination (e.g. contamination or index hopping from high-titer sample). 
-
-We first calculate the maximum RPKM value recorded for each virus and viroid identified across samples tested (see the ```RPKM_MAX``` column). If for a given virus, the RPKM value recovered for a sample represents less than a percentage of this maximum FPKM value (see the ```threshold_value``` column), it is then flagged as a contamination event.  (```contamination_flag = TRUE```). By default, the ```--contamination_flag_threshold``` is set to 1%.  
-The RPKM needs to be >= 10 for the flag to be applied, otherwise, it will be set to 'NA'.  
-
-In summary:  
-- if RPKM < 10 => contamination_flag = NA  
-- if RPKM >= 10 and < contamination_flag_threshold (0.01 default) x RPKM_max => contamination_flag = TRUE  
-- if RPKM >= 10 and >= contamination_flag_threshold (0.01 default) x RPKM_max => contamination_flag = FALSE  
-
-If a detection returns TRUE in the contamination_flag column, it is recommended to compare the sequences obtained, check the SNPs and if available, validate the detection through an independent method. The contamination flag is just indicative and it cannot discriminate between false positives and viruses present at very low titer in a plant.  
-
 
 ### Results folder structure
 ```
