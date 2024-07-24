@@ -26,7 +26,7 @@ def main():
                     coverm_results = pd.read_csv(coverm_results, sep="\t", index_col=False)
                     coverm_results.columns = ["genome", "read_count", "mean_cov", "variance", "RPKM", "%_bases_cov", "reference_length"]
                     coverm_results["reference_title"] = sacc
-                    coverm_df=coverm_results[["sacc", "read_count", "mean_cov", "RPKM", "reference_length"]]
+                    coverm_df=coverm_results[["reference_title", "read_count", "mean_cov", "RPKM", "reference_length"]]
                     coverm_df["RPKM"] = coverm_df["RPKM"].round(1)
                     coverm_df["mean_cov"] = coverm_df["mean_cov"].round(1)
     
@@ -49,12 +49,12 @@ def main():
                     PCT_20X["PCT_20X"] = PCT_20X["PCT_20X"].round(2)
                     dfs = (PCT_5X, PCT_10X, PCT_20X)
 
-                    PCTs = reduce(lambda left,right: pd.merge(left,right,on=["sacc"],how='outer'), dfs)
+                    PCTs = reduce(lambda left,right: pd.merge(left,right,on=["reference_title"],how='outer'), dfs)
                     PCTs_all = pd.concat([PCTs_all, PCTs], axis = 0)
                     print(PCTs_all)
 
         summary_dfs = (blast_df, coverm_all, PCTs_all)
-        blast_df = reduce(lambda left,right: pd.merge(left,right,on=["sacc"],how='outer').fillna("NA"), summary_dfs)
+        blast_df = reduce(lambda left,right: pd.merge(left,right,on=["reference_title"],how='outer').fillna("NA"), summary_dfs)
         blast_df = blast_df[["species", "reference_title", "reference_accession", "reference_length", "query_id", "query_length", "pc_ident", "orientation", "evalue", "bitscore", "query_coverage", "read_count", "mean_cov", "RPKM", "PCT_5X", "PCT_10X", "PCT_20X"]]
         blast_df.insert(0, "sample", sample_name)
 
