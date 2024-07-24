@@ -43,11 +43,11 @@ def main():
 
     blastn_viral_top_hit = blastn_top_hit[blastn_top_hit["species"].str.contains('virus|viroid', na=False)].copy()
     
+    #only retain blast hits with qcovs < 90 for NCBI
     if mode == "ncbi":
-        #only retain blast hits with qcovs < 90 for NCBI
         blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 90].index)
+    #only retain blast hits with qcovs < 95 for local db
     elif mode == "localdb":
-        #only retain blast hits with qcovs < 95 for local db
         blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 95].index)
     #derive read/contig count per viral spp
     summary_per_spp = blastn_viral_top_hit['species'].value_counts().rename_axis('species').reset_index(name='count')

@@ -33,8 +33,8 @@ def main():
     else:
         run_data = run_data[["Sample","species","stitle","qseqid","sacc","length","pident","sstrand","evalue","bitscore","qcovs","read_count","mean_cov","RPKM","PCT_5X","PCT_10X","PCT_20X"]]
         contamination_flag(run_data,threshold)
+        run_data = run_data.sort_values(["Sample", "species"], ascending = (True, True))
         run_data.to_csv("detection_summary_" + timestr + ".txt", index=None, sep="\t")
-
 
 def contamination_flag(df, threshold):
     df["RPKM"] = df["RPKM"].astype(float)
@@ -44,7 +44,6 @@ def contamination_flag(df, threshold):
     df["threshold_value"] = df["threshold_value"].round(1)
     df["contamination_flag"] = np.where(df["RPKM"] < df["threshold_value"], True, False)
     df["contamination_flag"] = np.where(df["RPKM_max"] <= 10, "NA", df["contamination_flag"])
-    df = df.sort_values(["Sample", "stitle"], ascending = (True, True))
 
 if __name__ == "__main__":
     main()

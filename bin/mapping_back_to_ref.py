@@ -22,7 +22,6 @@ def main():
 
         print("Aligning original reads")
         minimap2_output = str(file_name + ".sam")
-        #aligning = ["minimap2", "-ax", "map-ont", "--MD", "--sam-hit-only", reference, fastq]
         aligning = ["minimap2", "-ax", "map-ont", "--sam-hit-only", "-L", reference, fastq]
         subprocess.call(aligning, stdout=open(minimap2_output,"w"))
 
