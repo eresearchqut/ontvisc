@@ -656,20 +656,21 @@ Tomato spotted wilt orthotospovirus	OM112202	1	contig_4
 In this mode, the output from Rattle will be saved under **SampleName/clustering/rattle/SampleName_transcriptome.fq**. The number of reads contributing to each clusters is listed in the header. The amplicon of interest is usually amongst the most abundant clusters (i.e. the ones represented by the most reads). A fasta file of the clusters created by Rattle will be saved under the **SampleName/clustering/rattle/SampleName_rattle.fasta** file. This will only retain the names of the clusters. The final cap3-collapsed clusters can be found in the **SampleName/clustering/cap3/SampleName_clustering.fasta** file. If cap3 collapsed clusters, they will be referred as **Contig_number** in the fasta file. Uncollapsed clusters names will remain unaltered (i.e. **cluster_number**).
 
 ### Coverage statistics outputs for de novo assembly and clustering mode ###
-The fasta file of the best target reference identified is extracted (**SampleName/alignments/SampleName_referenceID_species_name.fasta**) and reads are mapped back to it using Minimap2 (**SampleName/alignments/SampleName_referenceID_species_name.sorted.bam** and **SampleName/alignments/SampleName_referenceID_species_name.sorted.bam.bai**). Coverage statistics are derived using [CoverM](https://github.com/wwood/CoverM) (**SampleName/alignments/SampleName_referenceID_species_name_coverm_summary.txt** and **SampleName/alignments/SampleName_referenceID_species_name_coverage_histogram.txt**) and [mosdepth](https://github.com/brentp/mosdepth) (**SampleName/alignments/SampleName_referenceID_species_name.mosdepth.global.dist.txt**, **SampleName/alignments/SampleName_referenceID_species_name.mosdepth.summary.txt**, **SampleName/alignments/SampleName_referenceID_species_name.per-base.bed.gz**, **SampleName/alignments/SampleName_referenceID_species_name.per-base.bed.gz.csi**).
+The fasta file of the best target reference identified is extracted (**SampleName/alignments/SampleName_referenceID_species_name.fasta**) and reads are mapped back to it using Minimap2 (**SampleName/alignments/SampleName_referenceID_species_name.sorted.bam** and **SampleName/alignments/SampleName_referenceID_species_name.sorted.bam.bai**). Coverage statistics are derived using [CoverM](https://github.com/wwood/CoverM) (**SampleName/alignments/SampleName_referenceID_species_name_coverage_histogram.txt**) and [mosdepth](https://github.com/brentp/mosdepth) (**SampleName/alignments/SampleName_referenceID_species_name.mosdepth.global.dist.txt**, **SampleName/alignments/SampleName_referenceID_species_name.per-base.bed.gz**, **SampleName/alignments/SampleName_referenceID_species_name.per-base.bed.gz.csi**).  
 
 A summary of the coverage statistics is provided in **SampleName/alignments/SampleName_referenceID_species_name_top_blast_with_cov_stats.txt**.  
 This file contains the following 17 columns:
 - sample: sample name
 - species: species name of target identified
-- qseqid: query id name (ie cluster or contig name)
-- sacc:  Accession number of best homology match recovered
-- length: length of query
-- pident: Per cent identity of contig/cluster query to the top reference
-- sstrand: direction of blast match
+- reference_accession:  Accession number of best homology match recovered
+- reference_length
+- query_id: query id name (ie cluster or contig name)
+- query_length: length of query
+- pc_ident: Per cent identity of contig/cluster query to the top reference
+- orientation: direction of blast match
 - evalue: evalue of blast match
 - bitscore: bitscore of blast match
-- qcovs: percent coverage of target by query
+- query_coverage: percent coverage of target by query
 - read_count: total number of reads mapping to top reference
 - mean_cov: mean coverage in bases to the genome/sequence of the best homology match
 - RPKM: Reads Per Kilobase of transcript, per Million mapped reads is a normalised unit of transcript expression. It scales by transcript length to compensate for the fact that most RNA-seq protocols will generate more sequencing reads from longer RNA molecules
