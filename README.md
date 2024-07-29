@@ -180,7 +180,7 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
 
 - A test is provided to check if the pipeline was successfully installed. The test.fastq.gz file is derived from of a plant infected with Miscanthus sinensis mosaic virus. To use the test, run the following command, selecting the adequate profile (singularity/docker):
   ```
-  nextflow run eresearchqut/ontvisc -profile test,{singularity, docker}
+  nextflow -c conf/test.config run eresearchqut/ontvisc -profile test,{singularity, docker}
   ```
 The test requires 2 cpus at least 16Gb of memory to run and can be executed locally.  
 

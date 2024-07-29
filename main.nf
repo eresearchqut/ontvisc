@@ -1228,40 +1228,37 @@ workflow {
     }
 
     if (!params.preprocessing_only) {
-      //Perform clustering using Rattle
-      if ( params.analysis_mode == 'clustering' ) {
+      
+      if ( params.analysis_mode == 'clustering' || params.analysis_mode == 'denovo_assembly' ) {
+        //Perform clustering using Rattle
+        if ( params.analysis_mode == 'clustering' ) {
         RATTLE ( final_fq )
         FASTQ2FASTA( RATTLE.out.clusters )
         CAP3( FASTQ2FASTA.out.fasta )
         contigs = CAP3.out.scaffolds
+        }
 
-        if (params.blast_vs_ref) {
-          BLASTN2REF ( contigs )
-        }
-      }
-
-      //Perform de novo assembly using either canu or flye
-      else if ( params.analysis_mode == 'denovo_assembly' ) {
-        if (params.canu) {
-          CANU ( final_fq )
-          contigs = CANU.out.assembly2
-        }
-        else if (params.flye) {
-          FLYE ( final_fq )
-          contigs = FLYE.out.assembly2
-        }
-        if (params.final_primer_check) {
-          CUTADAPT ( contigs )
-          contigs = CUTADAPT.out.trimmed
+        //Perform de novo assembly using either canu or flye
+        else if ( params.analysis_mode == 'denovo_assembly' ) {
+          if (params.canu) {
+            CANU ( final_fq )
+            contigs = CANU.out.assembly2
+          }
+          else if (params.flye) {
+            FLYE ( final_fq )
+            contigs = FLYE.out.assembly2
+          }
+          if (params.final_primer_check) {
+            CUTADAPT ( contigs )
+            contigs = CUTADAPT.out.trimmed
+          }
         }
         //limit blast homology search to a reference
         if (params.blast_vs_ref) {
           BLASTN2REF ( contigs )
         }
-       }
-
-      //blast to database
-      if ( params.analysis_mode == 'denovo_assembly' | params.analysis_mode == 'clustering' & !params.blast_vs_ref ) {
+        //blast to database
+        else {
         ASSEMBLY_BLASTN ( contigs )
         EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
         EXTRACT_REF_FASTA (EXTRACT_VIRAL_BLAST_HITS.out.blast_results2)
@@ -1275,6 +1272,7 @@ workflow {
         COVSTATS(cov_stats_summary_ch)
 
         DETECTION_REPORT(COVSTATS.out.detections_summary.collect().ifEmpty([]))
+        }
       }
 
       //Perform direct read classification
