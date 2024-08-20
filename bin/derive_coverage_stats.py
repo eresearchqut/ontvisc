@@ -15,6 +15,19 @@ def main():
     coverm_all = pd.DataFrame()
     blast_df = pd.DataFrame()
     PCTs_all = pd.DataFrame()
+
+    nanostatfile = (sample_name + "_raw_NanoStats.txt")
+    with open(nanostatfile) as f:
+        a = " "
+        while(a):
+            a = f.readline()
+            l = a.find("number_of_reads") #Gives a non-negative value when there is a match
+            if ( l >= 0 ):
+                line = f.readline()
+                elements = line.split("\t")
+                raw_read_counts = int(float(elements[1].strip()))
+    f.close()
+
     for blast_results in glob("*_blastn_top_viral_spp_hits.txt"):
         blastn_results = pd.read_csv(blast_results, sep="\t", index_col=False)
         blast_df = blastn_results[["species", "stitle", "qseqid", "sacc", "length", "pident", "sstrand", "evalue", "bitscore", "qcovs"]]
@@ -26,10 +39,17 @@ def main():
                     coverm_results = pd.read_csv(coverm_results, sep="\t", index_col=False)
                     coverm_results.columns = ["genome", "read_count", "mean_cov", "variance", "RPKM", "%_bases_cov", "reference_length"]
                     coverm_results["reference_accession"] = sacc
-                    coverm_df=coverm_results[["reference_accession", "read_count", "mean_cov", "RPKM", "reference_length"]]
-                    coverm_df["RPKM"] = coverm_df["RPKM"].round(1)
+                    coverm_df=coverm_results[["reference_accession", "read_count", "mean_cov", "reference_length"]]
+                    rc = coverm_df['read_count'].iloc[0]
+                    rl = coverm_df['reference_length'].iloc[0]
+                    rpkm = round(int(rc)/(int(rl)/1000*int(raw_read_counts)/1000000))
+                    rpm = round(int(rc)*1000000/int(raw_read_counts))
+
+                    #coverm_df["RPKM"] = coverm_df["RPKM"].round(1)
+                    coverm_df["RPKM"] = rpkm
+                    coverm_df["RPM"] = rpm
                     coverm_df["mean_cov"] = coverm_df["mean_cov"].round(1)
-    
+                    
                     coverm_all = pd.concat([coverm_all, coverm_df], axis = 0)
                     print(coverm_all)
 
@@ -54,8 +74,8 @@ def main():
                     print(PCTs_all)
 
         summary_dfs = (blast_df, coverm_all, PCTs_all)
-        blast_df = reduce(lambda left,right: pd.merge(left,right,on=["reference_accession"],how='outer').fillna("NA"), summary_dfs)
-        blast_df = blast_df[["species", "reference_title", "reference_accession", "reference_length", "query_id", "query_length", "pc_ident", "orientation", "evalue", "bitscore", "query_coverage", "read_count", "mean_cov", "RPKM", "PCT_5X", "PCT_10X", "PCT_20X"]]
+        blast_df = reduce(lambda left,right: pd.merge(left,right,on=["reference_accession"],how='outer').fillna(0), summary_dfs)
+        blast_df = blast_df[["species", "reference_title", "reference_accession", "reference_length", "query_id", "query_length", "pc_ident", "orientation", "evalue", "bitscore", "query_coverage", "read_count", "mean_cov", "RPKM", "RPKM", "RPM", "PCT_5X", "PCT_10X", "PCT_20X"]]
         blast_df.insert(0, "sample", sample_name)
 
         print(blast_df)

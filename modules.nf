@@ -68,6 +68,8 @@ process NANOPLOT {
     path("*NanoStats.txt")
     path("*LengthvsQualityScatterPlot_dot.html")
     path("*NanoStats.txt"), emit: read_counts
+    tuple val(sampleid), path("${sampleid}_raw_NanoStats.txt"), emit: stats, optional: true
+
   
   script:
   """
