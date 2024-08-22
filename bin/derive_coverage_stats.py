@@ -30,8 +30,8 @@ def main():
 
     for blast_results in glob("*_blastn_top_viral_spp_hits.txt"):
         blastn_results = pd.read_csv(blast_results, sep="\t", index_col=False)
-        blast_df = blastn_results[["species", "stitle", "qseqid", "sacc", "length", "pident", "sstrand", "evalue", "bitscore", "qcovs"]]
-        blast_df.columns = ["species", "reference_title", "query_id", "reference_accession", "query_length", "pc_ident", "orientation", "evalue", "bitscore", "query_coverage"]
+        blast_df = blastn_results[["species", "stitle", "qseqid", "sacc", "pident", "qlen", "sstrand", "evalue", "bitscore", "qcovs"]]
+        blast_df.columns = ["species", "reference_title", "query_id", "reference_accession", "pc_ident", "query_length", "orientation", "evalue", "bitscore", "query_coverage"]
         sacc_list = blast_df["reference_accession"].tolist()
         for sacc in sacc_list:
             for coverm_results in glob("*_coverm_summary.txt"):
@@ -75,7 +75,7 @@ def main():
 
         summary_dfs = (blast_df, coverm_all, PCTs_all)
         blast_df = reduce(lambda left,right: pd.merge(left,right,on=["reference_accession"],how='outer').fillna(0), summary_dfs)
-        blast_df = blast_df[["species", "reference_title", "reference_accession", "reference_length", "query_id", "query_length", "pc_ident", "orientation", "evalue", "bitscore", "query_coverage", "read_count", "mean_cov", "RPKM", "RPKM", "RPM", "PCT_5X", "PCT_10X", "PCT_20X"]]
+        blast_df = blast_df[["species", "reference_title", "reference_accession", "reference_length", "query_id", "query_length", "pc_ident", "orientation", "evalue", "bitscore", "query_coverage", "read_count", "mean_cov", "RPKM", "RPM", "PCT_5X", "PCT_10X", "PCT_20X"]]
         blast_df.insert(0, "sample", sample_name)
 
         print(blast_df)
