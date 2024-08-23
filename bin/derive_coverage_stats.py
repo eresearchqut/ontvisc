@@ -23,8 +23,7 @@ def main():
             a = f.readline()
             l = a.find("number_of_reads") #Gives a non-negative value when there is a match
             if ( l >= 0 ):
-                line = f.readline()
-                elements = line.split("\t")
+                elements = a.split("\t")
                 raw_read_counts = int(float(elements[1].strip()))
     f.close()
 
