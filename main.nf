@@ -1304,7 +1304,7 @@ workflow {
           READ_CLASSIFICATION_HTML(BRACKEN.out.bracken_results )
         }
         else if (params.megablast & !params.kaiju & params.kraken2) {
-          foo_in_ch = EXTRACT_VIRAL_BLAST_HITS.out.blast_results.concat(BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }
+          foo_in_ch = EXTRACT_VIRAL_BLAST_HITS.out.blast_results.concat(EXTRACT_VIRAL_BLAST_HITS.out.blast_results_filt, BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }
           READ_CLASSIFICATION_HTML( foo_in_ch )
         }
         else if (params.megablast & params.kaiju & !params.kraken2) {
@@ -1312,7 +1312,7 @@ workflow {
           READ_CLASSIFICATION_HTML( foo_in_ch )
         }
         else if (!params.megablast & params.kaiju & params.kraken2) {
-          foo_in_ch = KAIJU.out.kaiju_results.concat(EXTRACT_VIRAL_BLAST_HITS.out.blast_results_filt, BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }
+          foo_in_ch = KAIJU.out.kaiju_results.concat(BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }
           READ_CLASSIFICATION_HTML( foo_in_ch )
         }
         else if (params.megablast & params.kaiju & params.kraken2) {
