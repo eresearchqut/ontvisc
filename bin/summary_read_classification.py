@@ -22,7 +22,6 @@ def main():
     for kaiju_file in glob.glob('*_kaiju_summary_viral.tsv'):
         kaiju_df = pd.read_csv(kaiju_file, sep="\t", index_col=False, keep_default_na=False)
         kaiju_df["percent"] = pd.to_numeric(kaiju_df["percent"], errors='coerce', downcast="float")
-#        kaiju_df["taxon_id"] = pd.to_numeric(kaiju_df['taxon_id'], errors='coerce').fillna(NA).astype(int)
         kaiju_df_filtered = kaiju_df.drop(kaiju_df[kaiju_df["percent"] < 0.05].index).sort_values(by=['reads'], ascending=False)
         kaiju_df_html = kaiju_df.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling
         kaiju_df_filtered_html = kaiju_df_filtered.to_html(index=False).replace('<table border="1" class="dataframe">','<table class="table table-striped">') # use bootstrap styling 

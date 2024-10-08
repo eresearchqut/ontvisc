@@ -151,7 +151,7 @@ def main():
                 ''' + blastn_viral_top_hit_spp_pident_based + '''
             </div>
 
-            <button type="button" class="collapsible"> Top viral match per species based on bitscore </h2></button>
+            <button type="button" class="collapsible"> Top viral match per species based on bitscore, followed by query length (qlen) </h2></button>
             <div class="content">
                 <p>If for a given species, more than one viral match share the same bitscore, then evalue is considered next</p>
                 ''' + blastn_viral_top_hit_spp_bitscore_based + '''
