@@ -90,41 +90,49 @@ def main():
                         cursor: pointer;
                         color: black;
                     }
+                    .scroll-box {
+                        width: 1250px;
+                        height: 1250px;
+                        overflow: auto;
+                        border: 1px solid #ccc;
+                    }
                     </style>
                 </head>
                 <body>
                     <!-- Body Container -->
-                    <div class="container">
-                    
-                        <!-- Tabs Detail -->
-                        <div class="tabs">
-                            <span data-tab-value="#tab_1">Kraken</span>
-                            <span data-tab-value="#tab_2">Kaiju</span>
-                        </div>
-
-                        <!-- Tab content -->
-                        <div class="tab-content">
-                            <div class="tabs__tab active" id="tab_1" data-tab-info>
-                                <h1>Direct read taxonomic classification (nucleotide-based)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Kraken2 and Bracken viral results filtered </h2>
-                                <p>Only viral matches which represented >=0.0001 of the total read fraction are retained </p>
-                                ''' + bracken_df_filtered_html + '''
-
-                                <!-- *** Section 2 *** --->
-                                <h2>Section 2: All Kraken2 and Bracken viral results </h2>
-                                ''' + bracken_df_html + '''
+                    <div class="scroll-box">
+                        <div class="container">
+                        
+                            <!-- Tabs Detail -->
+                            <div class="tabs">
+                                <span data-tab-value="#tab_1">Kraken</span>
+                                <span data-tab-value="#tab_2">Kaiju</span>
                             </div>
-                            <div class="tabs__tab" id="tab_2" data-tab-info>
-                                <h1>Direct read taxonomic classification (protein-based)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Kaiju results filtered </h2>
-                                <p>Only viral matches which represented >=0.05 of the total read fraction are retained </p>
-                                ''' + kaiju_df_filtered_html + '''
 
-                                <!-- *** Section 2 *** --->
-                                <h2>Section 2: All Kaiju results </h2>
-                                ''' + kaiju_df_html + '''
+                            <!-- Tab content -->
+                            <div class="tab-content">
+                                <div class="tabs__tab active" id="tab_1" data-tab-info>
+                                    <h1>Direct read taxonomic classification (nucleotide-based)</h1>
+                                    <!-- *** Section 1 *** --->
+                                    <h2>Section 1: Kraken2 and Bracken viral results filtered </h2>
+                                    <p>Only viral matches which represented >=0.0001 of the total read fraction are retained </p>
+                                    ''' + bracken_df_filtered_html + '''
+
+                                    <!-- *** Section 2 *** --->
+                                    <h2>Section 2: All Kraken2 and Bracken viral results </h2>
+                                    ''' + bracken_df_html + '''
+                                </div>
+                                <div class="tabs__tab" id="tab_2" data-tab-info>
+                                    <h1>Direct read taxonomic classification (protein-based)</h1>
+                                    <!-- *** Section 1 *** --->
+                                    <h2>Section 1: Kaiju results filtered </h2>
+                                    <p>Only viral matches which represented >=0.05 of the total read fraction are retained </p>
+                                    ''' + kaiju_df_filtered_html + '''
+
+                                    <!-- *** Section 2 *** --->
+                                    <h2>Section 2: All Kaiju results </h2>
+                                    ''' + kaiju_df_html + '''
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -201,49 +209,57 @@ def main():
                         cursor: pointer;
                         color: black;
                     }
+                    .scroll-box {
+                        width: 1250px;
+                        height: 1250px;
+                        overflow: auto;
+                        border: 1px solid #ccc;
+                    }
                     </style>
                 </head>
                 <body>
                     <!-- Body Container -->
-                    <div class="container">
-                        <!-- Tabs Detail -->
-                        <div class="tabs">
-                            <span data-tab-value="#tab_1">Megablast</span>
-                            <span data-tab-value="#tab_2">Kraken</span>
-                            <span data-tab-value="#tab_3">Kaiju</span>
-                            
-                        </div>
-                        <!-- Tab content -->
-                        <div class="tab-content">
-                            <div class="tabs__tab active" id="tab_1" data-tab-info>
-                                <h1>Direct read homology search (megablast)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Number of reads matching to viral species filtered </h2>
-                                <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
-                                ''' + megablast_summary_per_spp_high_conf + '''
-                                <h2>Section 2: Number of reads matching to viral species </h2>
-                                <p>All blast viral matches were considered here.</p>
-                                ''' + megablast_summary_per_spp + '''
+                    <div class="scroll-box">
+                        <div class="container">
+                            <!-- Tabs Detail -->
+                            <div class="tabs">
+                                <span data-tab-value="#tab_1">Megablast</span>
+                                <span data-tab-value="#tab_2">Kraken</span>
+                                <span data-tab-value="#tab_3">Kaiju</span>
+                                
                             </div>
-                            <div class="tabs__tab" id="tab_2" data-tab-info>
-                                <h1>Direct read taxonomic classification (nucleotide-based)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Kraken2 and Bracken viral results filtered </h2>
-                                <p>Only viral matches which represented >=0.0001 of the total read fraction are retained </p>
-                                ''' + bracken_df_filtered_html + '''
-                                <!-- *** Section 2 *** --->
-                                <h2>Section 2: All Kraken2 and Bracken viral results </h2>
-                                ''' + bracken_df_html + '''
-                            </div>
-                            <div class="tabs__tab" id="tab_3" data-tab-info>
-                                <h1>Direct read taxonomic classification (protein-based)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Kaiju results filtered </h2>
-                                <p>Only viral matches which represented >=0.05 of the total read fraction are retained </p>
-                                ''' + kaiju_df_filtered_html + '''
-                                <!-- *** Section 2 *** --->
-                                <h2>Section 2: All Kaiju results </h2>
-                                ''' + kaiju_df_html + '''
+                            <!-- Tab content -->
+                            <div class="tab-content">
+                                <div class="tabs__tab active" id="tab_1" data-tab-info>
+                                    <h1>Direct read homology search (megablast)</h1>
+                                    <!-- *** Section 1 *** --->
+                                    <h2>Section 1: Number of reads matching to viral species filtered </h2>
+                                    <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
+                                    ''' + megablast_summary_per_spp_high_conf + '''
+                                    <h2>Section 2: Number of reads matching to viral species </h2>
+                                    <p>All blast viral matches were considered here.</p>
+                                    ''' + megablast_summary_per_spp + '''
+                                </div>
+                                <div class="tabs__tab" id="tab_2" data-tab-info>
+                                    <h1>Direct read taxonomic classification (nucleotide-based)</h1>
+                                    <!-- *** Section 1 *** --->
+                                    <h2>Section 1: Kraken2 and Bracken viral results filtered </h2>
+                                    <p>Only viral matches which represented >=0.0001 of the total read fraction are retained </p>
+                                    ''' + bracken_df_filtered_html + '''
+                                    <!-- *** Section 2 *** --->
+                                    <h2>Section 2: All Kraken2 and Bracken viral results </h2>
+                                    ''' + bracken_df_html + '''
+                                </div>
+                                <div class="tabs__tab" id="tab_3" data-tab-info>
+                                    <h1>Direct read taxonomic classification (protein-based)</h1>
+                                    <!-- *** Section 1 *** --->
+                                    <h2>Section 1: Kaiju results filtered </h2>
+                                    <p>Only viral matches which represented >=0.05 of the total read fraction are retained </p>
+                                    ''' + kaiju_df_filtered_html + '''
+                                    <!-- *** Section 2 *** --->
+                                    <h2>Section 2: All Kaiju results </h2>
+                                    ''' + kaiju_df_html + '''
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -275,9 +291,17 @@ def main():
         <html>
             <head>
                 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-                <style>body{ margin:0 100; background:whitesmoke; }</style>
+                <style>body{ margin:0 100; background:whitesmoke; }
+                .scroll-box {
+                    width: 1250px;
+                    height: 1250px;
+                    overflow: auto;
+                    border: 1px solid #ccc;
+                }
+                </style>
             </head>
             <body>
+                <div class="scroll-box">
                 <h1>Direct read taxonomic classification (nucleotide-based)</h1>
                 <!-- *** Section 1 *** --->
                 <h2>Section 1: Kraken2 and Bracken viral results filtered </h2>
@@ -287,6 +311,7 @@ def main():
                 <!-- *** Section 2 *** --->
                 <h2>Section 2: All Kraken2 and Bracken viral results </h2>
                 ''' + bracken_df_html + '''
+                </div>
             </body>
         </html>'''
 
@@ -299,9 +324,18 @@ def main():
         <html>
             <head>
                 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-                <style>body{ margin:0 100; background:whitesmoke; }</style>
+                <style>
+                body{ margin:0 100; background:whitesmoke; }
+                .scroll-box {
+                    width: 1250px;
+                    height: 1250px;
+                    overflow: auto;
+                    border: 1px solid #ccc;
+                }
+                </style>
             </head>
             <body>
+                <div class="scroll-box">
                 <h1>Direct read taxonomic classification (protein-based)</h1>
                 <!-- *** Section 1 *** --->
                 <h2>Section 1: Kaiju results filtered </h2>
@@ -311,6 +345,7 @@ def main():
                 <!-- *** Section 2 *** --->
                 <h2>Section 2: All Kaiju results </h2>
                 ''' + kaiju_df_html + '''
+                </div>
             </body>
         </html>'''
 
@@ -324,11 +359,19 @@ def main():
             <html>
             <head>
                 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-                <style>body{ margin:0 100; background:whitesmoke; }</style>
+                <style>body{ margin:0 100; background:whitesmoke; }
+                .scroll-box {
+                        width: 1250px;
+                        height: 1250px;
+                        overflow: auto;
+                        border: 1px solid #ccc;
+                    }
+                </style>
             </head>
             <body>
+                <div class="scroll-box">
                 <h1>Direct read homology search (megablast)</h1>
-               <!-- *** Section 1 *** --->
+                <!-- *** Section 1 *** --->
                 <h2>Section 1: Number of reads matching to viral species filtered </h2>
                 <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
                 ''' + megablast_summary_per_spp_high_conf + '''
@@ -336,6 +379,7 @@ def main():
                 <h2>Section 2: Number of reads matching to viral species </h2>
                 <p>All blast viral matches were considered here.</p>
                 ''' + megablast_summary_per_spp + '''
+                </div>
             </body>
         </html>'''
 
@@ -392,40 +436,48 @@ def main():
                         cursor: pointer;
                         color: black;
                     }
+                    .scroll-box {
+                        width: 1250px;
+                        height: 1250px;
+                        overflow: auto;
+                        border: 1px solid #ccc;
+                    }
                     </style>
                 </head>
                 <body>
                     <!-- Body Container -->
-                    <div class="container">
-                    
-                        <!-- Tabs Detail -->
-                        <div class="tabs">
-                            <span data-tab-value="#tab_1">Megablast</span>
-                            <span data-tab-value="#tab_2">Kraken</span>
-                        </div>
-
-                        <!-- Tab content -->
-                        <div class="tab-content">
-                            <div class="tabs__tab active" id="tab_1" data-tab-info>
-                                <h1>Direct read homology search (megablast)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Number of reads matching to viral species filtered </h2>
-                                <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
-                                ''' + megablast_summary_per_spp_high_conf + '''
-                                
-                                <h2>Section 2: Number of reads matching to viral species </h2>
-                                <p>All blast viral matches were considered here.</p>
-                                ''' + megablast_summary_per_spp + '''
+                    <div class="scroll-box">
+                        <div class="container">
+                        
+                            <!-- Tabs Detail -->
+                            <div class="tabs">
+                                <span data-tab-value="#tab_1">Megablast</span>
+                                <span data-tab-value="#tab_2">Kraken</span>
                             </div>
-                            <div class="tabs__tab" id="tab_2" data-tab-info>
-                                <h1>Direct read taxonomic classification (nucleotide-based)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Kraken2 and Bracken viral results filtered </h2>
-                                <p>Only viral matches which represented >=0.0001 of the total read fraction are retained </p>
-                                ''' + bracken_df_filtered_html + '''
-                                <!-- *** Section 2 *** --->
-                                <h2>Section 2: All Kraken2 and Bracken viral results </h2>
-                                ''' + bracken_df_html + '''
+
+                            <!-- Tab content -->
+                            <div class="tab-content">
+                                <div class="tabs__tab active" id="tab_1" data-tab-info>
+                                    <h1>Direct read homology search (megablast)</h1>
+                                    <!-- *** Section 1 *** --->
+                                    <h2>Section 1: Number of reads matching to viral species filtered </h2>
+                                    <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
+                                    ''' + megablast_summary_per_spp_high_conf + '''
+                                    
+                                    <h2>Section 2: Number of reads matching to viral species </h2>
+                                    <p>All blast viral matches were considered here.</p>
+                                    ''' + megablast_summary_per_spp + '''
+                                </div>
+                                <div class="tabs__tab" id="tab_2" data-tab-info>
+                                    <h1>Direct read taxonomic classification (nucleotide-based)</h1>
+                                    <!-- *** Section 1 *** --->
+                                    <h2>Section 1: Kraken2 and Bracken viral results filtered </h2>
+                                    <p>Only viral matches which represented >=0.0001 of the total read fraction are retained </p>
+                                    ''' + bracken_df_filtered_html + '''
+                                    <!-- *** Section 2 *** --->
+                                    <h2>Section 2: All Kraken2 and Bracken viral results </h2>
+                                    ''' + bracken_df_html + '''
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -445,7 +497,7 @@ def main():
                                 target.classList.add('active');
                             })
                         })
-                    </script>                    
+                    </script>
                 </body>
             </html>'''
 
@@ -502,41 +554,48 @@ def main():
                         cursor: pointer;
                         color: black;
                     }
+                    .scroll-box {
+                        width: 1250px;
+                        height: 1250px;
+                        overflow: auto;
+                        border: 1px solid #ccc;
+                    }
                     </style>
                 </head>
                 <body>
                     <!-- Body Container -->
-                    <div class="container">
-                    
-                        <!-- Tabs Detail -->
-                        <div class="tabs">
-                            <span data-tab-value="#tab_1">Megablast</span>
-                            <span data-tab-value="#tab_2">Kaiju</span>
-                        </div>
-
-                        <!-- Tab content -->
-                        <div class="tab-content">
-                            <div class="tabs__tab active" id="tab_1" data-tab-info>
-                                <h1>Direct read homology search (megablast)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Number of reads matching to viral species filtered </h2>
-                                <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
-                                ''' + megablast_summary_per_spp_high_conf + '''
-                                
-                                <h2>Section 2: Number of reads matching to viral species </h2>
-                                <p>All blast viral matches were considered here.</p>
-                                ''' + megablast_summary_per_spp + '''
+                    <div class="scroll-box">
+                        <div class="container">
+                            <!-- Tabs Detail -->
+                            <div class="tabs">
+                                <span data-tab-value="#tab_1">Megablast</span>
+                                <span data-tab-value="#tab_2">Kaiju</span>
                             </div>
-                            <div class="tabs__tab" id="tab_2" data-tab-info>
-                                <h1>Direct read taxonomic classification (protein-based)</h1>
-                                <!-- *** Section 1 *** --->
-                                <h2>Section 1: Kaiju results filtered </h2>
-                                <p>Only viral matches which represented >=0.05 of the total read fraction are retained </p>
-                                ''' + kaiju_df_filtered_html + '''
 
-                                <!-- *** Section 2 *** --->
-                                <h2>Section 2: All Kaiju results </h2>
-                                ''' + kaiju_df_html + '''
+                            <!-- Tab content -->
+                            <div class="tab-content">
+                                <div class="tabs__tab active" id="tab_1" data-tab-info>
+                                    <h1>Direct read homology search (megablast)</h1>
+                                    <!-- *** Section 1 *** --->
+                                    <h2>Section 1: Number of reads matching to viral species filtered </h2>
+                                    <p>Only blast viral matches which show >90% query coverage for NCBI and >95% query coverage for local viral database were considered here.</p>
+                                    ''' + megablast_summary_per_spp_high_conf + '''
+                                    
+                                    <h2>Section 2: Number of reads matching to viral species </h2>
+                                    <p>All blast viral matches were considered here.</p>
+                                    ''' + megablast_summary_per_spp + '''
+                                </div>
+                                <div class="tabs__tab" id="tab_2" data-tab-info>
+                                    <h1>Direct read taxonomic classification (protein-based)</h1>
+                                    <!-- *** Section 1 *** --->
+                                    <h2>Section 1: Kaiju results filtered </h2>
+                                    <p>Only viral matches which represented >=0.05 of the total read fraction are retained </p>
+                                    ''' + kaiju_df_filtered_html + '''
+
+                                    <!-- *** Section 2 *** --->
+                                    <h2>Section 2: All Kaiju results </h2>
+                                    ''' + kaiju_df_html + '''
+                                </div>
                             </div>
                         </div>
                     </div>

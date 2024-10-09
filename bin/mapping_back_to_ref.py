@@ -34,7 +34,7 @@ def main():
         flagstat = ["samtools", "flagstat", bamoutput]
         subprocess.call(flagstat, stdout=open(flagstatoutput,"w"))
         with open(flagstatoutput) as myfile:
-            if '0 + 0 mapped' in myfile.read():
+            if '\n0 + 0 mapped' in myfile.read():
                 print('No reads mapping!')
                 subprocess.call(["rm","-r", minimap2_output])
                 subprocess.call(["rm","-r", bamoutput])
