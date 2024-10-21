@@ -273,7 +273,7 @@ maxInputCoverage=10000 corOutCoverage=10000 corMhapSensitivity=high corMinCovera
 process CANU {
   publishDir "${params.outdir}/${sampleid}/assembly/canu", mode: 'copy', pattern: '{*.fasta,*.log}'
   tag "${sampleid}"
-  label 'setting_8'
+  label 'setting_6'
 
   input:
     tuple val(sampleid), path(fastq)
@@ -286,11 +286,13 @@ process CANU {
 
 
   script:
-  def canu_options = (params.canu_options) ? " ${params.canu_options}" : ''
+  
+  def args = task.ext.args ?: ''
+  //def canu_options = (params.canu_options) ? " ${params.canu_options}" : ''
     """
     canu -p ${sampleid} -d ${sampleid} \
       genomeSize=${params.canu_genome_size} \
-      -nanopore ${fastq} ${canu_options} 2> ${sampleid}_canu.log
+      -nanopore ${fastq} $args maxThreads=$task.cpus 2> ${sampleid}_canu.log
 
     if [[ ! -s ${sampleid}/${sampleid}.contigs.fasta ]]
       then
@@ -665,7 +667,7 @@ process EXTRACT_VIRAL_BLAST_HITS {
     file "*/*/*report*html"
 
     tuple val(sampleid), path("*/*/${sampleid}*_viral_spp_abundance.txt"), emit: blast_results
-    tuple val(sampleid), path("*/*/${sampleid}*_viral_spp_abundance_filtered.txt"), emit: blast_results_filt
+    tuple val(sampleid), path("*/*/${sampleid}*_viral_spp_abundance_filtered*.txt"), emit: blast_results_filt
     tuple val(sampleid), path("*/*/${sampleid}*_blastn_top_viral_spp_hits.txt"), emit: blast_results2
 
   script:

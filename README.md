@@ -538,7 +538,7 @@ All the top hits derived for each contig are listed under the file **SampleName_
 ```
 
 Read matches to a virus or viroid as the top blast hit will be listed under the **SampleName_read_classification_blastn_top_viral_hits.txt** file.
-For blast homology search against NCBI, if a contig sequence matches at least 90% of its length to a virus or viroid as the top blast hit, they will be listed under the **SampleName_assembly_blastn_top_viral_hits_filtered.txt** file. If the search is against a local viral database, the match has to cover 95% of its length to be retained. 
+For blast homology search against NCBI, if a read matches at least 90% of its length to a virus or viroid as the top blast hit, it will be listed under the **SampleName_assembly_blastn_top_viral_hits_filtered.txt** file. If the search is against a local viral database, the match has to cover 95% of its length to be retained. 
 
 If multiple reads are recovered for the same viral species, only the best hit will be listed under **SampleName_assembly_blastn_top_viral_spp_hits.txt**. Selection of the best hit is based on evalue, followed by query length.
 The **SampleName_assembly_viral_spp_abundance.txt** here will list the number of reads recovered for each viral species.  
@@ -555,6 +555,7 @@ species	sacc	count	qseqid
 Tomato spotted wilt orthotospovirus	OM112200	2	['415df728-dbe8-47a8-afba-e15870adfa5e', 'c443fc2e-6bbe-433d-bfdf-6fa7411ab14f']
 Tomato spotted wilt orthotospovirus	OM112202	3	['ee4ccc30-b9fd-4c9b-8b0c-5a37059b539b', '20f389f9-a547-4c43-b0b7-5b0f902b408d', 'ead56ab2-328b-4785-a29a-9ae386ad418b']
 ```
+
 The **SampleName_blast_report.html** enables the user to have a quick look at the blast results for a sample. It displays:
 ```
 - the total number of matches to viral species
@@ -610,6 +611,18 @@ If the Flye assembly ran succesfully it will output some assembly statistics at 
 
 If a final primer check was performed, then a **SampleName_assembly_filtered.fa** will be saved under the **SampleName/assembly** folder along with the log of the cutadapt filtering step.
 
+
+
+The **SampleName_blast_report.html** enables the user to have a quick look at the blast results for a sample. It displays:
+```
+- the total number of matches to viral species
+- the total number of matches to viral species (filtered)
+- the total number of matches to specific viral accession number
+- the top viral match per species based on evalue, followed by qlen
+- the top viral match per species based on query length (qlen), followed by evalue
+- the top viral match per species based on % identity (pident), followed by qlen
+- the top viral match per species based on bitscore, followed by qlen
+```
 
 If a blast homology search of the contigs was performed against a database, the results will be saved under the **SampleName/assembly/blastn** folder.
 All the top hits derived for each contig are listed under the file **SampleName_assembly_blastn_top_hits.txt**. This file contains the following 26 columns:
