@@ -48,6 +48,7 @@ def main():
     #only retain blast hits with qcovs < 95 for local db
     elif mode == "localdb":
         blastn_viral_top_hit_high_conf = blastn_viral_top_hit.drop(blastn_viral_top_hit[blastn_viral_top_hit["qcovs"] < 95].index)
+    
     #derive read/contig count per viral spp
     summary_per_spp = blastn_viral_top_hit['species'].value_counts().rename_axis('species').reset_index(name='count')
     summary_per_spp_high_conf = blastn_viral_top_hit_high_conf['species'].value_counts().rename_axis('species').reset_index(name='count')
@@ -66,6 +67,7 @@ def main():
     spp.to_csv(sample_name + "_" + analysis_method + "_queryid_list_with_viral_match.txt", index=False, sep="\t")
     #replace space with underscore
     blastn_viral_top_hit.to_csv(sample_name + "_" + analysis_method + "_blastn_top_viral_hits.txt", index=False, sep="\t")
+    blastn_viral_top_hit_high_conf.to_csv(sample_name + "_" + analysis_method + "_blastn_top_viral_hits_filtered.txt", index=False, sep="\t")
     #just retain longest contig for each virus/viroid species
     blastn_viral_top_hit_spp = blastn_viral_top_hit.sort_values(["evalue", "qlen"], ascending=[False, False]).groupby("species", as_index=False).first().copy()
     blastn_viral_top_hit_spp.to_csv(sample_name + "_" + analysis_method +  "_blastn_top_viral_spp_hits.txt", index=False, sep="\t")

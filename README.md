@@ -182,11 +182,11 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
   ```
   nextflow run eresearchqut/ontvisc -profile test,{singularity, docker}
   ```
-If this command does not run properly, you might need to also specify thte test.config file in the command line:  
+  If this command does not run properly, you might need to also specify thte test.config file in the command line:  
   ```
   nextflow -c conf/test.config run eresearchqut/ontvisc -profile test,{singularity, docker}
   ```
-The test requires 2 cpus at least 16Gb of memory to run and can be executed locally.  
+  The test requires 2 cpus at least 16Gb of memory to run and can be executed locally.  
 
 
 The command should take one minute to run and nextflow should output the following log:
@@ -639,8 +639,9 @@ All the top hits derived for each contig are listed under the file **SampleName_
 - sframe
 - species
 ```
+Only viral hits will be displayed in the **SampleName_assembly_blastn_top_viral_hits.txt**.  
+If a contig sequence matches at least 90% of its length to a virus or viroid as the top blast hit, they will be listed under the **SampleName_assembly_blastn_top_viral_hits_filtered.txt** file. If the search is against a local viral database, the match has to cover 95% of its length. Coverage is derived using **qcovs**.  
 
-For a blast search against NCBI NT, if a contig sequence matches at least 90% of its length to a virus or viroid as the top blast hit, they will be listed under the **SampleName_assembly_blastn_top_viral_hits.txt** file. If the search is against a local viral database, the match has to cover 95% of its length. Coverage is derived using **qcovs**.  
 If multiple contigs are recovered for the same viral species, only the best hit will be listed under **SampleName_assembly_blastn_top_viral_spp_hits.txt**. Selection of the best hit is based on e-value followed by length.
 The **SampleName_assembly_viral_spp_abundance.txt** here will list the number of contigs recovered for each viral species.  
 In the example below, 2 contigs were recovered matching to the Tomato spotted wilt orthotospovirus:  
