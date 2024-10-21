@@ -538,6 +538,8 @@ All the top hits derived for each contig are listed under the file **SampleName_
 ```
 
 Read matches to a virus or viroid as the top blast hit will be listed under the **SampleName_read_classification_blastn_top_viral_hits.txt** file.
+For blast homology search against NCBI, if a contig sequence matches at least 90% of its length to a virus or viroid as the top blast hit, they will be listed under the **SampleName_assembly_blastn_top_viral_hits_filtered.txt** file. If the search is against a local viral database, the match has to cover 95% of its length to be retained. 
+
 If multiple reads are recovered for the same viral species, only the best hit will be listed under **SampleName_assembly_blastn_top_viral_spp_hits.txt**. Selection of the best hit is based on evalue, followed by query length.
 The **SampleName_assembly_viral_spp_abundance.txt** here will list the number of reads recovered for each viral species.  
 In the example below, 200 reads were recovered matching to the Tomato spotted wilt orthotospovirus:  
