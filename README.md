@@ -679,10 +679,11 @@ In this mode, the output from Rattle will be saved under **SampleName/clustering
 ### Coverage statistics outputs for de novo assembly and clustering mode ###
 The fasta file of the best target reference identified is extracted (**SampleName/alignments/SampleName_referenceID_species_name.fasta**) and reads are mapped back to it using Minimap2 (**SampleName/alignments/SampleName_referenceID_species_name.sorted.bam** and **SampleName/alignments/SampleName_referenceID_species_name.sorted.bam.bai**). Coverage statistics are derived using [CoverM](https://github.com/wwood/CoverM) (**SampleName/alignments/SampleName_referenceID_species_name_coverage_histogram.txt**) and [mosdepth](https://github.com/brentp/mosdepth) (**SampleName/alignments/SampleName_referenceID_species_name.mosdepth.global.dist.txt**, **SampleName/alignments/SampleName_referenceID_species_name.per-base.bed.gz**, **SampleName/alignments/SampleName_referenceID_species_name.per-base.bed.gz.csi**).  
 
-A summary of the coverage statistics is provided in **SampleName/alignments/SampleName_referenceID_species_name_top_blast_with_cov_stats.txt**.  
+A summary of the coverage statistics is provided in **SampleName/alignments/SampleName_top_blast_with_cov_stats.txt**.  
 This file contains the following 17 columns:
 - sample: sample name
 - species: species name of target identified
+- reference_title
 - reference_accession:  Accession number of best homology match recovered
 - reference_length
 - query_id: query id name (ie cluster or contig name)
@@ -695,12 +696,13 @@ This file contains the following 17 columns:
 - read_count: total number of reads mapping to top reference
 - mean_cov: mean coverage in bases to the genome/sequence of the best homology match
 - RPKM: Reads Per Kilobase of transcript, per Million mapped reads is a normalised unit of transcript expression. It scales by transcript length to compensate for the fact that most RNA-seq protocols will generate more sequencing reads from longer RNA molecules
+- RPM: Reads per million mapped reads
 - PCT_5X: The fraction of bases in the reference that attained at least 5X sequence coverage
 - PCT_10X: The fraction of bases in the reference that attained at least 10X sequence coverage
 - PCT_20X: The fraction of bases in the reference that attained at least 20X sequence coverage
 
 ### Summary of detections for de novo assembly and clustering mode ###
-A summary of detections for all the samples included in the index file is provided under the **detection_summary** folder. The file follows the same structure as the **SampleName/alignments/SampleName_referenceID_species_name_top_blast_with_cov_stats.txt** files. A column labelled **contamination_flag** is included at the end of the text file which flags potential false positives.  
+A summary of detections for all the samples included in the index file is provided under the **detection_summary** folder. The file follows the same structure as the **SampleName/alignments/SampleName_top_blast_with_cov_stats.txt** files. A column labelled **contamination_flag** is included at the end of the text file which flags potential false positives.  
 
 With the contamination flag, the assumption is that if a pest is present at high titer in a given sample and reads matching to this pathogen in other samples occur at a significantly lower abundance, it is possible that this lower signal is due to contamination (e.g. contamination or index hopping from high-titer sample).  
 
@@ -715,7 +717,7 @@ In summary:
 If a detection returns TRUE in the contamination_flag column, it is recommended to compare the sequences obtained, check the SNPs and if available, validate the detection through an independent method. The contamination flag is just indicative and it cannot discriminate between false positives and viruses present at very low titer in a plant.  
 
 ### Map to reference mode outputs
-In this mode, the reads are alighned directly to a reference file to generate an indexed bam file which will be saved under **SampleName/mapping/SampleName_aln.sorted.bam**. A **SampleName/coverage.txt** file is also included which provides a table of coverage as a tabulated text file. Please refer to [Samtools coverage](http://www.htslib.org/doc/samtools-coverage.html) for detailed description. 
+In this mode, the reads are aligned directly to a reference file to generate an indexed bam file which will be saved under **SampleName/mapping/SampleName_aln.sorted.bam**. A **SampleName_coverage.txt** file is also included which provides a table of coverage as a tabulated text file. Please refer to [Samtools coverage](http://www.htslib.org/doc/samtools-coverage.html) for detailed description. 
 
 The tabulated form uses the following headings:
 | headings | description |
