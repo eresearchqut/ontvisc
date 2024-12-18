@@ -539,18 +539,18 @@ All the top hits derived for each contig are listed under the file **SampleName_
 ```
 
 Read matches to a virus or viroid as the top blast hit will be listed under the **SampleName_read_classification_blastn_top_viral_hits.txt** file.
-For blast homology search against NCBI, if a read matches at least 90% of its length to a virus or viroid as the top blast hit, it will be listed under the **SampleName_assembly_blastn_top_viral_hits_filtered.txt** file. If the search is against a local viral database, the match has to cover 95% of its length to be retained. 
+For blast homology search against NCBI, if a read matches at least 90% of its length to a virus or viroid as the top blast hit, it will be listed under the **SampleName_read_classification_blastn_top_viral_hits_filtered.txt** file. If the search is against a local viral database, the match has to cover 95% of its length to be retained. 
 
-If multiple reads are recovered for the same viral species, only the best hit will be listed under **SampleName_assembly_blastn_top_viral_spp_hits.txt**. Selection of the best hit is based on evalue, followed by query length.
-The **SampleName_assembly_viral_spp_abundance.txt** here will list the number of reads recovered for each viral species.  
+If multiple reads are recovered for the same viral species, only the best hit will be listed under **SampleName_read_classification_blastn_top_viral_spp_hits.txt**. Selection of the best hit is based on evalue, followed by query length.
+The **SampleName_read_classification_viral_spp_abundance.txt** here will list the number of reads recovered for each viral species.  
 In the example below, 200 reads were recovered matching to the Tomato spotted wilt orthotospovirus:  
 ```
-species	Count
+species	count
 Tomato spotted wilt orthotospovirus	200
 ```
 
-The **SampleName_assembly_queryid_list_with_viral_match.txt** will list each unique accession IDs detected in the sample, the viral species they correspond to, and the number of reads matching to it, and their ID.  
-We can see from the example above, that the reads matching to tomato spotted wilt orthotospovirus correspond to 2 different accession numbers matching to 2 separate segments (L and E) of the virus. there are 2 reads matching to OM112200 and 3 reads matching to OM112202.
+The **SampleName_read_classification_queryid_list_with_viral_match.txt** will list each unique accession IDs detected in the sample, the viral species they correspond to, and the number of reads matching to it, and their ID.  
+We can see from the example above, that the reads matching to tomato spotted wilt orthotospovirus correspond to 2 different accession numbers matching to 2 separate segments (L and E) of the virus. There are 2 reads matching to OM112200 and 3 reads matching to OM112202.
 ```
 species	sacc	count	qseqid
 Tomato spotted wilt orthotospovirus	OM112200	2	['415df728-dbe8-47a8-afba-e15870adfa5e', 'c443fc2e-6bbe-433d-bfdf-6fa7411ab14f']
@@ -662,7 +662,7 @@ If multiple contigs are recovered for the same viral species, only the best hit 
 The **SampleName_assembly_viral_spp_abundance.txt** here will list the number of contigs recovered for each viral species.  
 In the example below, 2 contigs were recovered matching to the Tomato spotted wilt orthotospovirus:  
 ```
-species	Count
+species	count
 Tomato spotted wilt orthotospovirus	2
 ```
 Finally the **SampleName_assembly_queryid_list_with_viral_match.txt** will list each unique accession IDs detected in the sample, the viral species they correspond to, and the number of contigs matching to it, and their IDs.  
@@ -674,7 +674,7 @@ Tomato spotted wilt orthotospovirus	OM112202	1	contig_4
 ```
 
 ### Clustering mode outputs
-In this mode, the output from Rattle will be saved under **SampleName/clustering/rattle/SampleName_transcriptome.fq**. The number of reads contributing to each clusters is listed in the header. The amplicon of interest is usually amongst the most abundant clusters (i.e. the ones represented by the most reads). A fasta file of the clusters created by Rattle will be saved under the **SampleName/clustering/rattle/SampleName_rattle.fasta** file. This will only retain the names of the clusters. The final cap3-collapsed clusters can be found in the **SampleName/clustering/cap3/SampleName_clustering.fasta** file. If cap3 collapsed clusters, they will be referred as **Contig_number** in the fasta file. Uncollapsed clusters names will remain unaltered (i.e. **cluster_number**).
+In this mode, the output from Rattle will be saved under **SampleName/clustering/rattle/transcriptome.fq**. The number of reads contributing to each clusters is listed in the header. The amplicon of interest is usually amongst the most abundant clusters (i.e. the ones represented by the most reads). A fasta file of the clusters created by Rattle will be saved under the **SampleName/clustering/rattle/SampleName_rattle.fasta** file. This will only retain the names of the clusters. The final cap3-collapsed clusters can be found in the **SampleName/clustering/cap3/SampleName_clustering.fasta** file. If cap3 collapsed clusters, they will be referred as **Contig_number** in the fasta file. Uncollapsed clusters names will remain unaltered (i.e. **cluster_number**).
 
 ### Coverage statistics outputs for de novo assembly and clustering mode ###
 The fasta file of the best target reference identified is extracted (**SampleName/alignments/SampleName_referenceID_species_name.fasta**) and reads are mapped back to it using Minimap2 (**SampleName/alignments/SampleName_referenceID_species_name.sorted.bam** and **SampleName/alignments/SampleName_referenceID_species_name.sorted.bam.bai**). Coverage statistics are derived using [CoverM](https://github.com/wwood/CoverM) (**SampleName/alignments/SampleName_referenceID_species_name_coverage_histogram.txt**) and [mosdepth](https://github.com/brentp/mosdepth) (**SampleName/alignments/SampleName_referenceID_species_name.mosdepth.global.dist.txt**, **SampleName/alignments/SampleName_referenceID_species_name.per-base.bed.gz**, **SampleName/alignments/SampleName_referenceID_species_name.per-base.bed.gz.csi**).  
