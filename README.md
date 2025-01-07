@@ -69,8 +69,7 @@ f. [Results folder structure](#results-folder-structure)
 - Map to reference mode
   - Align reads to reference fasta file (Minimap2) and derive bam file and alignment statistics (Samtools)
 
-Detailed instructions can be found in [wiki](https://github.com/eresearchqut/ontvisc/wiki).
-A step-by-step guide with instructions on how to set up and execute the ONTvisc pipeline on one of the HPC systems: Lyra (Queensland University of Technology), Setonix (Pawsey) and Gadi (National Computational Infrastructure) can be found [here](https://mantczakaus.github.io/ontvisc_guide/).
+Detailed instructions available below. A comprehensive, step-by-step guide on setting up and executing the ONTViSc pipeline across three high-performance computing systems hosted by Australian research and computing facilities - Lyra (Queensland University of Technology), Gadi (National Computational Infrastructure), and Setonix (Pawsey) - utilising the Australian Nextflow Seqera Service, can be found [here](https://mantczakaus.github.io/ontvisc_hpc_seqera_service_guide/). ONTViSc is registered in [WorkflowHub](https://workflowhub.eu/workflows/683).
 
 ## Installation
 ### Requirements  
@@ -147,7 +146,7 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
   ```
 
 - Provide an index.csv file.  
-  Create a comma separated file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the ```--samplesheet [filename]``` in the nextflow run command. This text file requires the following columns (which needs to be included as a header): ```sampleid,sample_files``` 
+  Create a comma separated file that will be the input for the workflow. By default the pipeline will look for a file called “index.csv” in the base directory but you can specify any file name using the ```--samplesheet [filename]``` in the nextflow run command. This text file requires the following columns (which need to be included as a header): ```sampleid,sample_files``` 
 
   **sampleid** will be the sample name that will be given to the files created by the pipeline  
   **sample_path** is the full path to the fastq files that the pipeline requires as starting input  
@@ -165,7 +164,7 @@ You will have to specify the path to each of these files (using the ``--kaiju_db
   ```
   setting the profile parameter to one of ```docker``` or ```singularity``` to suit your environment.
   
-- Specify one analysis mode: ```--analysis_mode {read classification, clustering, assembly, map2ref}``` (see below for more details)
+- Specify one analysis mode: ```--analysis_mode {read_classification, clustering, denovo_assembly, map2ref}``` (see below for more details)
 
 - To set additional parameters, you can either include these in your nextflow run command:
   ```
@@ -199,15 +198,16 @@ results/
     ├── assembly
     │   ├── blast_to_ref
     │   │   └── blastn_reference_vs_flye_assembly.txt
-    │   └── flye
-    │       ├── test_flye_assembly.fasta
-    │       ├── test_flye.fastq
-    │       └── test_flye.log
+    │   └── canu
+    │       ├── test_canu_assembly.fasta
+    │       └── test_canu.log
     ├── preprocessing
     │   └── test_preprocessed.fastq.gz
     └── qc
         └── nanoplot
-            └── test_raw_NanoPlot-report.html
+            ├── test_raw_LengthvsQualityScatterPlot_dot.html
+            ├── test_raw_NanoPlot-report.html
+            └── test_raw_NanoStats.txt
 ``` 
 
 ### QC step
@@ -329,7 +329,7 @@ If the data analysed was derived using RACE reactions, a final primer check can 
   Canu options can be specified using the `--canu_options` parameter.
   If you do not know the size of your targetted genome, you can ommit the `--canu_genome_size [genome size of target virus]`. However, if your sample is likely to contain a lot of plant RNA/DNA material, we recommend providing an approximate genome size. For instance RNA viruses are on average 10 kb in size (see [`Holmes 2009`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2954018/)), which would correspond to `--canu_genome_size 0.01m`.
 
-  By default the pipeline will perform an homology search against the contigs generated using NCBI nt. Alternatively, you can perform an homology search against a viral genome reference (using `--blast_vs_ref`) or a viral database `--blast_mode localdb`.
+  By default the pipeline will perform a homology search against the contigs generated using NCBI nt. Alternatively, you can perform an homology search against a viral genome reference (using `--blast_vs_ref`) or a viral database `--blast_mode localdb`.
 
   Example:
   ```
@@ -392,7 +392,7 @@ nextflow run eresearchqut/ontvisc -resume -profile {singularity, docker} \
 ```
 
 ### Mapping to reference
-In the map2ref analysis mode, the reads are mapped to a reference fata file provided using Minimap2. A bam file is created and summary coverage statistics are derived using samtools coverage. A variant call file and a consensus fasta sequence are also generated using [Medaka]`https://github.com/nanoporetech/medaka` and bcftools.  
+In the map2ref analysis mode, the reads are mapped to a reference fasta file provided using Minimap2. A bam file is created and summary coverage statistics are derived using samtools coverage. A variant call file and a consensus fasta sequence are also generated using [Medaka]`https://github.com/nanoporetech/medaka` and bcftools.  
 The ```medaka consensus``` command requires to know the basecaller model version to run properly. Medaka models are named to indicate i) the pore type, ii) the sequencing device (MinION or PromethION), iii) the basecaller variant, and iv) the basecaller version, with the format: ```{pore}_{device}_{caller variant}_{caller version}```. Allowed values can be found by running ```medaka tools list\_models```. Check medaka's github page for more details.  
 
 Recent basecaller versions annotate their output (e.g. fastq files) with their model version; in such cases, medaka is able to determine a correct model by inspecting the BAM input file and no model needs to be specified:
@@ -422,7 +422,7 @@ The minimum coverage for a variant not be flagged 'LOW_DEPTH' in the final VCF b
 
 ### Preprocessing and host read filtering outputs
 If a merge step is required, fastcat will create a summary text file showing the read length distribution.  
-Quality check will be performed on the raw fastq file using [NanoPlot](https://github.com/wdecoster/NanoPlot) which it a tool that can be used to produce general quality metrics e.g. quality score distribution, read lengths and other general stats. A NanoPlot-report.html file will be saved under the **SampleName/qc/nanoplot** folder with the prefix **raw**. This report displays 6 plots as well as a table of summary statistics.  
+Quality check will be performed on the raw fastq file using [NanoPlot](https://github.com/wdecoster/NanoPlot) which is a tool that can be used to produce general quality metrics e.g. quality score distribution, read lengths and other general stats. A NanoPlot-report.html file will be saved under the **SampleName/qc/nanoplot** folder with the prefix **raw**. This report displays 6 plots as well as a table of summary statistics.  
 
 <p align="center"><img src="docs/images/Example_Statistics.png" width="1000"></p>
 
@@ -438,7 +438,7 @@ After adapter trimming, a Chopper log file will be saved under the **SampleName/
 
 If adapter trimming and/or quality/length trimming is performed, a second quality check will be performed on the processsed fastq file and a NanoPlot-report.html file will be saved under the **SampleName/qc/nanoplot** folder with the prefix **filtered**.
 
-If host filtering of reads is performed, an unaligned.fastq.gz file and an unaligned_reads_count.txt file listing the remainder read count will be saved under the **SampleName/preprocessing/host_filtering** folder.
+If host filtering of reads is performed, an unaligned.fastq.gz file and an unaligned_reads_count.txt file listing the remainder read count will be saved under the **SampleName/host_filtering** folder.
 
 If the adapter trimming, the quality filtering and/or the host filtering options have been run, a QC report will be saved both in text and html format (i.e. **run_qc_report_YYYYMMDD-HHMMSS.txt** and **run_qc_report_YYYYMMDD-HHMMSS.html**) under the **qc_report** folder.  
 
@@ -492,18 +492,19 @@ After running kaiju, six files will be saved under the **SampleName/read_classif
 
 NB: Since the nr database aggregates multiple genes of identical sequences, only the first accession number for each sequence in the nr source file is kept in Kaiju's database and therefore also in the output file.
 
-The number of taxon identifiers (column 5) and accession numbers (column 5) is limited to 20 entries each in order to reduce large outputs produced by highly abundant protein sequences in nr, e.g. from HIV.
+The number of taxon identifiers (column 5) and accession numbers (column 6) is limited to 20 entries each in order to reduce large outputs produced by highly abundant protein sequences in nr, e.g. from HIV.
 
 A krona output (**SampleName_kaiju.krona**) is also generated.  
 
-The program kaiju2table converts Kaiju's output file(s) into a summary table at the species level. It consists of 4 columns: 
+The program kaiju2table converts Kaiju's output file(s) into a summary table at the species level (**SampleName_kaiju_summary.tsv**). It consists of 5 columns: 
 - Sample file name
 - percent reads matching this taxon id
+- number of reads matching this taxon id
 - taxon_id
 - taxon_name
 
-The **SampleName_kaiju_summary_viral.tsv** only retains viral detections (which are retrieved using a search for the following terms: virus, viroid, viricota, viridae, viriform, virales, virinae, viricetes, virae and viral)
-Finally in the filtered output **SampleName_kaiju_summary_viral.tsv**, only detections whose predicted abundance represent a fraction of at least **0.05** of the total reads will be retained.  
+The **SampleName_kaiju_summary_viral.tsv** only retains viral detections (which are retrieved using a search for the following terms: virus, viroid, viricota, viridae, viriform, virales, virinae, viricetes, virae and viral).
+Finally, in the filtered output **SampleName_kaiju_summary_viral.tsv**, only detections whose predicted abundance represent a fraction of at least **0.05** of the total reads will be retained.  
 
 #### Nucleotide homology search
 If a direct blast homology search of the reads was performed against a database, the results will be saved under the **SampleName/read_classification/homology_search** folder.
@@ -538,18 +539,18 @@ All the top hits derived for each contig are listed under the file **SampleName_
 ```
 
 Read matches to a virus or viroid as the top blast hit will be listed under the **SampleName_read_classification_blastn_top_viral_hits.txt** file.
-For blast homology search against NCBI, if a read matches at least 90% of its length to a virus or viroid as the top blast hit, it will be listed under the **SampleName_assembly_blastn_top_viral_hits_filtered.txt** file. If the search is against a local viral database, the match has to cover 95% of its length to be retained. 
+For blast homology search against NCBI, if a read matches at least 90% of its length to a virus or viroid as the top blast hit, it will be listed under the **SampleName_read_classification_blastn_top_viral_hits_filtered.txt** file. If the search is against a local viral database, the match has to cover 95% of its length to be retained. 
 
-If multiple reads are recovered for the same viral species, only the best hit will be listed under **SampleName_assembly_blastn_top_viral_spp_hits.txt**. Selection of the best hit is based on evalue, followed by query length.
-The **SampleName_assembly_viral_spp_abundance.txt** here will list the number of reads recovered for each viral species.  
+If multiple reads are recovered for the same viral species, only the best hit will be listed under **SampleName_read_classification_blastn_top_viral_spp_hits.txt**. Selection of the best hit is based on evalue, followed by query length.
+The **SampleName_read_classification_viral_spp_abundance.txt** here will list the number of reads recovered for each viral species.  
 In the example below, 200 reads were recovered matching to the Tomato spotted wilt orthotospovirus:  
 ```
-species	Count
+species	count
 Tomato spotted wilt orthotospovirus	200
 ```
 
-The **SampleName_assembly_queryid_list_with_viral_match.txt** will list each unique accession IDs detected in the sample, the viral species they correspond to, and the number of reads matching to it, and their ID.  
-We can see from the example above, that the reads matching to tomato spotted wilt orthotospovirus correspond to 2 different accession numbers matching to 2 separate segments (L and E) of the virus. there are 2 reads matching to OM112200 and 3 reads matching to OM112202.
+The **SampleName_read_classification_queryid_list_with_viral_match.txt** will list each unique accession IDs detected in the sample, the viral species they correspond to, and the number of reads matching to it, and their ID.  
+We can see from the example above, that the reads matching to tomato spotted wilt orthotospovirus correspond to 2 different accession numbers matching to 2 separate segments (L and E) of the virus. There are 2 reads matching to OM112200 and 3 reads matching to OM112202.
 ```
 species	sacc	count	qseqid
 Tomato spotted wilt orthotospovirus	OM112200	2	['415df728-dbe8-47a8-afba-e15870adfa5e', 'c443fc2e-6bbe-433d-bfdf-6fa7411ab14f']
@@ -661,7 +662,7 @@ If multiple contigs are recovered for the same viral species, only the best hit 
 The **SampleName_assembly_viral_spp_abundance.txt** here will list the number of contigs recovered for each viral species.  
 In the example below, 2 contigs were recovered matching to the Tomato spotted wilt orthotospovirus:  
 ```
-species	Count
+species	count
 Tomato spotted wilt orthotospovirus	2
 ```
 Finally the **SampleName_assembly_queryid_list_with_viral_match.txt** will list each unique accession IDs detected in the sample, the viral species they correspond to, and the number of contigs matching to it, and their IDs.  
@@ -673,15 +674,16 @@ Tomato spotted wilt orthotospovirus	OM112202	1	contig_4
 ```
 
 ### Clustering mode outputs
-In this mode, the output from Rattle will be saved under **SampleName/clustering/rattle/SampleName_transcriptome.fq**. The number of reads contributing to each clusters is listed in the header. The amplicon of interest is usually amongst the most abundant clusters (i.e. the ones represented by the most reads). A fasta file of the clusters created by Rattle will be saved under the **SampleName/clustering/rattle/SampleName_rattle.fasta** file. This will only retain the names of the clusters. The final cap3-collapsed clusters can be found in the **SampleName/clustering/cap3/SampleName_clustering.fasta** file. If cap3 collapsed clusters, they will be referred as **Contig_number** in the fasta file. Uncollapsed clusters names will remain unaltered (i.e. **cluster_number**).
+In this mode, the output from Rattle will be saved under **SampleName/clustering/rattle/transcriptome.fq**. The number of reads contributing to each clusters is listed in the header. The amplicon of interest is usually amongst the most abundant clusters (i.e. the ones represented by the most reads). A fasta file of the clusters created by Rattle will be saved under the **SampleName/clustering/rattle/SampleName_rattle.fasta** file. This will only retain the names of the clusters. The final cap3-collapsed clusters can be found in the **SampleName/clustering/cap3/SampleName_clustering.fasta** file. If cap3 collapsed clusters, they will be referred as **Contig_number** in the fasta file. Uncollapsed clusters names will remain unaltered (i.e. **cluster_number**).
 
 ### Coverage statistics outputs for de novo assembly and clustering mode ###
 The fasta file of the best target reference identified is extracted (**SampleName/alignments/SampleName_referenceID_species_name.fasta**) and reads are mapped back to it using Minimap2 (**SampleName/alignments/SampleName_referenceID_species_name.sorted.bam** and **SampleName/alignments/SampleName_referenceID_species_name.sorted.bam.bai**). Coverage statistics are derived using [CoverM](https://github.com/wwood/CoverM) (**SampleName/alignments/SampleName_referenceID_species_name_coverage_histogram.txt**) and [mosdepth](https://github.com/brentp/mosdepth) (**SampleName/alignments/SampleName_referenceID_species_name.mosdepth.global.dist.txt**, **SampleName/alignments/SampleName_referenceID_species_name.per-base.bed.gz**, **SampleName/alignments/SampleName_referenceID_species_name.per-base.bed.gz.csi**).  
 
-A summary of the coverage statistics is provided in **SampleName/alignments/SampleName_referenceID_species_name_top_blast_with_cov_stats.txt**.  
+A summary of the coverage statistics is provided in **SampleName/alignments/SampleName_top_blast_with_cov_stats.txt**.  
 This file contains the following 17 columns:
 - sample: sample name
 - species: species name of target identified
+- reference_title
 - reference_accession:  Accession number of best homology match recovered
 - reference_length
 - query_id: query id name (ie cluster or contig name)
@@ -694,12 +696,13 @@ This file contains the following 17 columns:
 - read_count: total number of reads mapping to top reference
 - mean_cov: mean coverage in bases to the genome/sequence of the best homology match
 - RPKM: Reads Per Kilobase of transcript, per Million mapped reads is a normalised unit of transcript expression. It scales by transcript length to compensate for the fact that most RNA-seq protocols will generate more sequencing reads from longer RNA molecules
+- RPM: Reads per million mapped reads
 - PCT_5X: The fraction of bases in the reference that attained at least 5X sequence coverage
 - PCT_10X: The fraction of bases in the reference that attained at least 10X sequence coverage
 - PCT_20X: The fraction of bases in the reference that attained at least 20X sequence coverage
 
 ### Summary of detections for de novo assembly and clustering mode ###
-A summary of detections for all the samples included in the index file is provided under the **detection_summary** folder. The file follows the same structure as the **SampleName/alignments/SampleName_referenceID_species_name_top_blast_with_cov_stats.txt** files. A column labelled **contamination_flag** is included at the end of the text file which flags potential false positives.  
+A summary of detections for all the samples included in the index file is provided under the **detection_summary** folder. The file follows the same structure as the **SampleName/alignments/SampleName_top_blast_with_cov_stats.txt** files. A column labelled **contamination_flag** is included at the end of the text file which flags potential false positives.  
 
 With the contamination flag, the assumption is that if a pest is present at high titer in a given sample and reads matching to this pathogen in other samples occur at a significantly lower abundance, it is possible that this lower signal is due to contamination (e.g. contamination or index hopping from high-titer sample).  
 
@@ -714,7 +717,7 @@ In summary:
 If a detection returns TRUE in the contamination_flag column, it is recommended to compare the sequences obtained, check the SNPs and if available, validate the detection through an independent method. The contamination flag is just indicative and it cannot discriminate between false positives and viruses present at very low titer in a plant.  
 
 ### Map to reference mode outputs
-In this mode, the reads are alighned directly to a reference file to generate an indexed bam file which will be saved under **SampleName/mapping/SampleName_aln.sorted.bam**. A **SampleName/coverage.txt** file is also included which provides a table of coverage as a tabulated text file. Please refer to [Samtools coverage](http://www.htslib.org/doc/samtools-coverage.html) for detailed description. 
+In this mode, the reads are aligned directly to a reference file to generate an indexed bam file which will be saved under **SampleName/mapping/SampleName_aln.sorted.bam**. A **SampleName_coverage.txt** file is also included which provides a table of coverage as a tabulated text file. Please refer to [Samtools coverage](http://www.htslib.org/doc/samtools-coverage.html) for detailed description. 
 
 The tabulated form uses the following headings:
 | headings | description |
