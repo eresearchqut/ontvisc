@@ -4,6 +4,7 @@ import pandas as pd
 from functools import reduce
 from glob import glob
 from subprocess import PIPE
+import numpy as np
 
 def main():
     ################################################################################
@@ -48,24 +49,22 @@ def main():
                     coverm_df["RPKM"] = rpkm
                     coverm_df["RPM"] = rpm
                     coverm_df["mean_cov"] = coverm_df["mean_cov"].round(1)
-                    
                     coverm_all = pd.concat([coverm_all, coverm_df], axis = 0)
                     print(coverm_all)
 
             for mosdepth_results in glob("*mosdepth.global.dist.txt"):
                 if sacc in str(mosdepth_results):
-                    mosdepth_results = pd.read_csv(mosdepth_results, sep="\t", index_col=False)
+                    mosdepth_results = pd.read_csv(mosdepth_results, sep="\t", index_col=False, header=None)
                     mosdepth_results.columns = ["genome", "pc_coverage", "depth"]
-                    PCT_5X = mosdepth_results.loc[(mosdepth_results['pc_coverage']==5) & (mosdepth_results['genome'].str.contains(sacc)), ['depth']].rename(columns={"depth": "PCT_5X"})
-                    PCT_5X["PCT_5X"] = PCT_5X["PCT_5X"].round(2)
-                    PCT_5X['reference_accession'] = sacc
-                    
-                    PCT_10X = mosdepth_results.loc[(mosdepth_results['pc_coverage']==10) & (mosdepth_results['genome'].str.contains(sacc)), ['depth']].rename(columns={"depth": "PCT_10X"})
-                    PCT_10X['reference_accession'] = sacc
-                    PCT_10X["PCT_10X"] = PCT_10X["PCT_10X"].round(2)
                     PCT_20X = mosdepth_results.loc[(mosdepth_results['pc_coverage']==20) & (mosdepth_results['genome'].str.contains(sacc)), ['depth']].rename(columns={"depth": "PCT_20X"})
                     PCT_20X['reference_accession'] = sacc
                     PCT_20X["PCT_20X"] = PCT_20X["PCT_20X"].round(2)
+                    PCT_10X = mosdepth_results.loc[(mosdepth_results['pc_coverage']==10) & (mosdepth_results['genome'].str.contains(sacc)), ['depth']].rename(columns={"depth": "PCT_10X"})
+                    PCT_10X['reference_accession'] = sacc
+                    PCT_10X["PCT_10X"] = PCT_10X["PCT_10X"].round(2)
+                    PCT_5X = mosdepth_results.loc[(mosdepth_results['pc_coverage']==5) & (mosdepth_results['genome'].str.contains(sacc)), ['depth']].rename(columns={"depth": "PCT_5X"})
+                    PCT_5X["PCT_5X"] = PCT_5X["PCT_5X"].round(2)
+                    PCT_5X['reference_accession'] = sacc
                     dfs = (PCT_5X, PCT_10X, PCT_20X)
 
                     PCTs = reduce(lambda left,right: pd.merge(left,right,on=["reference_accession"],how='outer'), dfs)
