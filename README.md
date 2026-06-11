@@ -87,9 +87,7 @@ Depending on the mode you are interested to run, you will need to install some d
 | --blast_mode localdb | --blastn_db | path to [`viral blast database`](https://zenodo.org/records/10117282) to perform homology search on reads (read_classification), clusters (clustering) or contigs (de novo)|
 | --blast_mode ncbi | --blastn_db | path to NCBI nt database, taxdb.btd and taxdb.bti to perform homology search on reads (read_classification), clusters (clustering) or contigs (de novo)|
 | --read_classification --kraken2 | --krkdb | path to kraken index folder e.g. PlusPFP|
-| --read_classification --kaiju | --kaiju_dbname | path to kaiju_db_*.fmi |
-|                           | --kaiju_nodes | path to nodes.dmp |
-|                           | --kaiju_names | path to names.dmp |
+| --read_classification --kaiju | --kaiju_db_path | path to kaiju_db folder |
 | --map2ref | --reference | path to viral reference sequence fasta file to perform alignment |
 
 - If you have access to a host genome reference or sequences and want to filter your reads against it/them before running your analysis, specify the `--host_filtering` parameter and provide the path to the host fasta file with `--host_fasta /path/to/host/fasta/file`.
@@ -289,10 +287,8 @@ A qc report will be generated in text and html formats summarising the read coun
                               --analysis_mode read_classification \
                               --kraken2 \
                               --krkdb /path/to/kraken2_db \
-                              --kaiju \
-                              --kaiju_dbname /path/to/kaiju/kaiju.fmi \
-                              --kaiju_nodes /path/to/kaiju/nodes.dmp \
-                              --kaiju_names /path/to/kaiju/names.dmp
+                              --kaiju
+                              --kaiju_db_path /path/to/kaiju_db
   ```
 
 - Perform direct read homology search using megablast and the NCBI NT database and direct taxonomic read classification using Kraken2 and Kaiju.  
@@ -310,9 +306,7 @@ A qc report will be generated in text and html formats summarising the read coun
                               --kraken2 \
                               --krkdb /path/to/kraken2_db \
                               --kaiju \
-                              --kaiju_dbname /path/to/kaiju/kaiju.fmi \
-                              --kaiju_nodes /path/to/kaiju/nodes.dmp \
-                              --kaiju_names /path/to/kaiju/names.dmp \
+                              --kaiju_db_path /path/to/kaiju_db \
                               --megablast --blast_mode ncbi \
                               --blast_threads 8 \
                               --blastn_db /path/to/ncbi_blast_db/nt

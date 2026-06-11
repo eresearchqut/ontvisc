@@ -7,8 +7,6 @@ def helpMessage () {
     ONTViSc - ONT-based Viral Screening for Biosecurity
     Marie-Emilie Gauthier 23/05/2023
     Magda Antczak
-    Craig Windell
-    Roberto Barrero
 
     Usage:
     Run the command
@@ -124,59 +122,33 @@ def helpMessage () {
 
     """.stripIndent()
 }
-// Show help message
-if (params.help) {
-    helpMessage()
-    exit 0
-}
-if (params.blastn_db != null) {
-    blastn_db_name = file(params.blastn_db).name
-    blastn_db_dir = file(params.blastn_db).parent
-}
-if (params.reference != null) {
-    reference_name = file(params.reference).name
-    reference_dir = file(params.reference).parent
-}
-if (params.host_fasta != null) {
-    host_fasta_dir = file(params.host_fasta).parent
-}
-if (params.kaiju_nodes != null & params.kaiju_dbname != null & params.kaiju_names != null) {
-    kaiju_dbs_dir = file(params.kaiju_nodes).parent
-}
-if (params.krkdb != null) {
-    krkdb_dir = file(params.krkdb).parent
+
+
+
+def buildBindOptions() {
+  def bindOptions = ""
+
+  if (workflow.containerEngine == "singularity") {
+    [
+      params.blastn_db_dir,
+      params.reference_dir,
+      params.kaiju_db_path,
+      params.krkdb,
+      params.host_fasta_dir,
+      params.porechop_custom_primers_dir,
+    ]
+    .findAll { it != null }
+    .collect { file(it) }
+    .collect { it.isDirectory() ? it : it.parent }
+    .unique()
+    .each { bindOptions += "-B ${it}:${it} " }
+  }
+
+  return bindOptions
 }
 
-if (params.porechop_custom_primers == true) {
-    porechop_custom_primers_dir = file(params.porechop_custom_primers_path).parent
-}
 
-switch (workflow.containerEngine) {
-  case "singularity":
-    bindbuild = "";
-    if (params.blastn_db != null) {
-      bindbuild = (bindbuild + "-B ${blastn_db_dir} ")
-    }
-    if (params.reference != null) {
-      bindbuild = (bindbuild + "-B ${reference_dir} ")
-    }
-    if (params.kaiju_nodes != null & params.kaiju_dbname != null & params.kaiju_names != null) {
-      bindbuild = (bindbuild + "-B ${kaiju_dbs_dir} ")
-    }
-    if (params.krkdb != null) {
-      bindbuild = (bindbuild + "-B ${krkdb_dir} ")
-    }
-    if (params.host_fasta != null) {
-      bindbuild = (bindbuild + "-B ${host_fasta_dir} ")
-    }
-    if (params.porechop_custom_primers) {
-      bindbuild = (bindbuild + "-B ${porechop_custom_primers_dir} ")
-    }
-    bindOptions = bindbuild;
-    break;
-  default:
-    bindOptions = "";
-}
+
 /*
 process MERGE {
   //publishDir "${params.outdir}/${sampleid}/merge", pattern: '*.fastq.gz', mode: 'link'
@@ -195,8 +167,7 @@ process MERGE {
 }
 */
 process QCREPORT {
-  publishDir "${params.outdir}/qc_report", mode: 'copy', overwrite: true
-  containerOptions "${bindOptions}"
+  publishDir { "${params.outdir}/qc_report" }, mode: 'copy', overwrite: true
 
   input:
     path multiqc_files
@@ -212,8 +183,8 @@ process QCREPORT {
 }
 
 process CUTADAPT {
-  publishDir "${params.outdir}/${sampleid}/assembly", pattern: '*_filtered.fa', mode: 'link'
-  publishDir "${params.outdir}/${sampleid}/assembly", pattern: '*_cutadapt.log', mode: 'link'
+  publishDir { "${params.outdir}/${sampleid}/assembly" }, pattern: '*_filtered.fa', mode: 'link'
+  publishDir { "${params.outdir}/${sampleid}/assembly" }, pattern: '*_cutadapt.log', mode: 'link'
   tag "${sampleid}"
   label 'medium'
 
@@ -234,7 +205,7 @@ process CUTADAPT {
 }
 
 process CHOPPER {
-  publishDir "${params.outdir}/${sampleid}/preprocessing/chopper", pattern: '*_chopper.log', mode: 'link'
+  publishDir { "${params.outdir}/${sampleid}/preprocessing/chopper" }, pattern: '*_chopper.log', mode: 'link'
   tag "${sampleid}"
   label 'setting_3'
 
@@ -271,7 +242,7 @@ stopOnLowCoverage=0
 maxInputCoverage=10000 corOutCoverage=10000 corMhapSensitivity=high corMinCoverage=0 redMemory=32 oeaMemory=32 batMemory=64 useGrid=false minReadLength=200 minOverlapLength=50 maxThreads=4 minInputCoverage=0 stopOnLowCoverage=0
 */
 process CANU {
-  publishDir "${params.outdir}/${sampleid}/assembly/canu", mode: 'copy', pattern: '{*.fasta,*.log}'
+  publishDir { "${params.outdir}/${sampleid}/assembly/canu" }, mode: 'copy', pattern: '{*.fasta,*.log}'
   tag "${sampleid}"
   label 'setting_6'
 
@@ -305,7 +276,7 @@ process CANU {
 }
 
 process FLYE {
-  publishDir "${params.outdir}/${sampleid}/assembly/flye", mode: 'copy', pattern: '{*.fasta,*.log}'
+  publishDir { "${params.outdir}/${sampleid}/assembly/flye" }, mode: 'copy', pattern: '{*.fasta,*.log}'
   tag "${sampleid}"
   label 'setting_9'
 
@@ -338,13 +309,14 @@ errorStrategy 'ignore'
 */
 
 process BLASTN2REF {
-  publishDir "${params.outdir}/${sampleid}", mode: 'copy', pattern: '*/*/*txt'
+  publishDir { "${params.outdir}/${sampleid}" }, mode: 'copy', pattern: '*/*/*txt'
   tag "${sampleid}"
   label 'setting_1'
-  containerOptions "${bindOptions}"
+ 
 
   input:
     tuple val(sampleid), path(assembly)
+    val(db)
 
   output:
     path "*/*/${sampleid}_blastn_reference_vs_*.txt"
@@ -356,7 +328,7 @@ process BLASTN2REF {
       if [[ ${assembly} == *canu_assembly*.fa* ]] ;
       then
         mkdir -p assembly/blast_to_ref
-        blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_canu_assembly_tmp.txt \
+        blastn -query ${assembly} -subject ${db} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_canu_assembly_tmp.txt \
         -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
 
         echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
@@ -366,7 +338,7 @@ process BLASTN2REF {
       then
         mkdir -p assembly/blast_to_ref
 
-        blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_flye_assembly_tmp.txt \
+        blastn -query ${assembly} -subject ${db} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_flye_assembly_tmp.txt \
         -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
 
         echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
@@ -377,7 +349,7 @@ process BLASTN2REF {
     then
       mkdir -p clustering/blast_to_ref
 
-      blastn -query ${assembly} -subject ${reference_dir}/${reference_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_clustering_tmp.txt \
+      blastn -query ${assembly} -subject ${db} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_clustering_tmp.txt \
       -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
 
       echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
@@ -390,22 +362,22 @@ process BLASTN2REF {
 process MINIMAP2_REF {
   tag "${sampleid}"
   label 'setting_2'
-  containerOptions "${bindOptions}"
 
   input:
     tuple val(sampleid), path(sample)
+    val(db)
 
   output:
     tuple val(sampleid), file("${sampleid}_aln.sam"), emit: aligned_sample
 
   script:
     """
-    minimap2 -ax map-ont --MD --sam-hit-only ${reference_dir}/${reference_name} ${sample} > ${sampleid}_aln.sam
+    minimap2 -ax map-ont --MD --sam-hit-only ${db} ${sample} > ${sampleid}_aln.sam
     """
 }
 
 process SAMTOOLS {
-  publishDir "${params.outdir}/${sampleid}/mapping", mode: 'copy'
+  publishDir { "${params.outdir}/${sampleid}/mapping" }, mode: 'copy'
   tag "${sampleid}"
   label 'setting_2'
 
@@ -431,8 +403,8 @@ process SAMTOOLS {
 process EXTRACT_REF_FASTA {
   tag "$sampleid"
   label "setting_1"
-  publishDir "${params.outdir}/${sampleid}/alignments", mode: 'copy', pattern: '*fasta'
-  containerOptions "${bindOptions}"
+  publishDir { "${params.outdir}/${sampleid}/alignments" }, mode: 'copy', pattern: '*fasta'
+ 
 
   input:
     tuple val(sampleid), path(blast_results)
@@ -454,7 +426,7 @@ process EXTRACT_REF_FASTA {
 process MAPPING_BACK_TO_REF {
   tag "$sampleid"
   label "setting_3"
-  publishDir "${params.outdir}/${sampleid}/alignments", mode: 'copy', pattern: '*sorted.bam*'
+  publishDir { "${params.outdir}/${sampleid}/alignments" }, mode: 'copy', pattern: '*sorted.bam*'
   //publishDir "${params.outdir}/01_VirReport/${sampleid}/alignments/NT", mode: 'link', overwrite: true, pattern: "*{.fa*,.fasta,metrics.txt,scores.txt,targets.txt,stats.txt,log.txt,.bcf*,.vcf.gz*,.bam*}"
 
   input:
@@ -478,7 +450,7 @@ process MAPPING_BACK_TO_REF {
 process MOSDEPTH {
   tag "$sampleid"
   label "setting_3"
-  publishDir "${params.outdir}/${sampleid}/alignments", mode: 'copy'
+  publishDir { "${params.outdir}/${sampleid}/alignments" }, mode: 'copy'
 
   input:
     tuple val(sampleid), path("*")
@@ -505,7 +477,7 @@ process MOSDEPTH {
 process COVERM {
   tag "$sampleid"
   label "setting_3"
-  publishDir "${params.outdir}/${sampleid}/alignments", mode: 'copy', pattern: '*coverage_histogram.txt'
+  publishDir { "${params.outdir}/${sampleid}/alignments" }, mode: 'copy', pattern: '*coverage_histogram.txt'
 
   input:
     tuple val(sampleid), path("*")
@@ -532,7 +504,7 @@ process COVERM {
 process COVSTATS {
   tag "$sampleid"
   label "setting_2"
-  publishDir "${params.outdir}/${sampleid}/alignments", mode: 'copy'
+  publishDir { "${params.outdir}/${sampleid}/alignments" }, mode: 'copy'
 
   input:
     tuple val(sampleid), path("*")
@@ -585,9 +557,9 @@ process BAMCOVERAGE {
 
 process PORECHOP_ABI {
   tag "${sampleid}"
-  publishDir "$params.outdir/${sampleid}/preprocessing/porechop",  mode: 'link', pattern: '*_porechop.log'
+  publishDir { "${params.outdir}/${sampleid}/preprocessing/porechop" },  mode: 'link', pattern: '*_porechop.log'
   label "setting_9"
-  containerOptions "${bindOptions}"
+ 
 
   input:
     tuple val(sampleid), path(sample)
@@ -611,8 +583,8 @@ process PORECHOP_ABI {
 //trims fastq read names after the first whitespace
 process REFORMAT {
   tag "${sampleid}"
-  label "setting_3"
-  publishDir "$params.outdir/${sampleid}/preprocessing", mode: 'copy'
+  label "setting_8"
+  publishDir { "${params.outdir}/${sampleid}/preprocessing" }, mode: 'copy'
 
   input:
     tuple val(sampleid), path(fastq)
@@ -631,8 +603,8 @@ process CAP3 {
   tag "${sampleid}"
   label "setting_3"
   time "3h"
-  publishDir "$params.outdir/$sampleid/clustering/cap3", mode: 'copy', pattern: '*_clustering.fasta'
-  publishDir "$params.outdir/$sampleid/clustering/rattle", mode: 'copy', pattern: '*_rattle.fasta'
+  publishDir { "$params.outdir/$sampleid/clustering/cap3" }, mode: 'copy', pattern: '*_clustering.fasta'
+  publishDir { "$params.outdir/$sampleid/clustering/rattle" }, mode: 'copy', pattern: '*_rattle.fasta'
 
   input:
     tuple val(sampleid), path(fasta)
@@ -652,8 +624,8 @@ process CAP3 {
 process EXTRACT_VIRAL_BLAST_HITS {
   tag "${sampleid}"
   label "setting_2"
-  publishDir "$params.outdir/$sampleid", mode: 'copy'
-  containerOptions "${bindOptions}"
+  publishDir { "$params.outdir/${sampleid}" }, mode: 'copy'
+ 
 
   input:
     tuple val(sampleid), path(blast_results)
@@ -691,29 +663,6 @@ process EXTRACT_VIRAL_BLAST_HITS {
       cd read_classification/homology_search
       select_top_blast_hit.py --sample_name ${sampleid} --blastn_results ${sampleid}_blastn.txt --analysis_method read_classification --mode ${params.blast_mode}
     fi
-    """
-}
-
-process CONCATENATE_FASTA {
-  tag "${sampleid}"
-  label "setting_2"
-  publishDir "${params.outdir}/${sampleid}", mode: 'link'
-
-  input:
-    tuple val(sampleid), path("${sampleid}_canu_assembly.fasta")
-    tuple val(sampleid), path("${sampleid}_cap3.fasta")
-    tuple val(sampleid), path("${sampleid}.fasta")
-
-  output:
-    file "${sampleid}_merged.fasta"
-    tuple val(sampleid), path("*_merged.fasta"), emit: assembly
-
-  script:
-    """
-    seqtk seq -l0 ${sampleid}_canu_assembly.fasta > ${sampleid}_canu_assembly_1l.fasta
-    seqtk seq -l0 ${sampleid}_cap3.fasta >  ${sampleid}_cap3_1l.fasta
-    seqtk seq -l0 ${sampleid}.fasta >  ${sampleid}_1l.fasta
-    cat  ${sampleid}_canu_assembly_1l.fasta ${sampleid}_cap3_1l.fasta  ${sampleid}.fasta > ${sampleid}_merged.fasta
     """
 }
 
@@ -766,13 +715,14 @@ Optional arguments:
 */
 
 process KAIJU {
-  publishDir "${params.outdir}/${sampleid}/read_classification/kaiju", mode: 'copy'
+  publishDir { "${params.outdir}/${sampleid}/read_classification/kaiju" }, mode: 'copy'
   label 'setting_4'
-  containerOptions "${bindOptions}"
+ 
   tag "${sampleid}"
 
   input:
     tuple val(sampleid), path(fastq)
+    path(db)
 
   output:
     file "${sampleid}_kaiju_name.tsv"
@@ -783,19 +733,22 @@ process KAIJU {
 
   script:
     """
+    dbnodes=`find -L ${db} -name "*nodes.dmp"`
+    dbname=`find -L ${db} -name "*.fmi" -not -name "._*"`
+    dbnames=`find -L ${db} -name "*names.dmp"`
     c1grep() { grep "\$@" || test \$? = 1; }
 
     kaiju \
         -z ${params.kaiju_threads} \
-        -t ${params.kaiju_nodes}  \
-        -f ${params.kaiju_dbname} \
+        -t \$dbnodes  \
+        -f \${dbname} \
         -o ${sampleid}_kaiju.tsv \
         -i ${fastq} \
         -v
 
-    kaiju-addTaxonNames -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju_name.tsv
-    kaiju2table -e -t ${params.kaiju_nodes} -r species -n ${params.kaiju_names} -o ${sampleid}_kaiju_summary.tsv ${sampleid}_kaiju.tsv
-    kaiju2krona -t ${params.kaiju_nodes} -n ${params.kaiju_names} -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju.krona
+    kaiju-addTaxonNames -t \$dbnodes -n \$dbnames -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju_name.tsv
+    kaiju2table -e -t \$dbnodes -r species -n \$dbnames -o ${sampleid}_kaiju_summary.tsv ${sampleid}_kaiju.tsv
+    kaiju2krona -t \$dbnodes -n \$dbnames -i ${sampleid}_kaiju.tsv -o ${sampleid}_kaiju.krona
 
     c1grep "taxon_id\\|virus\\|viroid\\|viricota\\|viridae\\|viriform\\|virales\\|virinae\\|viricetes\\|virae\\|viral" ${sampleid}_kaiju_summary.tsv > ${sampleid}_kaiju_summary_viral.tsv
     awk -F'\\t' '\$2>=0.05' ${sampleid}_kaiju_summary_viral.tsv > ${sampleid}_kaiju_summary_viral_filtered.tsv
@@ -803,9 +756,9 @@ process KAIJU {
 }
 
 process READ_CLASSIFICATION_HTML {
-  publishDir "${params.outdir}/${sampleid}/read_classification/summary", mode: 'copy', overwrite: true
+  publishDir { "${params.outdir}/${sampleid}/read_classification/summary" }, mode: 'copy', overwrite: true
   label 'local'
-  containerOptions "${bindOptions}"
+ 
   tag "${sampleid}"
 
   input:
@@ -821,9 +774,9 @@ process READ_CLASSIFICATION_HTML {
 }
 
 process KRONA {
-  publishDir "${params.outdir}/${sampleid}/read_classification/kaiju", mode: 'link'
+  publishDir { "${params.outdir}/${sampleid}/read_classification/kaiju" }, mode: 'link'
   label 'setting_3'
-  containerOptions "${bindOptions}"
+ 
   tag "${sampleid}"
 
   input:
@@ -886,11 +839,12 @@ Usage: kraken2 [options] <filename(s)>
 process KRAKEN2 {
   tag "${sampleid}"
   label 'setting_5'
-  publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'copy'
-  containerOptions "${bindOptions}"
+  publishDir { "${params.outdir}/${sampleid}/read_classification/kraken" },  mode: 'copy'
+ 
 
   input:
     tuple val(sampleid), path(fastq)
+    path db
 
   output:
     file("${sampleid}.kraken2")
@@ -900,7 +854,7 @@ process KRAKEN2 {
 
   script:
     """
-    kraken2 --db ${params.krkdb} \
+    kraken2 --db ${db} \
             --use-names \
             --threads ${task.cpus} \
             --report ${sampleid}_kraken_report.txt \
@@ -914,11 +868,12 @@ process KRAKEN2 {
 process BRACKEN {
   tag "${sampleid}"
   label 'setting_2'
-  publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'copy'
-  containerOptions "${bindOptions}"
+  publishDir { "${params.outdir}/${sampleid}/read_classification/kraken" },  mode: 'copy'
+ 
 
   input:
     tuple val(sampleid), path(kraken_report)
+    path db
 
   output:
     file("${sampleid}_bracken_report*.txt")
@@ -930,7 +885,7 @@ process BRACKEN {
     c1grep() { grep "\$@" || test \$? = 1; }
 
     est_abundance.py -i ${kraken_report} \
-                    -k ${params.krkdb}/database50mers.kmer_distrib \
+                    -k ${db}/database50mers.kmer_distrib \
                     -t 1 \
                     -l S -o ${sampleid}_bracken_report.txt
 
@@ -943,8 +898,8 @@ process BRACKEN {
 process BRACKEN_HTML {
   tag "${sampleid}"
 	label "local"
-	publishDir "$params.outdir/$sampleid/read_classification/kraken",  mode: 'link'
-  containerOptions "${bindOptions}"
+	publishDir { "${params.outdir}/${sampleid}/read_classification/kraken" },  mode: 'link'
+ 
 
   input:
     tuple val(sampleid), path(braken_report)
@@ -959,10 +914,10 @@ process BRACKEN_HTML {
 }
 
 process RATTLE {
-  publishDir "${params.outdir}/${sampleid}/clustering/rattle", mode: 'copy', pattern: 'transcriptome.fq'
+  publishDir { "${params.outdir}/${sampleid}/clustering/rattle" }, mode: 'copy', pattern: 'transcriptome.fq'
   tag "${sampleid}"
   label 'setting_7'
-  containerOptions "${bindOptions}"
+ 
 
   input:
     tuple val(sampleid), path(fastq)
@@ -985,14 +940,35 @@ process RATTLE {
     """
 }
 
+process POLYA_TRIM {
+  publishDir { "${params.outdir}/${sampleid}/preprocessing/cutadapt" }, mode: 'copy', pattern: '*_polyA_trimmed.fastq.gz'
+  tag "${sampleid}"
+  label 'setting_12'
+  input:
+    tuple val(sampleid), path(sample)
+
+  output:
+    tuple val(sampleid), path("${sampleid}_polyA_trimmed.fastq.gz"), emit: cutadapt_trimmed_fq
+
+  script:
+    """
+    cutadapt \
+      -g "T{25}" -e 0.1  -O 10 \
+      --poly-a \
+      -e 0.15 \
+      -o ${sampleid}_polyA_trimmed.fastq.gz \
+      ${sample}
+    """
+}
+
 process MEDAKA {
-  publishDir "${params.outdir}/${sampleid}/mapping", mode: 'copy'
+  publishDir { "${params.outdir}/${sampleid}/mapping" }, mode: 'copy'
   tag "${sampleid}"
   label 'setting_3'
-  containerOptions "${bindOptions}"
 
   input:
    tuple val(sampleid), path(bam), path(bai)
+   val(db)
 
   output:
     tuple val(sampleid), path("${sampleid}_medaka.annotated.unfiltered.vcf"), emit: unfilt_vcf
@@ -1003,20 +979,21 @@ process MEDAKA {
     medaka consensus ${bam} ${sampleid}_medaka_consensus_probs.hdf \
       ${medaka_consensus_options} --threads ${task.cpus}
 
-    medaka variant ${reference_dir}/${reference_name} ${sampleid}_medaka_consensus_probs.hdf ${sampleid}_medaka.vcf
-    medaka tools annotate --dpsp ${sampleid}_medaka.vcf ${reference_dir}/${reference_name} ${bam} \
+    medaka variant ${db} ${sampleid}_medaka_consensus_probs.hdf ${sampleid}_medaka.vcf
+    medaka tools annotate --dpsp ${sampleid}_medaka.vcf ${db} ${bam} \
           ${sampleid}_medaka.annotated.unfiltered.vcf
     """
 }
 
 process FILTER_VCF {
-  publishDir "${params.outdir}/${sampleid}/mapping", mode: 'copy'
+  publishDir { "${params.outdir}/${sampleid}/mapping" }, mode: 'copy'
   tag "${sampleid}"
   label 'setting_3'
-  containerOptions "${bindOptions}"
+ 
 
   input:
    tuple val(sampleid), path(vcf)
+   val(db)
 
   output:
     path("${sampleid}_medaka.consensus.fasta")
@@ -1032,7 +1009,7 @@ process FILTER_VCF {
 
     # create consensus
     bcftools index ${sampleid}_medaka.annotated.vcf.gz
-    bcftools consensus -f ${reference_dir}/${reference_name} ${sampleid}_medaka.annotated.vcf.gz \
+    bcftools consensus -f ${db} ${sampleid}_medaka.annotated.vcf.gz \
         -i 'FILTER="PASS"' \
         -o ${sampleid}_medaka.consensus.fasta
     """
@@ -1040,7 +1017,7 @@ process FILTER_VCF {
 
 
 process FASTCAT {
-  publishDir "${params.outdir}/${sampleid}/qc/fastcat", mode: 'copy'
+  publishDir { "${params.outdir}/${sampleid}/qc/fastcat" }, mode: 'copy'
   tag "${sampleid}"
   label "setting_2"
 
@@ -1065,8 +1042,8 @@ process FASTCAT {
 
 process DETECTION_REPORT {
   label "local"
-    publishDir "${params.outdir}/detection_summary", mode: 'copy', overwrite: true
-    containerOptions "${bindOptions}"
+    publishDir { "${params.outdir}/detection_summary" }, mode: 'copy', overwrite: true
+   
 
   input:
     path('*')
@@ -1083,7 +1060,7 @@ process DETECTION_REPORT {
 process MINIMAP2_ALIGN_RNA {
   tag "${sampleid}"
   label "setting_8"
-  containerOptions "${bindOptions}"
+ 
 
   input:
   tuple val(sampleid), path(fastq)
@@ -1101,7 +1078,7 @@ process MINIMAP2_ALIGN_RNA {
 process EXTRACT_READS {
   tag "${sampleid}"
   label "setting_11"
-  publishDir "${params.outdir}/${sampleid}/host_filtering", mode: 'copy', pattern: '{*.fastq.gz,*reads_count.txt}'
+  publishDir { "${params.outdir}/${sampleid}/host_filtering" }, mode: 'copy', pattern: '{*.fastq.gz,*reads_count.txt}'
 
   input:
   tuple val(sampleid), path(fastq), path(unaligned_ids)
@@ -1121,16 +1098,35 @@ process EXTRACT_READS {
   """
 }
 
-//include { MINIMAP2_ALIGN_RNA } from './modules.nf'
-//include { EXTRACT_READS as EXTRACT_READS } from './modules.nf'
-include { FASTQ2FASTA } from './modules.nf'
-include { FASTQ2FASTA as FASTQ2FASTA_STEP1} from './modules.nf'
-include { NANOPLOT as QC_PRE_DATA_PROCESSING } from './modules.nf'
-include { NANOPLOT as QC_POST_DATA_PROCESSING } from './modules.nf'
-include { BLASTN as READ_CLASSIFICATION_BLASTN } from './modules.nf'
-include { BLASTN as ASSEMBLY_BLASTN } from './modules.nf'
+include { FASTQ2FASTA } from './modules/fastq2fasta/main.nf'
+include { FASTQ2FASTA as FASTQ2FASTA_STEP1} from './modules/fastq2fasta/main.nf'
+include { NANOPLOT as QC_PRE_DATA_PROCESSING } from './modules/nanoplot/main.nf'
+include { NANOPLOT as QC_POST_DATA_PROCESSING } from './modules/nanoplot/main.nf'
+include { BLASTN as READ_CLASSIFICATION_BLASTN } from './modules/blastn/main.nf'
+include { BLASTN as ASSEMBLY_BLASTN } from './modules/blastn/main.nf'
 
 workflow {
+  // Show help message
+  if (params.help) {
+      helpMessage()
+      exit 0
+  }
+  if (params.blastn_db != null) {
+      blastn_db_name = file(params.blastn_db).name
+      params.blastn_db_dir = file(params.blastn_db).parent
+  }
+  if (params.reference != null) {
+      reference_name = file(params.reference).name
+      params.reference_dir = file(params.reference).parent
+  }
+  if (params.host_fasta != null) {
+      params.host_fasta_dir = file(params.host_fasta).parent
+  }
+
+  if (params.porechop_custom_primers == true) {
+      params.porechop_custom_primers_dir = file(params.porechop_custom_primers_path).parent
+  }
+  params.bindOptions = buildBindOptions()
   if (params.samplesheet) {
     Channel
       .fromPath(params.samplesheet, checkIfExists: true)
@@ -1139,7 +1135,7 @@ workflow {
       .set{ ch_sample }
   } else { exit 1, "Input samplesheet file not specified!" }
 
-  if ( params.analysis_mode == 'clustering' | params.analysis_mode == 'denovo_assembly' | (params.analysis_mode == 'read_classification' & params.megablast)) {
+  if ( params.analysis_mode == 'clustering' || params.analysis_mode == 'denovo_assembly' || (params.analysis_mode == 'read_classification' && params.megablast)) {
     if (!params.blast_vs_ref) {
       if ( params.blastn_db == null) {
         error("Please provide the path to a blast database using the parameter --blastn_db.")
@@ -1172,9 +1168,15 @@ workflow {
   if (!params.qc_only) {
     if (params.adapter_trimming) {
       PORECHOP_ABI ( fq )
-      trimmed_fq = PORECHOP_ABI.out.porechopabi_trimmed_fq
+      if (params.polya_trim) {
+        POLYA_TRIM ( PORECHOP_ABI.out.porechopabi_trimmed_fq )
+        trimmed_fq = POLYA_TRIM.out.cutadapt_trimmed_fq
+      }
+      else {
+        trimmed_fq = PORECHOP_ABI.out.porechopabi_trimmed_fq
+      }
     }
-
+    
     else {
       trimmed_fq = fq
     }
@@ -1189,7 +1191,7 @@ workflow {
 
     REFORMAT( filtered_fq )
 
-    if ( params.qual_filt & params.adapter_trimming | !params.qual_filt & params.adapter_trimming | params.qual_filt & !params.adapter_trimming) {
+    if ( params.qual_filt && params.adapter_trimming || !params.qual_filt && params.adapter_trimming || params.qual_filt && !params.adapter_trimming) {
       QC_POST_DATA_PROCESSING ( filtered_fq )
     }
 
@@ -1207,7 +1209,7 @@ workflow {
       final_fq = REFORMAT.out.reformatted_fq
     }
 
-    if ( params.qual_filt & params.host_filtering | params.adapter_trimming & params.host_filtering ) {
+    if ( params.qual_filt && params.host_filtering || params.adapter_trimming && params.host_filtering ) {
       ch_multiqc_files = Channel.empty()
       ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
       ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS.out.read_counts.collect().ifEmpty([]))
@@ -1215,14 +1217,14 @@ workflow {
       QCREPORT(ch_multiqc_files.collect())
     }
 
-    else if ( params.host_filtering & !params.adapter_trimming & !params.qual_filt ) {
+    else if ( params.host_filtering && !params.adapter_trimming && !params.qual_filt ) {
       ch_multiqc_files = Channel.empty()
       ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
       ch_multiqc_files = ch_multiqc_files.mix(EXTRACT_READS.out.read_counts.collect().ifEmpty([]))
       QCREPORT(ch_multiqc_files.collect())
     }
 
-    else if ( params.qual_filt & !params.host_filtering | params.adapter_trimming & !params.host_filtering) {
+    else if ( params.qual_filt && !params.host_filtering || params.adapter_trimming && !params.host_filtering) {
       ch_multiqc_files = Channel.empty()
       ch_multiqc_files = ch_multiqc_files.mix(QC_PRE_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
       ch_multiqc_files = ch_multiqc_files.mix(QC_POST_DATA_PROCESSING.out.read_counts.collect().ifEmpty([]))
@@ -1257,11 +1259,12 @@ workflow {
         }
         //limit blast homology search to a reference
         if (params.blast_vs_ref) {
-          BLASTN2REF ( contigs )
+          BLASTN2REF ( contigs, params.reference )
         }
         //blast to database
         else {
-        ASSEMBLY_BLASTN ( contigs )
+        ASSEMBLY_BLASTN ( contigs, params.blastn_db )
+        }
         EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
         EXTRACT_REF_FASTA (EXTRACT_VIRAL_BLAST_HITS.out.blast_results2)
 
@@ -1274,51 +1277,50 @@ workflow {
         COVSTATS(cov_stats_summary_ch)
 
         DETECTION_REPORT(COVSTATS.out.detections_summary.collect().ifEmpty([]))
-        }
       }
 
       //Perform direct read classification
       else if ( params.analysis_mode == 'read_classification') {
         if (params.megablast) {
           FASTQ2FASTA_STEP1( final_fq )
-          READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true) )
+          READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true), params.blastn_db )
           READ_CLASSIFICATION_BLASTN.out.blast_results
             .groupTuple()
             .set { ch_blastresults }
           EXTRACT_VIRAL_BLAST_HITS( ch_blastresults )
         }
         if (params.kaiju) {
-          KAIJU ( final_fq )
+          KAIJU ( final_fq, params.kaiju_db_path )
           KRONA ( KAIJU.out.krona_results)
         }
         if (params.kraken2) {
-          KRAKEN2 ( final_fq )
-          BRACKEN ( KRAKEN2.out.results )
+          KRAKEN2 ( final_fq, params.krkdb )
+          BRACKEN ( KRAKEN2.out.results, params.krkdb )
         }
 
-        if ( params.megablast & !params.kaiju & !params.kraken2 ) {
+        if ( params.megablast && !params.kaiju && !params.kraken2 ) {
         foo_in_ch = EXTRACT_VIRAL_BLAST_HITS.out.blast_results.concat(EXTRACT_VIRAL_BLAST_HITS.out.blast_results_filt).groupTuple().map { [it[0], it[1].flatten()] }
         READ_CLASSIFICATION_HTML( foo_in_ch )
         }
-        else if (params.kaiju & !params.megablast & !params.kraken2) {
+        else if (params.kaiju && !params.megablast && !params.kraken2) {
           READ_CLASSIFICATION_HTML( KAIJU.out.kaiju_results )
         }
-        else if (params.kraken2 & !params.megablast & !params.kaiju) {
+        else if (params.kraken2 && !params.megablast && !params.kaiju) {
           READ_CLASSIFICATION_HTML(BRACKEN.out.bracken_results )
         }
-        else if (params.megablast & !params.kaiju & params.kraken2) {
+        else if (params.megablast && !params.kaiju && params.kraken2) {
           foo_in_ch = EXTRACT_VIRAL_BLAST_HITS.out.blast_results.concat(EXTRACT_VIRAL_BLAST_HITS.out.blast_results_filt, BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }
           READ_CLASSIFICATION_HTML( foo_in_ch )
         }
-        else if (params.megablast & params.kaiju & !params.kraken2) {
+        else if (params.megablast && params.kaiju && !params.kraken2) {
           foo_in_ch = EXTRACT_VIRAL_BLAST_HITS.out.blast_results.concat(EXTRACT_VIRAL_BLAST_HITS.out.blast_results_filt, KAIJU.out.kaiju_results).groupTuple().map { [it[0], it[1].flatten()] }
           READ_CLASSIFICATION_HTML( foo_in_ch )
         }
-        else if (!params.megablast & params.kaiju & params.kraken2) {
+        else if (!params.megablast && params.kaiju && params.kraken2) {
           foo_in_ch = KAIJU.out.kaiju_results.concat(BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }
           READ_CLASSIFICATION_HTML( foo_in_ch )
         }
-        else if (params.megablast & params.kaiju & params.kraken2) {
+        else if (params.megablast && params.kaiju && params.kraken2) {
           foo_in_ch = KAIJU.out.kaiju_results.concat(EXTRACT_VIRAL_BLAST_HITS.out.blast_results, EXTRACT_VIRAL_BLAST_HITS.out.blast_results_filt, BRACKEN.out.bracken_results).groupTuple().map { [it[0], it[1].flatten()] }
           READ_CLASSIFICATION_HTML( foo_in_ch )
         }
@@ -1326,10 +1328,10 @@ workflow {
 
       //Perform direct alignment to a reference
       else if ( params.analysis_mode == 'map2ref') {
-        MINIMAP2_REF ( final_fq )
+        MINIMAP2_REF ( final_fq, params.reference )
         SAMTOOLS ( MINIMAP2_REF.out.aligned_sample )
-        MEDAKA ( SAMTOOLS.out.sorted_sample )
-        FILTER_VCF ( MEDAKA.out.unfilt_vcf )
+        MEDAKA ( SAMTOOLS.out.sorted_sample, params.reference )
+        FILTER_VCF ( MEDAKA.out.unfilt_vcf, params.reference )
       }
       else {
         error("Analysis mode (read_classification, clustering, denovo_assembly, map2ref) not specified with e.g. '--analysis_mode clustering' or via a detectable config file.")
