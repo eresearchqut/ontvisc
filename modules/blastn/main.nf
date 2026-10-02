@@ -1,19 +1,18 @@
 process BLASTN {
   tag "${sampleid}"
   label "setting_10"
-  containerOptions "--bind ${file(params.blastn_db).parent}"
 
   input:
     tuple val(sampleid), path(assembly)
-    val(db)
+    tuple path(blastdb_dir), val(blastdb_name)
 
   output:
     tuple val(sampleid), path("${sampleid}*_blastn.bls"), emit: blast_results
 
   script:
   def blastoutput = assembly.getBaseName() + "_blastn.bls"
-  def blastdb_dir  = file(db).parent
-  def blastdb_name = file(db).name
+  //def blastdb_dir  = file(db).parent
+  //def blastdb_name = file(db).name
   
   if (params.blast_mode == "ncbi") {
     """
@@ -21,7 +20,7 @@ process BLASTN {
     #cp ${blastdb_dir}/taxdb.btd .
     #cp ${blastdb_dir}/taxdb.bti .
     blastn -query ${assembly} \
-      -db ${blastdb_name} \
+      -db ${blastdb_dir}/${blastdb_name} \
       -out ${blastoutput} \
       -evalue 1e-3 \
       -num_threads ${params.blast_threads} \
@@ -34,7 +33,7 @@ process BLASTN {
     """
     export BLASTDB=${blastdb_dir}
     blastn -query ${assembly} \
-      -db ${blastdb_name}  \
+      -db ${blastdb_dir}/${blastdb_name}  \
       -out ${blastoutput} \
       -evalue 1e-3 \
       -num_threads ${params.blast_threads} \

@@ -125,27 +125,27 @@ def helpMessage () {
 
 
 
-def buildBindOptions() {
-  def bindOptions = ""
+// def buildBindOptions() {
+//   def bindOptions = ""
 
-  if (workflow.containerEngine == "singularity") {
-    [
-      params.blastn_db_dir,
-      params.reference_dir,
-      params.kaiju_db_path,
-      params.krkdb,
-      params.host_fasta_dir,
-      params.porechop_custom_primers_dir,
-    ]
-    .findAll { it != null }
-    .collect { file(it) }
-    .collect { it.isDirectory() ? it : it.parent }
-    .unique()
-    .each { bindOptions += "-B ${it}:${it} " }
-  }
+//   if (workflow.containerEngine == "singularity") {
+//     [
+//       params.blastn_db_dir,
+//       params.reference_dir,
+//       params.kaiju_db_path,
+//       params.krkdb,
+//       params.host_fasta_dir,
+//       params.porechop_custom_primers_dir,
+//     ]
+//     .findAll { it != null }
+//     .collect { file(it) }
+//     .collect { it.isDirectory() ? it : it.parent }
+//     .unique()
+//     .each { bindOptions += "-B ${it}:${it} " }
+//   }
 
-  return bindOptions
-}
+//   return bindOptions
+// }
 
 
 
@@ -1126,7 +1126,7 @@ workflow {
   if (params.porechop_custom_primers == true) {
       params.porechop_custom_primers_dir = file(params.porechop_custom_primers_path).parent
   }
-  params.bindOptions = buildBindOptions()
+  //params.bindOptions = buildBindOptions()
   if (params.samplesheet) {
     Channel
       .fromPath(params.samplesheet, checkIfExists: true)
@@ -1232,7 +1232,12 @@ workflow {
     }
 
     if (!params.preprocessing_only) {
-      
+      ch_blast_db = Channel.value(
+        tuple(
+            file(params.blastn_db).parent,
+            file(params.blastn_db).name
+        )
+      )
       if ( params.analysis_mode == 'clustering' || params.analysis_mode == 'denovo_assembly' ) {
         //Perform clustering using Rattle
         if ( params.analysis_mode == 'clustering' ) {
@@ -1262,28 +1267,30 @@ workflow {
           BLASTN2REF ( contigs, params.reference )
         }
         //blast to database
+        
         else {
-        ASSEMBLY_BLASTN ( contigs, params.blastn_db )
+          ASSEMBLY_BLASTN ( contigs, ch_blast_db )
+        
+          EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
+          EXTRACT_REF_FASTA (EXTRACT_VIRAL_BLAST_HITS.out.blast_results2)
+
+          mapping_ch = EXTRACT_REF_FASTA.out.fasta_files.concat(REFORMAT.out.cov_derivation_ch).groupTuple().map { [it[0], it[1].flatten()] }//.view()
+          MAPPING_BACK_TO_REF ( mapping_ch )
+          bamf_ch = MAPPING_BACK_TO_REF.out.bam_files.concat(MAPPING_BACK_TO_REF.out.bai_files, EXTRACT_REF_FASTA.out.fasta_files).groupTuple().map { [it[0], it[1].flatten()] }//.view()
+          MOSDEPTH (bamf_ch)
+          COVERM (bamf_ch)
+          cov_stats_summary_ch = MOSDEPTH.out.mosdepth_results.concat(COVERM.out.coverm_results, EXTRACT_REF_FASTA.out.fasta_files, EXTRACT_VIRAL_BLAST_HITS.out.blast_results2, QC_PRE_DATA_PROCESSING.out.stats).groupTuple().map { [it[0], it[1].flatten()] }//.view()
+          COVSTATS(cov_stats_summary_ch)
+
+          DETECTION_REPORT(COVSTATS.out.detections_summary.collect().ifEmpty([]))
         }
-        EXTRACT_VIRAL_BLAST_HITS ( ASSEMBLY_BLASTN.out.blast_results )
-        EXTRACT_REF_FASTA (EXTRACT_VIRAL_BLAST_HITS.out.blast_results2)
-
-        mapping_ch = EXTRACT_REF_FASTA.out.fasta_files.concat(REFORMAT.out.cov_derivation_ch).groupTuple().map { [it[0], it[1].flatten()] }//.view()
-        MAPPING_BACK_TO_REF ( mapping_ch )
-        bamf_ch = MAPPING_BACK_TO_REF.out.bam_files.concat(MAPPING_BACK_TO_REF.out.bai_files, EXTRACT_REF_FASTA.out.fasta_files).groupTuple().map { [it[0], it[1].flatten()] }//.view()
-        MOSDEPTH (bamf_ch)
-        COVERM (bamf_ch)
-        cov_stats_summary_ch = MOSDEPTH.out.mosdepth_results.concat(COVERM.out.coverm_results, EXTRACT_REF_FASTA.out.fasta_files, EXTRACT_VIRAL_BLAST_HITS.out.blast_results2, QC_PRE_DATA_PROCESSING.out.stats).groupTuple().map { [it[0], it[1].flatten()] }//.view()
-        COVSTATS(cov_stats_summary_ch)
-
-        DETECTION_REPORT(COVSTATS.out.detections_summary.collect().ifEmpty([]))
       }
 
       //Perform direct read classification
       else if ( params.analysis_mode == 'read_classification') {
         if (params.megablast) {
           FASTQ2FASTA_STEP1( final_fq )
-          READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true), params.blastn_db )
+          READ_CLASSIFICATION_BLASTN( FASTQ2FASTA_STEP1.out.fasta.splitFasta(by: 5000, file: true), ch_blast_db )
           READ_CLASSIFICATION_BLASTN.out.blast_results
             .groupTuple()
             .set { ch_blastresults }
