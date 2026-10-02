@@ -1,0 +1,24 @@
+#!/bin/bash -l
+#PBS -N ontvisc
+#PBS -l select=1:ncpus=2:mem=8gb
+#PBS -l walltime=8:00:00
+
+
+cd $PBS_O_WORKDIR
+module load Java/21.0.2
+NXF_OPTS='-Xms1g -Xmx4g'
+#nextflow pull eresearchqut/ontvisc
+#NXF_VER=26.04.6 
+git pull
+nextflow run main.nf -resume -profile singularity \
+                            --host_filtering \
+                            --host_fasta /work/training/ontvisc_handson_training/Plant_host_sequences.fasta \
+                            --analysis_mode read_classification \
+                            --kraken2 \
+                            --krkdb /work/eresearch/databases/kraken_databases/PlusPFP_10_2023 \
+                            --kaiju \
+                            --kaiju_db_path /work/eresearch/databases/kaiju_databases \
+                            --megablast --blast_mode ncbi \
+                            --blast_threads 4 \
+                            --blastn_db /scratch/datasets/blast_db/20260402/core_nt
+
