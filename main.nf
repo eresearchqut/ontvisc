@@ -316,7 +316,7 @@ process BLASTN2REF {
 
   input:
     tuple val(sampleid), path(assembly)
-    val(db)
+    tuple path(blastdb_dir), val(blastdb_name)
 
   output:
     path "*/*/${sampleid}_blastn_reference_vs_*.txt"
@@ -328,7 +328,7 @@ process BLASTN2REF {
       if [[ ${assembly} == *canu_assembly*.fa* ]] ;
       then
         mkdir -p assembly/blast_to_ref
-        blastn -query ${assembly} -subject ${db} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_canu_assembly_tmp.txt \
+        blastn -query ${assembly} -subject ${blastdb_dir}/${blastdb_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_canu_assembly_tmp.txt \
         -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
 
         echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
@@ -338,7 +338,7 @@ process BLASTN2REF {
       then
         mkdir -p assembly/blast_to_ref
 
-        blastn -query ${assembly} -subject ${db} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_flye_assembly_tmp.txt \
+        blastn -query ${assembly} -subject ${blastdb_dir}/${blastdb_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_flye_assembly_tmp.txt \
         -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
 
         echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
@@ -349,7 +349,7 @@ process BLASTN2REF {
     then
       mkdir -p clustering/blast_to_ref
 
-      blastn -query ${assembly} -subject ${db} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_clustering_tmp.txt \
+      blastn -query ${assembly} -subject ${blastdb_dir}/${blastdb_name} -evalue 1e-3 -out ${sampleid}_blastn_reference_vs_clustering_tmp.txt \
       -outfmt '6 qseqid sacc length pident mismatch gapopen qstart qend qlen sstart send slen evalue bitscore qcovhsp qcovs' -max_target_seqs 5
 
       echo "qseqid\tsacc\tlength\tpident\tmismatch\tgapopen\tqstart\tqend\tqlen\tsstart\tsend\tslen\tevalue\tbitscore\tqcovhsp\tqcovs" > header
@@ -1117,11 +1117,16 @@ workflow {
             file(params.blastn_db).parent,
             file(params.blastn_db).name
         )
-        )
+      )
   }
   if (params.reference != null) {
-      reference_name = file(params.reference).name
-      params.reference_dir = file(params.reference).parent
+
+      ch_ref_db = Channel.value(
+        tuple(
+            file(params.reference).parent,
+            file(params.reference).name
+        )
+      )
   }
   if (params.host_fasta != null) {
       params.host_fasta_dir = file(params.host_fasta).parent
@@ -1262,7 +1267,7 @@ workflow {
         }
         //limit blast homology search to a reference
         if (params.blast_vs_ref) {
-          BLASTN2REF ( contigs, params.reference )
+          BLASTN2REF ( contigs, ch_ref_db )
         }
         //blast to database
         
