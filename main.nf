@@ -1112,8 +1112,12 @@ workflow {
       exit 0
   }
   if (params.blastn_db != null) {
-      blastn_db_name = file(params.blastn_db).name
-      params.blastn_db_dir = file(params.blastn_db).parent
+      ch_blast_db = Channel.value(
+        tuple(
+            file(params.blastn_db).parent,
+            file(params.blastn_db).name
+        )
+        )
   }
   if (params.reference != null) {
       reference_name = file(params.reference).name
@@ -1232,12 +1236,6 @@ workflow {
     }
 
     if (!params.preprocessing_only) {
-      ch_blast_db = Channel.value(
-        tuple(
-            file(params.blastn_db).parent,
-            file(params.blastn_db).name
-        )
-      )
       if ( params.analysis_mode == 'clustering' || params.analysis_mode == 'denovo_assembly' ) {
         //Perform clustering using Rattle
         if ( params.analysis_mode == 'clustering' ) {
